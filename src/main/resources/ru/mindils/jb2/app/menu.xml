@@ -3,6 +3,7 @@
 
     <menu id="application" title="msg://ru.mindils.jb2.app/menu.application.title" opened="true">
         <item view="jb2_User.list" title="msg://ru.mindils.jb2.app.view.user/UserListView.title"/>
+      <item view="jb2_Vacancy.list" title="msg://ru.mindils.jb2.app.view.vacancy/vacancyListView.title"/>
     </menu>
 
 </menu-config>

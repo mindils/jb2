@@ -1,6 +1,7 @@
 plugins {
     id 'io.jmix' version '2.6.1'
     id 'java'
+    id 'io.freefair.lombok' version "8.14.2"
     id 'org.jetbrains.gradle.plugin.idea-ext' version '1.1.9'
 }
 
@@ -23,6 +24,8 @@ repositories {
 }
 
 dependencies {
+    implementation 'io.jmix.rest:jmix-rest-starter'
+
     implementation 'io.jmix.core:jmix-core-starter'
     implementation 'io.jmix.data:jmix-eclipselink-starter'
     implementation 'io.jmix.security:jmix-security-starter'
