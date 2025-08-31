@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+    objectQuotingStrategy="QUOTE_ONLY_RESERVED_WORDS">
+
+  <changeSet id="1" author="jb2">
+    <createTable tableName="JB2_VACANCY">
+      <column name="id" type="VARCHAR(255)">
+        <constraints nullable="false" primaryKey="true" primaryKeyName="PK_JB2_VACANCY"/>
+      </column>
+      <column name="name" type="VARCHAR(255)"/>
+      <column name="description" type="TEXT"/>
+      <column name="branded_description" type="TEXT"/>
+      <column name="employer_id" type="VARCHAR(255)"/>
+      <column name="billing_type" type="jsonb"/>
+      <column name="area" type="jsonb"/>
+      <column name="salary" type="jsonb"/>
+      <column name="address" type="jsonb"/>
+      <column name="experience" type="jsonb"/>
+      <column name="schedule" type="jsonb"/>
+      <column name="employment" type="jsonb"/>
+      <column name="key_skills" type="jsonb"/>
+      <column name="professional_roles" type="jsonb"/>
+      <column name="working_time_modes" type="jsonb"/>
+      <column name="work_format" type="jsonb"/>
+      <column name="premium" type="BOOLEAN"/>
+      <column name="response_letter_required" type="BOOLEAN"/>
+      <column name="allow_messages" type="BOOLEAN"/>
+      <column name="has_test" type="BOOLEAN"/>
+      <column name="archived" type="BOOLEAN"/>
+      <column name="hidden" type="BOOLEAN"/>
+      <column name="accept_handicapped" type="BOOLEAN"/>
+      <column name="accept_kids" type="BOOLEAN"/>
+      <column name="accept_incomplete_resumes" type="BOOLEAN"/>
+      <column name="quick_responses_allowed" type="BOOLEAN"/>
+      <column name="approved" type="BOOLEAN"/>
+      <column name="internship" type="BOOLEAN"/>
+      <column name="night_shifts" type="BOOLEAN"/>
+      <column name="accept_temporary" type="BOOLEAN"/>
+      <column name="show_logo_in_search" type="BOOLEAN"/>
+      <column name="closed_for_applicants" type="BOOLEAN"/>
+      <column name="response_url" type="VARCHAR(255)"/>
+      <column name="apply_alternate_url" type="VARCHAR(255)"/>
+      <column name="alternate_url" type="VARCHAR(255)"/>
+      <column name="published_at" type="DATETIME"/>
+      <column name="created_at" type="DATETIME"/>
+      <column name="initial_created_at" type="DATETIME"/>
+      <column name="updated_at" type="DATETIME"/>
+      <column name="CREATED_BY" type="VARCHAR(255)"/>
+      <column name="CREATED_DATE" type="${offsetDateTime.type}"/>
+      <column name="LAST_MODIFIED_BY" type="VARCHAR(255)"/>
+      <column name="LAST_MODIFIED_DATE" type="${offsetDateTime.type}"/>
+    </createTable>
+  </changeSet>
+</databaseChangeLog>
