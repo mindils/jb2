@@ -23,7 +23,7 @@ public class EmployerListView extends StandardListView<Employer> {
 
     @Subscribe(id = "employerUpdate", subject = "clickListener")
     public void onEmployerUpdateClick(final ClickEvent<JmixButton> event) {
-        employerService.update("1057");
+        employerService.update("4934");
 
     }
 }

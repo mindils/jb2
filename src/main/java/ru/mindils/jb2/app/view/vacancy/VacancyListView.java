@@ -30,7 +30,8 @@ public class VacancyListView extends StandardListView<Vacancy> {
 
     @Subscribe(id = "updateVacancy", subject = "clickListener")
     public void onUpdateVacancyClick(final ClickEvent<JmixButton> event) {
-        vacancyService.update("123111578");
+//        vacancyService.update("123111578");
+        vacancyService.update("117878777");
         notifications.show("Vacancy clicked");
     }
 

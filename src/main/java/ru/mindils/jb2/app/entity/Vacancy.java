@@ -206,16 +206,25 @@ public class Vacancy {
 
   @JmixProperty
   public String getMetro() {
+    if (address == null || address.isNull()) {
+      return "";
+    }
+
     return address.path("metro").path("station_name").asText();
   }
 
   @JmixProperty
   public String getSalaryStr() {
-    if (salary == null) {
-      return "";
-    }
+    if (salary == null) return "";
 
-    return salary.asText();
+    Long from = salary.hasNonNull("from") ? salary.get("from").asLong() : null;
+    Long to = salary.hasNonNull("to") ? salary.get("to").asLong() : null;
+    String cur = salary.path("currency").asText("");
+
+    if (from == null && to == null) return "";
+    if (from != null && to != null) return "от %d до %d %s".formatted(from, to, cur);
+    if (from != null) return "от %d %s".formatted(from, cur);
+    return "до %d %s".formatted(to, cur);
   }
 
   @JmixProperty
