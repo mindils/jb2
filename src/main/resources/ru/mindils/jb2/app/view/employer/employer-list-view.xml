@@ -42,6 +42,11 @@
               dataContainer="employersDc"
               columnReorderingAllowed="true">
       <actions>
+        <action id="readAction" type="list_read">
+          <properties>
+            <property name="openMode" value="DIALOG"/>
+          </properties>
+        </action>
       </actions>
       <columns resizable="true">
         <column property="id"/>

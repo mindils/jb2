@@ -4,7 +4,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.jmix.core.metamodel.annotation.InstanceName;
 import io.jmix.core.metamodel.annotation.JmixEntity;
 import io.jmix.core.metamodel.annotation.JmixProperty;
-import jakarta.persistence.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.CreatedBy;
@@ -15,6 +25,8 @@ import ru.mindils.jb2.app.util.converter.JsonNodeConverter;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @JmixEntity
 @Table(name = "JB2_VACANCY")
@@ -176,8 +188,57 @@ public class Vacancy {
   private VacancyInfo vacancyInfo;
 
   @JmixProperty
-  public String getScheduleString() {
-    return schedule.toString();
+  public String getKeySkillsStr() {
+    if (keySkills == null || !keySkills.isArray()) {
+      return "";
+    }
+
+    return StreamSupport.stream(keySkills.spliterator(), false)
+        .map(node -> node.path("name").asText())
+        .filter(name -> !name.isEmpty())
+        .collect(Collectors.joining(", "));
   }
 
+  @JmixProperty
+  public String getCity() {
+    return area.path("name").asText();
+  }
+
+  @JmixProperty
+  public String getMetro() {
+    return address.path("metro").path("station_name").asText();
+  }
+
+  @JmixProperty
+  public String getSalaryStr() {
+    if (salary == null) {
+      return "";
+    }
+
+    return salary.asText();
+  }
+
+  @JmixProperty
+  public String getProfessionalRolesStr() {
+    if (professionalRoles == null || !professionalRoles.isArray()) {
+      return "";
+    }
+
+    return StreamSupport.stream(professionalRoles.spliterator(), false)
+        .map(node -> node.path("name").asText())
+        .filter(name -> !name.isEmpty())
+        .collect(Collectors.joining(", "));
+  }
+
+  @JmixProperty
+  public String getWorkFormatStr() {
+    if (workFormat == null || !workFormat.isArray()) {
+      return "";
+    }
+
+    return StreamSupport.stream(workFormat.spliterator(), false)
+        .map(node -> node.path("name").asText())
+        .filter(name -> !name.isEmpty())
+        .collect(Collectors.joining(", "));
+  }
 }

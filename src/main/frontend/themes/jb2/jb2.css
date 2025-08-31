@@ -1,1 +1,10 @@
 /* Define your styles here */
+
+.sticky-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    background: var(--lumo-base-color);
+    box-shadow: 0 -1px 0 var(--lumo-contrast-10pct);
+    padding: var(--lumo-space-s) var(--lumo-space-m);
+}

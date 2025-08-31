@@ -5,7 +5,9 @@
   <data>
     <instance id="vacancyDc"
               class="ru.mindils.jb2.app.entity.Vacancy">
-      <fetchPlan extends="_base"/>
+      <fetchPlan extends="_base">
+        <property name="employer" fetchPlan="_base"/>
+      </fetchPlan>
       <loader id="vacancyDl"/>
     </instance>
   </data>
@@ -20,14 +22,41 @@
     <formLayout id="form" dataContainer="vacancyDc">
       <responsiveSteps>
         <responsiveStep minWidth="0" columns="1"/>
-        <responsiveStep minWidth="40em" columns="2"/>
+        <responsiveStep minWidth="40em" columns="8"/>
       </responsiveSteps>
-      <textField id="idField" property="id"/>
-      <textField id="nameField" property="name"/>
+      <textField property="name" colspan="4"/>
+      <button id="employerUrl" text="msg://employerUrl.text"/>
+
+      <textField property="alternateUrl" colspan="1"/>
+      <checkbox property="archived" colspan="1"/>
+
+      <textField property="salaryStr" colspan="2"/>
+      <textField property="professionalRolesStr" colspan="2"/>
+      <textField property="workFormatStr" colspan="2"/>
+      <textField property="city" colspan="1"/>
+      <textField property="metro" colspan="1"/>
+
+      <textField property="initialCreatedAt" colspan="2"/>
+      <textField property="publishedAt" colspan="2"/>
+      <textField property="createdAt" colspan="2"/>
+      <textField property="updatedAt" colspan="2"/>
+
+      <textArea property="keySkillsStr" colspan="8"/>
+      <tabSheet id="tabSheet" width="100%" colspan="8">
+        <tab id="descriptionDescription" label="msg://descriptionTab.label">
+          <html colspan="8" id="description" content="msg://description.emptyHtml"/>
+        </tab>
+        <tab id="descriptionBrandedDescription" label="msg://brandedDescriptionTab.label">
+          <html colspan="8" id="brandedDescription" content="msg://description.emptyHtml"/>
+        </tab>
+      </tabSheet>
     </formLayout>
-    <hbox id="detailActions">
+    <hbox id="detailActions"
+          width="100%"
+          classNames="sticky-footer">
       <button id="saveAndCloseButton" action="saveAction"/>
       <button id="closeButton" action="closeAction"/>
     </hbox>
+
   </layout>
 </view>

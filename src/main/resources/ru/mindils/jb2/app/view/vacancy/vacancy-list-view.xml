@@ -8,8 +8,36 @@
                 class="ru.mindils.jb2.app.entity.Vacancy">
       <fetchPlan extends="_base">
         <property name="employer" fetchPlan="_base">
+          <property name="name"/>
+          <property name="id"/>
+          <property name="trusted"/>
+          <property name="accreditedItEmployer"/>
+          <property name="hasDivisions"/>
+          <property name="type"/>
+          <property name="description"/>
+          <property name="siteUrl"/>
+          <property name="alternateUrl"/>
+          <property name="vacanciesUrl"/>
+          <property name="logoUrls"/>
+          <property name="relations"/>
+          <property name="area"/>
+          <property name="industries"/>
+          <property name="brandedDescription"/>
+          <property name="branding"/>
+          <property name="insiderInterviews"/>
+          <property name="openVacancies"/>
+          <property name="employerInfo" fetchPlan="_base">
+            <property name="status"/>
+          </property>
+          <property name="createdDate"/>
+          <property name="lastModifiedDate"/>
         </property>
-        <property name="vacancyInfo" fetchPlan="_base"/>
+        <property name="vacancyInfo" fetchPlan="_base">
+          <property name="id"/>
+          <property name="vacancy" fetchPlan="_base">
+            <property name="name"/>
+          </property>
+        </property>
       </fetchPlan>
       <loader id="vacanciesDl" readOnly="true">
         <query>
@@ -40,14 +68,29 @@
               dataContainer="vacanciesDc"
               columnReorderingAllowed="true">
       <actions>
+        <action id="readAction" type="list_read">
+          <properties>
+            <property name="openMode" value="DIALOG"/>
+          </properties>
+        </action>
       </actions>
       <columns resizable="true">
-        <column property="keySkills"/>
-        <column property="employment"/>
-        <column property="id"/>
-        <column property="name"/>
-        <column property="employer"/>
-        <column property="vacancyInfo.status" />
+        <column property="name" autoWidth="true"/>
+        <column property="employer.name" autoWidth="true"/>
+        <column property="keySkillsStr" width="20em"/>
+        <column property="description"/>
+        <column property="city" autoWidth="true"/>
+        <column property="salary" autoWidth="true"/>
+        <column property="metro" autoWidth="true"/>
+        <column property="professionalRolesStr" autoWidth="true"/>
+        <column property="workFormatStr" autoWidth="true"/>
+        <column property="archived" autoWidth="true"/>
+        <column property="hidden" autoWidth="true"/>
+        <column property="alternateUrl" autoWidth="true"/>
+        <column property="publishedAt" autoWidth="true"/>
+        <column property="createdAt" autoWidth="true"/>
+        <column property="initialCreatedAt" autoWidth="true"/>
+        <column property="updatedAt" autoWidth="true"/>
       </columns>
     </dataGrid>
     <hbox id="lookupActions" visible="false">
