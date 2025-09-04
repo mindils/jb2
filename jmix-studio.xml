@@ -8,12 +8,7 @@
             <map>
               <entry key="main">
                 <value>
-                  <DataStoreSettingsV2>
-                    <option name="generateDdlType" value="CREATE_AND_UPDATE" />
-                    <option name="supportedTypes">
-                      <option value="postgres" />
-                    </option>
-                  </DataStoreSettingsV2>
+                  <DataStoreSettingsV2 />
                 </value>
               </entry>
             </map>
@@ -23,24 +18,9 @@
     </moduleSettings>
   </component>
   <component name="JmixLiquibaseChangesConfig">
-    <exclude-change tagName="addForeignKeyConstraint" />
     <exclude-change idName="FK_JB2_VACANCY_ON_EMPLOYER" tagName="addForeignKeyConstraint" />
     <exclude-change idName="FK_JB2_VACANCY_INFO_ON_ID" tagName="addForeignKeyConstraint" />
-    <exclude-change idName="FK_JB2_EMPLOYER_INFO_ON_ID" tagName="addForeignKeyConstraint" />
     <exclude-change idName="FK_JB2_VACANCY_FILTER_PARAMS_ON_VACANCY_FILTER" tagName="addForeignKeyConstraint" />
-  </component>
-  <component name="JmixPluginProjectSettings">
-    <option name="savedDbProperties">
-      <list>
-        <SavedDbProperties>
-          <option name="databaseName" value="jb2" />
-          <option name="dbType" value="hsqlfile" />
-          <option name="dbmsVersion" />
-          <option name="host" value=".jmix/hsqldb" />
-          <option name="url" value="jdbc:hsqldb:file:.jmix/hsqldb/jb2" />
-          <option name="user" value="sa" />
-        </SavedDbProperties>
-      </list>
-    </option>
+    <exclude-change idName="FK_JB2_EMPLOYER_INFO_ON_ID" tagName="addForeignKeyConstraint" />
   </component>
 </project>

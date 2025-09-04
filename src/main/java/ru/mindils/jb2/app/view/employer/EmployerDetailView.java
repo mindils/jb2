@@ -1,10 +1,8 @@
 package ru.mindils.jb2.app.view.employer;
 
+import com.vaadin.flow.component.Html;
 import com.vaadin.flow.router.Route;
-import io.jmix.flowui.view.EditedEntityContainer;
-import io.jmix.flowui.view.StandardDetailView;
-import io.jmix.flowui.view.ViewController;
-import io.jmix.flowui.view.ViewDescriptor;
+import io.jmix.flowui.view.*;
 import ru.mindils.jb2.app.entity.Employer;
 import ru.mindils.jb2.app.view.main.MainView;
 
@@ -13,4 +11,15 @@ import ru.mindils.jb2.app.view.main.MainView;
 @ViewDescriptor(path = "employer-detail-view.xml")
 @EditedEntityContainer("employerDc")
 public class EmployerDetailView extends StandardDetailView<Employer> {
+
+  @ViewComponent
+  private Html description;
+  @ViewComponent
+  private Html brandedDescription;
+
+  @Subscribe
+  public void onBeforeShow(final BeforeShowEvent event) {
+    description.setHtmlContent("<div>%s</div>".formatted(getEditedEntity().getDescription()));
+    brandedDescription.setHtmlContent("<div>%s</div>".formatted(getEditedEntity().getBrandedDescription()));
+  }
 }

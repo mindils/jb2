@@ -7,6 +7,7 @@
               class="ru.mindils.jb2.app.entity.Employer">
       <fetchPlan extends="_base">
         <property name="employerInfo" fetchPlan="_base"/>
+        <property name="logoUrl240"/>
       </fetchPlan>
       <loader id="employerDl"/>
     </instance>
@@ -22,18 +23,28 @@
     <formLayout id="form" dataContainer="employerDc">
       <responsiveSteps>
         <responsiveStep minWidth="0" columns="1"/>
-        <responsiveStep minWidth="40em" columns="2"/>
+        <responsiveStep minWidth="40em" columns="8"/>
       </responsiveSteps>
-      <textField id="idField" property="id"/>
-      <textField id="nameField" property="name"/>
-      <entityPicker id="employerInfoField" property="employerInfo">
-        <actions>
-          <action id="entityLookupAction" type="entity_lookup"/>
-          <action id="entityClearAction" type="entity_clear"/>
-        </actions>
-      </entityPicker>
+      <textField id="idField" property="id" colspan="2"/>
+      <textField id="nameField" property="name" colspan="6"/>
+      <div colspan="2">
+        <image property="logoUrl240" dataContainer="employerDc" classNames="2" />
+      </div>
+      <textField id="siteUrlField" property="siteUrl" colspan="2" />
+      <textField id="alternateField" property="alternateUrl" colspan="2"/>
+      <textField id="cityField" property="city" colspan="2" />
+      <textArea id="industriesField" property="industriesStr" colspan="8" />
+
+      <tabSheet id="tabSheet" width="100%" colspan="8">
+        <tab id="descriptionDescription" label="msg://descriptionTab.label">
+          <html colspan="8" id="description" content="msg://description.emptyHtml"/>
+        </tab>
+        <tab id="descriptionBrandedDescription" label="msg://brandedDescriptionTab.label">
+          <html colspan="8" id="brandedDescription" content="msg://description.emptyHtml"/>
+        </tab>
+      </tabSheet>
     </formLayout>
-    <hbox id="detailActions">
+    <hbox id="detailActions" width="100%" classNames="sticky-footer">
       <button id="saveAndCloseButton" action="saveAction"/>
       <button id="closeButton" action="closeAction"/>
     </hbox>
