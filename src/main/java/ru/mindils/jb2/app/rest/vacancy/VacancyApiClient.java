@@ -32,7 +32,7 @@ public class VacancyApiClient {
 
     @SneakyThrows
     public List<Vacancy> getAll(List<Map<String, String>> params) {
-        client.retrieve(buildURIWithParams(VACANCY_API_URL, params), Object.class).data();
+      client.retrieve(buildURIWithParams(VACANCY_API_URL, params), Object.class).data();
         return List.of();
     }
 

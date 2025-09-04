@@ -17,7 +17,7 @@ import ru.mindils.jb2.app.rest.vacancy.VacancyApiClient;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class VacancyService {
@@ -27,6 +27,9 @@ public class VacancyService {
     private final VacancyMapper vacancyMapper;
     private final EmployerApiClient employerApiClient;
     private final EmployerMapper employerMapper;
+    private final String DEFAULT_FILTER = "DEFAULT";
+
+
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -58,14 +61,16 @@ public class VacancyService {
     @Transactional
     public List<Vacancy> updateAll() {
         List<VacancyFilterParams> filter = dataManager.load(VacancyFilterParams.class)
-                .query("select e from jb2_VacancyFilterParams e where e.vacancyFilter.id = :filterId")
-                .parameter("filterId", 1)
+                .query("select e from jb2_VacancyFilterParams e where e.vacancyFilter.code = :filterCode")
+                .parameter("filterCode", DEFAULT_FILTER)
                 .list();
 
-        List<Map<String, String>> filterMap = filter
-                .stream()
-                .map(param -> Map.of(param.getParamName(), param.getParamValue()))
-                .toList();
+        List<Map<String, String>> filterMap = Stream.concat(
+            filter.stream().map(param -> Map.of(param.getParamName(), param.getParamValue())),
+            Stream.of(Map.of("page", "2"))
+        ).toList();
+
+//        filterMap.add(Map.of("page", "2"));
 
         List<Vacancy> vacancy = vacancyApiClient.getAll(filterMap);
 
