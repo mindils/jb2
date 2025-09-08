@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.mindils.jb2.app.dto.EmployerDto;
 import ru.mindils.jb2.app.dto.VacancyDto;
+import ru.mindils.jb2.app.dto.VacancySearchResponseDto;
 import ru.mindils.jb2.app.entity.Employer;
 import ru.mindils.jb2.app.entity.Vacancy;
 import ru.mindils.jb2.app.entity.VacancyFilterParams;
@@ -65,6 +66,24 @@ public class VacancyService {
                 .parameter("filterCode", DEFAULT_FILTER)
                 .list();
 
+//        int page = 0;
+//        do {
+//
+//          List<Map<String, String>> filterMap = Stream.concat(
+//              filter.stream().map(param -> Map.of(param.getParamName(), param.getParamValue())),
+//              Stream.of(Map.of("page", page))
+//          ).toList();
+//
+//          // получаем вакансии по фильтру
+//          VacancySearchResponseDto response = vacancyApiClient.getAll(filterMap);
+//
+//          // получить в цикле детальную вакансию
+//          // получить детальную организицию
+//
+//          // сохранить в бузе данных
+//
+//        } while (filter.isEmpty());
+
         List<Map<String, String>> filterMap = Stream.concat(
             filter.stream().map(param -> Map.of(param.getParamName(), param.getParamValue())),
             Stream.of(Map.of("page", "2"))
@@ -72,7 +91,7 @@ public class VacancyService {
 
 //        filterMap.add(Map.of("page", "2"));
 
-        List<Vacancy> vacancy = vacancyApiClient.getAll(filterMap);
+        VacancySearchResponseDto response = vacancyApiClient.getAll(filterMap);
 
         return List.of();
     }

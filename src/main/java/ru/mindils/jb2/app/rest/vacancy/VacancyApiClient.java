@@ -4,6 +4,7 @@ import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.mindils.jb2.app.dto.VacancyDto;
+import ru.mindils.jb2.app.dto.VacancySearchResponseDto;
 import ru.mindils.jb2.app.entity.Vacancy;
 import ru.mindils.jb2.app.integration.http.JsonHttpClient;
 import ru.mindils.jb2.app.mapper.VacancyMapper;
@@ -16,31 +17,31 @@ import static java.util.stream.Collectors.joining;
 
 @Service
 public class VacancyApiClient {
-    private static final String VACANCY_API_URL = "https://api.hh.ru/vacancies";
+  private static final String VACANCY_API_URL = "https://api.hh.ru/vacancies";
 
-    @Autowired
-    JsonHttpClient client;
+  @Autowired
+  JsonHttpClient client;
 
-    @Autowired
-    private VacancyMapper vacancyMapper;
+  @Autowired
+  private VacancyMapper vacancyMapper;
 
-    @SneakyThrows
-    public VacancyDto getById(String id) {
-        VacancyDto dto = client.retrieve(URI.create(VACANCY_API_URL + "/" + id), VacancyDto.class).data();
-        return dto;
-    }
+  @SneakyThrows
+  public VacancyDto getById(String id) {
+    VacancyDto dto = client.retrieve(URI.create(VACANCY_API_URL + "/" + id), VacancyDto.class).data();
+    return dto;
+  }
 
-    @SneakyThrows
-    public List<Vacancy> getAll(List<Map<String, String>> params) {
-      client.retrieve(buildURIWithParams(VACANCY_API_URL, params), Object.class).data();
-        return List.of();
-    }
+  @SneakyThrows
+  public VacancySearchResponseDto getAll(List<Map<String, String>> params) {
+    VacancySearchResponseDto response = client.retrieve(buildURIWithParams(VACANCY_API_URL, params), VacancySearchResponseDto.class).data();
+    return response;
+  }
 
-    private URI buildURIWithParams(String uri, List<Map<String, String>> params) {
-        return URI.create(uri
-                + params.stream()
-                .flatMap(map -> map.entrySet().stream())
-                .map(entry -> entry.getKey() + "=" + entry.getValue())
-                .collect(joining("&", "?", "")));
-    }
+  private URI buildURIWithParams(String uri, List<Map<String, String>> params) {
+    return URI.create(uri
+        + params.stream()
+        .flatMap(map -> map.entrySet().stream())
+        .map(entry -> entry.getKey() + "=" + entry.getValue())
+        .collect(joining("&", "?", "")));
+  }
 }
