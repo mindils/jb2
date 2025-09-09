@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.mindils.jb2.app.entity.Vacancy;
 import ru.mindils.jb2.app.rest.vacancy.VacancyApiClient;
 import ru.mindils.jb2.app.service.VacancyService;
+import ru.mindils.jb2.app.service.VacancySyncWorkflowService;
 import ru.mindils.jb2.app.view.main.MainView;
 
 
@@ -27,6 +28,8 @@ public class VacancyListView extends StandardListView<Vacancy> {
 
     @Autowired
     private VacancyService vacancyService;
+  @Autowired
+  private VacancySyncWorkflowService vacancySyncWorkflowService;
 
     @Subscribe(id = "updateVacancy", subject = "clickListener")
     public void onUpdateVacancyClick(final ClickEvent<JmixButton> event) {
@@ -37,7 +40,8 @@ public class VacancyListView extends StandardListView<Vacancy> {
 
     @Subscribe(id = "updateAllVacancy", subject = "clickListener")
     public void onUpdateAllVacancyClick(final ClickEvent<JmixButton> event) {
-       vacancyService.updateAll();
-        notifications.show("updateAllVacancy clicked");
+        vacancySyncWorkflowService.sync();
+//       vacancyService.updateAll();
+//        notifications.show("updateAllVacancy clicked");
     }
 }
