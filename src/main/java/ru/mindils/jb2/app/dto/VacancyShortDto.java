@@ -11,7 +11,7 @@ public class VacancyShortDto {
   private String id;
   private Boolean premium;
   private String name;
-  private String department;
+  private DepartmentDto department;
   @JsonProperty("has_test")
   private Boolean hasTest;
   @JsonProperty("response_letter_required")
@@ -112,5 +112,10 @@ public class VacancyShortDto {
     private Boolean gross;
     private Map<String, Object> mode;
     private Map<String, Object> frequency;
+  }
+  @Data
+  public static class DepartmentDto {
+    private String id;
+    private String name;
   }
 }

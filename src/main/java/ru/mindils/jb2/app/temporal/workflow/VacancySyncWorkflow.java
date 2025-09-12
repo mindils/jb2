@@ -7,5 +7,5 @@ import io.temporal.workflow.WorkflowMethod;
 public interface VacancySyncWorkflow {
 
   @WorkflowMethod
-  void sync();
+  void run();
 }

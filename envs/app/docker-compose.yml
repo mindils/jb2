@@ -11,4 +11,53 @@ services:
     volumes:
       - ./data/postgres:/data/postgres
     ports:
-      - "5432:5432"
+      - "5437:5432"
+    networks:
+      - jb-network
+  temporal-postgresql:
+    container_name: jb-temporal-postgresql
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_USER: temporal
+      POSTGRES_DB: temporal
+      PGDATA: /data/postgres
+    volumes:
+      - ./data/temporal-postgres:/data/postgres
+    ports:
+      - "5438:5432"  # Изменил порт чтобы не конфликтовал с Jmix БД
+    networks:
+      - jb-network
+
+  temporal:
+    container_name: jb-temporal
+    image: temporalio/auto-setup:latest
+    depends_on:
+      - temporal-postgresql
+    environment:
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=temporal-postgresql
+      - BIND_ON_IP=0.0.0.0
+    ports:
+      - "7234:7233"
+    networks:
+      - jb-network
+
+  temporal-ui:
+    container_name: jb-temporal-ui
+    image: temporalio/ui:latest
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+    ports:
+      - "8089:8080"
+    networks:
+      - jb-network
+
+networks:
+  jb-network:
+    driver: bridge

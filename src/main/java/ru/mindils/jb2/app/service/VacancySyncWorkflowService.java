@@ -6,8 +6,6 @@ import org.springframework.stereotype.Service;
 import ru.mindils.jb2.app.temporal.VacancySyncConstants;
 import ru.mindils.jb2.app.temporal.workflow.VacancySyncWorkflow;
 
-import java.util.UUID;
-
 @Service
 public class VacancySyncWorkflowService {
 
@@ -22,11 +20,12 @@ public class VacancySyncWorkflowService {
         VacancySyncWorkflow.class,
         WorkflowOptions.newBuilder()
             .setTaskQueue(VacancySyncConstants.VACANCY_QUEUE)
-            .setWorkflowId(VacancySyncConstants.WORKFLOW_ID + "_" + UUID.randomUUID())
+            // делаем одинаковый workflow чтобы можно было запустить только один раз.
+            .setWorkflowId(VacancySyncConstants.WORKFLOW_ID)
             .build()
     );
 
-    WorkflowClient.start(workflow::sync);
+    WorkflowClient.start(workflow::run);
   }
 
 }

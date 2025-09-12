@@ -1,0 +1,153 @@
+package ru.mindils.jb2.app.service;
+
+import io.jmix.core.DataManager;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import ru.mindils.jb2.app.dto.EmployerDto;
+import ru.mindils.jb2.app.dto.VacancyDto;
+import ru.mindils.jb2.app.dto.VacancySearchResponseDto;
+import ru.mindils.jb2.app.entity.Employer;
+import ru.mindils.jb2.app.entity.Vacancy;
+import ru.mindils.jb2.app.entity.VacancyFilterParams;
+import ru.mindils.jb2.app.mapper.EmployerMapper;
+import ru.mindils.jb2.app.mapper.VacancyMapper;
+import ru.mindils.jb2.app.rest.vacancy.EmployerApiClient;
+import ru.mindils.jb2.app.rest.vacancy.VacancyApiClient;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
+
+@Service
+public class VacancySyncService {
+
+  private static final Logger log = LoggerFactory.getLogger(VacancySyncService.class);
+
+  @PersistenceContext
+  private EntityManager entityManager;
+
+  private final VacancyApiClient vacancyApiClient;
+  private final DataManager dataManager;
+  private final VacancyMapper vacancyMapper;
+  private final EmployerApiClient employerApiClient;
+  private final EmployerMapper employerMapper;
+  private final String DEFAULT_FILTER = "DEFAULT";
+
+  public VacancySyncService(VacancyApiClient vacancyApiClient, DataManager dataManager,
+                            VacancyMapper vacancyMapper, EmployerApiClient employerApiClient,
+                            EmployerMapper employerMapper) {
+    this.vacancyApiClient = vacancyApiClient;
+    this.dataManager = dataManager;
+    this.vacancyMapper = vacancyMapper;
+    this.employerApiClient = employerApiClient;
+    this.employerMapper = employerMapper;
+  }
+
+  /**
+   * Поиск вакансий на указанной странице с применением фильтров
+   * @param page номер страницы (начинается с 0)
+   * @return результат поиска с вакансиями и метаданными
+   */
+  public VacancySearchResponseDto searchVacancies(int page) {
+    log.info("Searching vacancies on page: {}", page);
+
+    // Получаем фильтры из базы данных
+    List<VacancyFilterParams> filterParams = getFilterParams();
+
+    // Формируем параметры запроса с номером страницы
+    List<Map<String, String>> requestParams = Stream.concat(
+        filterParams.stream().map(param -> Map.of(param.getParamName(), param.getParamValue())),
+        Stream.of(Map.of("page", String.valueOf(page)))
+    ).toList();
+
+    try {
+      VacancySearchResponseDto response = vacancyApiClient.getAll(requestParams);
+      log.info("Found {} vacancies on page {}, total found: {}, total pages: {}",
+          response.getItems().size(), page, response.getFound(), response.getPages());
+      return response;
+    } catch (Exception e) {
+      log.error("Error searching vacancies on page {}: {}", page, e.getMessage(), e);
+      throw new RuntimeException("Failed to search vacancies on page " + page, e);
+    }
+  }
+
+  /**
+   * Сохранение детальной информации о вакансии с работодателем
+   * @param vacancyId ID вакансии
+   */
+  @Transactional
+  public void saveVacancyWithDetails(String vacancyId) {
+    log.info("Saving vacancy with details: {}", vacancyId);
+
+    try {
+      // Получаем детальную информацию о вакансии
+      VacancyDto vacancyDto = vacancyApiClient.getById(vacancyId);
+      log.debug("Retrieved vacancy details for: {}", vacancyId);
+
+      // Получаем информацию о работодателе
+      String employerId = vacancyDto.getEmployer().getId();
+      EmployerDto employerDto = employerApiClient.getById(employerId);
+      log.debug("Retrieved employer details for: {}", employerId);
+
+      // Преобразуем DTO в сущности
+      Vacancy vacancy = vacancyMapper.toEntity(vacancyDto);
+      Employer employer = employerMapper.toEntity(employerDto);
+
+      // Сохраняем работодателя (merge для обновления если уже существует)
+      Employer mergedEmployer = entityManager.merge(employer);
+      log.debug("Saved/updated employer: {}", employerId);
+
+      // Устанавливаем связь и сохраняем вакансию
+      vacancy.setEmployer(mergedEmployer);
+      entityManager.merge(vacancy);
+      log.info("Successfully saved vacancy: {} with employer: {}", vacancyId, employerId);
+
+    } catch (Exception e) {
+      log.error("Error saving vacancy {}: {}", vacancyId, e.getMessage(), e);
+      throw new RuntimeException("Failed to save vacancy " + vacancyId, e);
+    }
+  }
+
+  /**
+   * Получение параметров фильтра из базы данных
+   * @return список параметров фильтра
+   */
+  private List<VacancyFilterParams> getFilterParams() {
+    try {
+      List<VacancyFilterParams> filterParams = dataManager.load(VacancyFilterParams.class)
+          .query("select e from jb2_VacancyFilterParams e where e.vacancyFilter.code = :filterCode")
+          .parameter("filterCode", DEFAULT_FILTER)
+          .list();
+
+      log.debug("Loaded {} filter parameters", filterParams.size());
+      return filterParams;
+    } catch (Exception e) {
+      log.error("Error loading filter parameters: {}", e.getMessage(), e);
+      throw new RuntimeException("Failed to load filter parameters", e);
+    }
+  }
+
+  // Оставляем старый метод для совместимости, но он больше не используется в workflow
+  @Deprecated
+  @Transactional
+  public Vacancy updateById(String number) {
+    log.warn("Using deprecated updateById method. Use saveVacancyWithDetails instead.");
+    VacancyDto vacancyDto = vacancyApiClient.getById(number);
+    EmployerDto employerDto = employerApiClient.getById(vacancyDto.getEmployer().getId());
+
+    Vacancy vacancy = vacancyMapper.toEntity(vacancyDto);
+    Employer employer = employerMapper.toEntity(employerDto);
+
+    Employer mergedEmployer = null;
+    if (employer != null) {
+      mergedEmployer = entityManager.merge(employer);
+      vacancy.setEmployer(mergedEmployer);
+    }
+
+    return entityManager.merge(vacancy);
+  }
+}
