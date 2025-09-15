@@ -107,6 +107,21 @@ public class VacancyAnalysisService {
    * Добавляет все вакансии в очередь на обработку для указанного типа анализа.
    */
   @Transactional
+  public int markProcessingForJavaVacancy(AnalysisType type) {
+    String sql = """
+        insert into jb2_vacancy_analysis_queue (vacancy_id, type_queue, processing, created_date, last_modified_date)
+        select v.id, ?1, true, now(), now()
+        from jb2_vacancy_analysis v
+        where v.java = 'true'
+      """;
+    return em.createNativeQuery(sql)
+        .setParameter(1, type.getId())
+        .executeUpdate();
+  }
+  /**
+   * Добавляет все вакансии в очередь на обработку для указанного типа анализа.
+   */
+  @Transactional
   public int markProcessingForAllVacancy(AnalysisType type) {
     String sql = """
           insert into jb2_vacancy_analysis_queue (vacancy_id, type_queue, processing, created_date, last_modified_date)

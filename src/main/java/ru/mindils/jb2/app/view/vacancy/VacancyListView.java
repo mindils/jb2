@@ -68,7 +68,7 @@ public class VacancyListView extends StandardListView<Vacancy> {
 
   @Subscribe(id = "addSocialToQueueBtn", subject = "clickListener")
   public void onAddSocialToQueueBtnClick(final ClickEvent<JmixButton> event) {
-    int count = vacancyAnalysisService.markProcessingForAllVacancy(AnalysisType.SOCIAL);
+    int count = vacancyAnalysisService.markProcessingForJavaVacancy(AnalysisType.SOCIAL);
     notifications.create(String.format("Добавлено в очередь на социальный анализ: %d вакансий", count))
         .withType(Notifications.Type.SUCCESS)
         .show();
