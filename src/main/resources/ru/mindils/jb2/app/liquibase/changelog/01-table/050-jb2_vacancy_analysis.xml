@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+    objectQuotingStrategy="QUOTE_ONLY_RESERVED_WORDS">
+  <changeSet id="1" author="mindils" runOnChange="true">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists tableName="JB2_VACANCY_ANALYSIS" />
+      </not>
+    </preConditions>
+    <createTable tableName="JB2_VACANCY_ANALYSIS">
+      <column name="id"
+              type="VARCHAR(255)">
+        <constraints nullable="false"
+                     primaryKey="true"
+                     primaryKeyName="PK_JB2_VACANCY_ANALYSIS"/>
+      </column>
+      <column name="ai" type="VARCHAR(255)"/>
+      <column name="java" type="VARCHAR(255)"/>
+      <column name="jmix" type="VARCHAR(255)"/>
+      <column name="processing" type="BOOLEAN"/>
+      <column name="DOMAINS" type="VARCHAR(255)"/>
+      <column name="socially_significant" type="VARCHAR(255)"/>
+      <column name="work_mode" type="VARCHAR(255)"/>
+      <column name="created_date"
+              type="${offsetDateTime.type}"/>
+      <column name="last_modified_date"
+              type="${offsetDateTime.type}"/>
+    </createTable>
+  </changeSet>
+
+</databaseChangeLog>

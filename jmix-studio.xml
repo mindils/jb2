@@ -17,10 +17,4 @@
       </entry>
     </moduleSettings>
   </component>
-  <component name="JmixLiquibaseChangesConfig">
-    <exclude-change idName="FK_JB2_VACANCY_ON_EMPLOYER" tagName="addForeignKeyConstraint" />
-    <exclude-change idName="FK_JB2_VACANCY_INFO_ON_ID" tagName="addForeignKeyConstraint" />
-    <exclude-change idName="FK_JB2_VACANCY_FILTER_PARAMS_ON_VACANCY_FILTER" tagName="addForeignKeyConstraint" />
-    <exclude-change idName="FK_JB2_EMPLOYER_INFO_ON_ID" tagName="addForeignKeyConstraint" />
-  </component>
 </project>

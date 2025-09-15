@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.jmix.core.metamodel.annotation.InstanceName;
 import io.jmix.core.metamodel.annotation.JmixEntity;
 import io.jmix.core.metamodel.annotation.JmixProperty;
+import io.jmix.data.DdlGeneration;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
@@ -30,6 +31,9 @@ import java.util.stream.StreamSupport;
 
 @JmixEntity
 @Table(name = "JB2_VACANCY")
+@DdlGeneration(unmappedConstraints = {
+    "FK_JB2_VACANCY_ON_EMPLOYER"
+})
 @Entity(name = "jb2_Vacancy")
 @Getter
 @Setter

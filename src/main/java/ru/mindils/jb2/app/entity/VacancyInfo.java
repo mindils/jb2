@@ -1,12 +1,16 @@
 package ru.mindils.jb2.app.entity;
 
 import io.jmix.core.metamodel.annotation.JmixEntity;
+import io.jmix.data.DdlGeneration;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
 @JmixEntity
 @Table(name = "JB2_VACANCY_INFO")
+@DdlGeneration(unmappedConstraints = {
+    "FK_JB2_VACANCY_INFO_ON_ID"
+})
 @Entity(name = "jb2_VacancyInfo")
 @Getter
 @Setter

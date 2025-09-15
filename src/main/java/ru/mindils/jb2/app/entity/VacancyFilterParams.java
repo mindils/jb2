@@ -1,6 +1,7 @@
 package ru.mindils.jb2.app.entity;
 
 import io.jmix.core.metamodel.annotation.JmixEntity;
+import io.jmix.data.DdlGeneration;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -8,6 +9,9 @@ import lombok.Setter;
 @JmixEntity
 @Table(name = "JB2_VACANCY_FILTER_PARAMS", indexes = {
         @Index(name = "IDX_JB2_VACANCY_FILTER_PARAMS_VACANCY_FILTER", columnList = "VACANCY_FILTER_ID")
+})
+@DdlGeneration(unmappedConstraints = {
+    "FK_JB2_VACANCY_FILTER_PARAMS_ON_VACANCY_FILTER"
 })
 @Entity(name = "jb2_VacancyFilterParams")
 @Getter

@@ -24,6 +24,7 @@
         <responsiveStep minWidth="0" columns="1"/>
         <responsiveStep minWidth="40em" columns="8"/>
       </responsiveSteps>
+      <textField property="id" colspan="1"/>
       <textField property="name" colspan="4"/>
       <button id="employerUrl" text="msg://employerUrl.text"/>
 

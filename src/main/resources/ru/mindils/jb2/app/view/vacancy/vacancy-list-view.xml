@@ -60,6 +60,7 @@
     <hbox id="buttonsPanel" classNames="buttons-panel">
       <button id="updateVacancy" text="msg://updateVacancy.text"/>
       <button id="updateAllVacancy" text="msg://updateAllVacancy.text"/>
+      <button id="analysisVacancy" text="msg://analysisVacancy.text"/>
       <simplePagination id="pagination" dataLoader="vacanciesDl"/>
     </hbox>
     <dataGrid id="vacanciesDataGrid"
@@ -75,6 +76,7 @@
         </action>
       </actions>
       <columns resizable="true">
+        <column property="id" autoWidth="true" />
         <column property="name" autoWidth="true"/>
         <column property="employer.name" autoWidth="true"/>
         <column property="keySkillsStr" width="20em"/>
