@@ -52,11 +52,11 @@ public class VacancyAnalysisQueue {
   @Column(name = "LAST_MODIFIED_DATE")
   private OffsetDateTime lastModifiedDate;
 
-  public void setTypeQueue(VacancyAnalysisQueueType typeQueue) {
+  public void setTypeQueue(AnalysisType typeQueue) {
     this.typeQueue = typeQueue == null ? null : typeQueue.getId();
   }
 
-  public VacancyAnalysisQueueType getTypeQueue() {
-    return typeQueue == null ? null : VacancyAnalysisQueueType.fromId(typeQueue);
+  public AnalysisType getTypeQueue() {
+    return typeQueue == null ? null : AnalysisType.fromId(typeQueue);
   }
 }

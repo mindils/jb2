@@ -5,15 +5,9 @@ import io.temporal.common.RetryOptions;
 import io.temporal.spring.boot.WorkflowImpl;
 import io.temporal.workflow.Workflow;
 import org.slf4j.Logger;
-import ru.mindils.jb2.app.dto.VacancySearchResponseDto;
-import ru.mindils.jb2.app.dto.VacancyShortDto;
-import ru.mindils.jb2.app.entity.VacancyAnalysisQueue;
-import ru.mindils.jb2.app.entity.VacancyAnalysisQueueType;
-import ru.mindils.jb2.app.service.VacancyAnalysisService;
+import ru.mindils.jb2.app.entity.AnalysisType;
 import ru.mindils.jb2.app.temporal.VacancyAnalysisConstants;
-import ru.mindils.jb2.app.temporal.VacancySyncConstants;
 import ru.mindils.jb2.app.temporal.acrivity.VacancyAnalysisActivities;
-import ru.mindils.jb2.app.temporal.acrivity.VacancySyncActivities;
 
 import java.time.Duration;
 
@@ -34,21 +28,23 @@ public class VacancyAnalysisWorkflowImpl implements VacancyAnalysisWorkflow {
               .build());
 
   @Override
-  public void run() {
-    log.info("Starting analyze workflow");
+  public void run(AnalysisType type) {
+    log.info("Starting analyze workflow for type: {}", type);
 
     try {
       while (true) {
-        Long nextVacancy = activities.getNextVacancyId(VacancyAnalysisQueueType.FIRST);
-        if (nextVacancy == null) {
+        Long nextVacancyId = activities.getNextVacancyId(type);
+        if (nextVacancyId == null) {
+          log.info("No more vacancies to process for type {}. Exiting loop.", type);
           break;
         }
-        activities.analyze(nextVacancy);
+        log.info("Analyzing vacancy with queue ID: {}", nextVacancyId);
+        activities.analyze(nextVacancyId, type);
       }
-      log.info("Vacancy analyze completed successfully.");
+      log.info("Vacancy analyze completed successfully for type {}.", type);
 
     } catch (Exception e) {
-      log.error("Vacancy analyze failed: {}", e.getMessage(), e);
+      log.error("Vacancy analyze failed for type {}: {}", type, e.getMessage(), e);
       throw e;
     }
   }

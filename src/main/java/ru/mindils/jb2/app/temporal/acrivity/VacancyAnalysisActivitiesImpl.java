@@ -6,15 +6,10 @@ import io.temporal.spring.boot.ActivityImpl;
 import io.temporal.workflow.Workflow;
 import org.slf4j.Logger;
 import org.springframework.stereotype.Component;
-import ru.mindils.jb2.app.dto.VacancySearchResponseDto;
-import ru.mindils.jb2.app.entity.Vacancy;
-import ru.mindils.jb2.app.entity.VacancyAnalysis;
+import ru.mindils.jb2.app.entity.AnalysisType;
 import ru.mindils.jb2.app.entity.VacancyAnalysisQueue;
-import ru.mindils.jb2.app.entity.VacancyAnalysisQueueType;
 import ru.mindils.jb2.app.service.VacancyAnalysisService;
-import ru.mindils.jb2.app.service.VacancySyncService;
 import ru.mindils.jb2.app.temporal.VacancyAnalysisConstants;
-import ru.mindils.jb2.app.temporal.VacancySyncConstants;
 
 import java.util.Optional;
 
@@ -36,12 +31,12 @@ public class VacancyAnalysisActivitiesImpl implements VacancyAnalysisActivities 
   }
 
   @Override
-  public void analyze(Long vacancyQueueId) {
-    authenticator.runWithSystem(() -> vacancyAnalysisService.analyzeVacancy(vacancyQueueId));
+  public void analyze(Long vacancyQueueId, AnalysisType type) {
+    authenticator.runWithSystem(() -> vacancyAnalysisService.analyze(vacancyQueueId, type));
   }
 
   @Override
-  public Long getNextVacancyId(VacancyAnalysisQueueType type) {
+  public Long getNextVacancyId(AnalysisType type) {
     return authenticator.withSystem(() -> {
       Optional<VacancyAnalysisQueue> maybe = dataManager.load(VacancyAnalysisQueue.class)
           .query("select e from jb2_VacancyAnalysisQueue e where e.processing = true and e.typeQueue = :type")
@@ -52,5 +47,4 @@ public class VacancyAnalysisActivitiesImpl implements VacancyAnalysisActivities 
       return maybe.map(VacancyAnalysisQueue::getId).orElse(null);
     });
   }
-
 }

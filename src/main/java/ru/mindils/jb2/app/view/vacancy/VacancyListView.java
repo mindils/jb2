@@ -7,12 +7,12 @@ import io.jmix.flowui.kit.component.button.JmixButton;
 import io.jmix.flowui.model.CollectionContainer;
 import io.jmix.flowui.view.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import ru.mindils.jb2.app.entity.AnalysisType;
 import ru.mindils.jb2.app.entity.Vacancy;
 import ru.mindils.jb2.app.service.LLMDebugService;
 import ru.mindils.jb2.app.service.VacancyAnalysisService;
 import ru.mindils.jb2.app.service.VacancyService;
 import ru.mindils.jb2.app.service.VacancyWorkflowService;
-import ru.mindils.jb2.app.temporal.workflow.VacancyAnalysisWorkflow;
 import ru.mindils.jb2.app.view.main.MainView;
 
 
@@ -39,7 +39,7 @@ public class VacancyListView extends StandardListView<Vacancy> {
 
   @Subscribe(id = "updateVacancy", subject = "clickListener")
   public void onUpdateVacancyClick(final ClickEvent<JmixButton> event) {
-    vacancyAnalysisService.markProcessingForAllVacancy();
+//    vacancyAnalysisService.markProcessingForAllVacancy();
 //        vacancyService.update("123111578");
 //    vacancyService.update("117878777");
 //    notifications.show("Vacancy clicked");
@@ -52,22 +52,31 @@ public class VacancyListView extends StandardListView<Vacancy> {
 //        notifications.show("updateAllVacancy clicked");
   }
 
-  @Subscribe(id = "analysisVacancy", subject = "clickListener")
-  public void onAnalysisVacancyClick(final ClickEvent<JmixButton> event) {
-//    vacancyAnalysisService.markProcessingForAllVacancy();
+  @Subscribe(id = "addPrimaryToQueueBtn", subject = "clickListener")
+  public void onAddPrimaryToQueueBtnClick(final ClickEvent<JmixButton> event) {
+    int count = vacancyAnalysisService.markProcessingForAllVacancy(AnalysisType.PRIMARY);
+    notifications.create(String.format("Добавлено в очередь на первичный анализ: %d вакансий", count))
+        .withType(Notifications.Type.SUCCESS)
+        .show();
+  }
 
-//    String s = lLMDebugService.testSimpleCall();
-//    notifications.show("Vacancy analysis clicked: %s", s);
+  @Subscribe(id = "startPrimaryAnalysisBtn", subject = "clickListener")
+  public void onStartPrimaryAnalysisBtnClick(final ClickEvent<JmixButton> event) {
+    vacancyWorkflowService.analyze(AnalysisType.PRIMARY);
+    notifications.create("Запущен воркфлоу первичного анализа").show();
+  }
 
-    vacancyWorkflowService.analyze();
+  @Subscribe(id = "addSocialToQueueBtn", subject = "clickListener")
+  public void onAddSocialToQueueBtnClick(final ClickEvent<JmixButton> event) {
+    int count = vacancyAnalysisService.markProcessingForAllVacancy(AnalysisType.SOCIAL);
+    notifications.create(String.format("Добавлено в очередь на социальный анализ: %d вакансий", count))
+        .withType(Notifications.Type.SUCCESS)
+        .show();
+  }
 
-//    String id = vacanciesDc.getItem().getId();
-//
-//    if (id == null) {
-//      notifications.show("Vacancy does not exist");
-//      return;
-//    }
-//    vacancyAnalysisService.analyzeVacancy(id);
-
+  @Subscribe(id = "startSocialAnalysisBtn", subject = "clickListener")
+  public void onStartSocialAnalysisBtnClick(final ClickEvent<JmixButton> event) {
+    vacancyWorkflowService.analyze(AnalysisType.SOCIAL);
+    notifications.create("Запущен воркфлоу социального анализа").show();
   }
 }

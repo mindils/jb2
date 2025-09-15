@@ -41,7 +41,7 @@
       </fetchPlan>
       <loader id="vacanciesDl" readOnly="true">
         <query>
-          <![CDATA[select e from jb2_Vacancy e]]>
+          <![CDATA[select e from jb2_Vacancy e order by e.publishedAt desc]]>
         </query>
       </loader>
     </collection>
@@ -60,7 +60,10 @@
     <hbox id="buttonsPanel" classNames="buttons-panel">
       <button id="updateVacancy" text="msg://updateVacancy.text"/>
       <button id="updateAllVacancy" text="msg://updateAllVacancy.text"/>
-      <button id="analysisVacancy" text="msg://analysisVacancy.text"/>
+      <button id="addPrimaryToQueueBtn" text="msg://analysisVacancyPrimary.text"/>
+      <button id="startPrimaryAnalysisBtn" text="msg://startPrimaryAnalysis.text"/>
+      <button id="addSocialToQueueBtn" text="msg://analysisVacancySocial.text"/>
+      <button id="startSocialAnalysisBtn" text="msg://startSocialAnalysis.text"/>
       <simplePagination id="pagination" dataLoader="vacanciesDl"/>
     </hbox>
     <dataGrid id="vacanciesDataGrid"
