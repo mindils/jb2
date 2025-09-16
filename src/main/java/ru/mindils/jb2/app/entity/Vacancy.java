@@ -180,6 +180,9 @@ public class Vacancy {
   @Column(name = "CREATED_DATE")
   private OffsetDateTime createdDate;
 
+  @OneToOne(mappedBy = "vacancy",  fetch = FetchType.LAZY)
+  private VacancyAnalysis  vacancyAnalysis;
+
   @LastModifiedBy
   @Column(name = "LAST_MODIFIED_BY")
   private String lastModifiedBy;
