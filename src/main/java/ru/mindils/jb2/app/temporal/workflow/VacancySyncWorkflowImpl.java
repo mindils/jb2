@@ -94,6 +94,8 @@ public class VacancySyncWorkflowImpl implements VacancySyncWorkflow {
               "Total pages processed: {}, total vacancies processed: {}",
           currentPage, totalProcessed);
 
+      activities.saveVacancyState();
+
     } catch (Exception e) {
       log.error("Vacancy synchronization failed: {}", e.getMessage(), e);
       throw e;

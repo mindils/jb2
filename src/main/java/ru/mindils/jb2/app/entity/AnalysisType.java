@@ -8,15 +8,9 @@ import org.springframework.lang.Nullable;
  */
 public enum AnalysisType implements EnumClass<String> {
 
-  /**
-   * Первичный анализ: Java, Jmix, AI.
-   */
   PRIMARY("PRIMARY"),
-
-  /**
-   * Социальный анализ: режим работы, домены, соц. значимость.
-   */
-  SOCIAL("SOCIAL");
+    SOCIAL("SOCIAL"),
+    VACANCY_UPDATE("VACANCY_UPDATE");
 
   private final String id;
 

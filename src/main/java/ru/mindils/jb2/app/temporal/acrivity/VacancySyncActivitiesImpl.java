@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.springframework.stereotype.Component;
 import ru.mindils.jb2.app.dto.VacancySearchResponseDto;
 import ru.mindils.jb2.app.service.VacancySyncService;
+import ru.mindils.jb2.app.service.VacancySyncStateService;
 import ru.mindils.jb2.app.temporal.VacancySyncConstants;
 
 @ActivityImpl(taskQueues = VacancySyncConstants.VACANCY_QUEUE)
@@ -18,10 +19,12 @@ public class VacancySyncActivitiesImpl implements VacancySyncActivities {
   private final VacancySyncService vacancySyncService;
 
   private final SystemAuthenticator authenticator;
+  private final VacancySyncStateService vacancySyncStateService;
 
-  public VacancySyncActivitiesImpl(VacancySyncService vacancySyncService, SystemAuthenticator authenticator) {
+  public VacancySyncActivitiesImpl(VacancySyncService vacancySyncService, SystemAuthenticator authenticator, VacancySyncStateService vacancySyncStateService) {
     this.vacancySyncService = vacancySyncService;
     this.authenticator = authenticator;
+    this.vacancySyncStateService = vacancySyncStateService;
   }
 
   @Override
@@ -48,5 +51,19 @@ public class VacancySyncActivitiesImpl implements VacancySyncActivities {
       log.error("Error saving vacancy {}: {}", vacancyId, e.getMessage(), e);
       throw e;
     }
+  }
+
+  @Override
+  public void saveVacancyState() {
+    log.info("Saving VacancyState");
+    try {
+      authenticator.runWithSystem(vacancySyncStateService::updateSyncState);
+      log.info("Successfully saved VacancyState");
+    } catch (Exception e) {
+      log.error("Error saving VacancyState: {}", e.getMessage(), e);
+      throw e;
+    }
+
+
   }
 }
