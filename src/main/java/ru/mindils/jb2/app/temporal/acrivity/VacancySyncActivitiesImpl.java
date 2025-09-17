@@ -10,28 +10,32 @@ import ru.mindils.jb2.app.service.VacancySyncService;
 import ru.mindils.jb2.app.service.VacancySyncStateService;
 import ru.mindils.jb2.app.temporal.VacancySyncConstants;
 
+import java.util.List;
+import java.util.Map;
+
 @ActivityImpl(taskQueues = VacancySyncConstants.VACANCY_QUEUE)
 @Component
 public class VacancySyncActivitiesImpl implements VacancySyncActivities {
-
   private static final Logger log = Workflow.getLogger(VacancySyncActivitiesImpl.class);
 
   private final VacancySyncService vacancySyncService;
-
   private final SystemAuthenticator authenticator;
   private final VacancySyncStateService vacancySyncStateService;
 
-  public VacancySyncActivitiesImpl(VacancySyncService vacancySyncService, SystemAuthenticator authenticator, VacancySyncStateService vacancySyncStateService) {
+  public VacancySyncActivitiesImpl(VacancySyncService vacancySyncService,
+                                   SystemAuthenticator authenticator,
+                                   VacancySyncStateService vacancySyncStateService) {
     this.vacancySyncService = vacancySyncService;
     this.authenticator = authenticator;
     this.vacancySyncStateService = vacancySyncStateService;
   }
 
   @Override
-  public VacancySearchResponseDto searchVacancies(int page) {
-    log.info("=== ACTIVITY CALLED: searchVacancies for page: {} ===", page);
+  public VacancySearchResponseDto searchVacancies(int page, List<Map<String, String>> requestParams) {
+    log.info("=== ACTIVITY CALLED: searchVacancies for page: {}, params: {} ===", page, requestParams);
     try {
-      VacancySearchResponseDto response = authenticator.withSystem(() -> vacancySyncService.searchVacancies(page));
+      VacancySearchResponseDto response = authenticator.withSystem(() ->
+          vacancySyncService.searchVacancies(page, requestParams));
       log.info("Activity searchVacancies completed successfully. Found {} vacancies on page {}, total pages: {}",
           response.getItems().size(), page, response.getPages());
       return response;
@@ -63,7 +67,5 @@ public class VacancySyncActivitiesImpl implements VacancySyncActivities {
       log.error("Error saving VacancyState: {}", e.getMessage(), e);
       throw e;
     }
-
-
   }
 }

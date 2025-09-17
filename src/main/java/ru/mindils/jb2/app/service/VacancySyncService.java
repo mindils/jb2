@@ -24,7 +24,6 @@ import java.util.stream.Stream;
 
 @Service
 public class VacancySyncService {
-
   private static final Logger log = LoggerFactory.getLogger(VacancySyncService.class);
 
   @PersistenceContext
@@ -48,21 +47,45 @@ public class VacancySyncService {
   }
 
   /**
-   * Поиск вакансий на указанной странице с применением фильтров
+   * Поиск вакансий на указанной странице с применением фильтров из БД (оригинальный метод)
    * @param page номер страницы (начинается с 0)
    * @return результат поиска с вакансиями и метаданными
    */
   public VacancySearchResponseDto searchVacancies(int page) {
-    log.info("Searching vacancies on page: {}", page);
+    return searchVacancies(page, null);
+  }
 
-    // Получаем фильтры из базы данных
+  /**
+   * Поиск вакансий на указанной странице с пользовательскими параметрами
+   * @param page номер страницы (начинается с 0)
+   * @param customRequestParams дополнительные пользовательские параметры (могут быть null)
+   * @return результат поиска с вакансиями и метаданными
+   */
+  public VacancySearchResponseDto searchVacancies(int page, List<Map<String, String>> customRequestParams) {
+    log.info("Searching vacancies on page: {} with custom params: {}", page, customRequestParams);
+
+    // Всегда загружаем базовые параметры из БД
     List<VacancyFilterParams> filterParams = getFilterParams();
 
-    // Формируем параметры запроса с номером страницы
+    // Строим финальный список параметров, объединяя все источники
+    Stream<Map<String, String>> baseParamsStream = filterParams.stream()
+        .map(param -> Map.of(param.getParamName(), param.getParamValue()));
+
+    Stream<Map<String, String>> customParamsStream = customRequestParams != null && !customRequestParams.isEmpty()
+        ? customRequestParams.stream()
+        : Stream.empty();
+
+    Stream<Map<String, String>> pageParamStream = Stream.of(Map.of("page", String.valueOf(page)));
+
     List<Map<String, String>> requestParams = Stream.concat(
-        filterParams.stream().map(param -> Map.of(param.getParamName(), param.getParamValue())),
-        Stream.of(Map.of("page", String.valueOf(page)))
+        Stream.concat(baseParamsStream, customParamsStream),
+        pageParamStream
     ).toList();
+
+    log.info("Using combined parameters - base filters: {}, custom params: {}, page: {}",
+        filterParams.size(),
+        customRequestParams != null ? customRequestParams.size() : 0,
+        page);
 
     try {
       VacancySearchResponseDto response = vacancyApiClient.getAll(requestParams);
@@ -82,7 +105,6 @@ public class VacancySyncService {
   @Transactional
   public void saveVacancyWithDetails(String vacancyId) {
     log.info("Saving vacancy with details: {}", vacancyId);
-
     try {
       // Получаем детальную информацию о вакансии
       VacancyDto vacancyDto = vacancyApiClient.getById(vacancyId);
@@ -105,7 +127,6 @@ public class VacancySyncService {
       vacancy.setEmployer(mergedEmployer);
       entityManager.merge(vacancy);
       log.info("Successfully saved vacancy: {} with employer: {}", vacancyId, employerId);
-
     } catch (Exception e) {
       log.error("Error saving vacancy {}: {}", vacancyId, e.getMessage(), e);
       throw new RuntimeException("Failed to save vacancy " + vacancyId, e);
@@ -122,7 +143,6 @@ public class VacancySyncService {
           .query("select e from jb2_VacancyFilterParams e where e.vacancyFilter.code = :filterCode")
           .parameter("filterCode", DEFAULT_FILTER)
           .list();
-
       log.debug("Loaded {} filter parameters", filterParams.size());
       return filterParams;
     } catch (Exception e) {

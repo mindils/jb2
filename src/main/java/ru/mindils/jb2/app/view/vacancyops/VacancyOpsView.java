@@ -19,6 +19,8 @@ import io.jmix.flowui.view.Target;
 import io.jmix.flowui.view.ViewComponent;
 import io.jmix.flowui.view.ViewController;
 import io.jmix.flowui.view.ViewDescriptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.mindils.jb2.app.dto.WorkflowInfo;
 import ru.mindils.jb2.app.entity.VacancySyncState;
@@ -27,7 +29,10 @@ import ru.mindils.jb2.app.service.TemporalStatusService;
 import ru.mindils.jb2.app.service.VacancyWorkflowService;
 import ru.mindils.jb2.app.view.main.MainView;
 
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
@@ -35,6 +40,8 @@ import java.util.Map;
 @ViewController(id = "jb2_VacancyOpsView")
 @ViewDescriptor(path = "vacancy-ops-view.xml")
 public class VacancyOpsView extends StandardView {
+
+  Logger log = LoggerFactory.getLogger(VacancyOpsView.class);
 
   @Autowired
   private VacancyWorkflowService vacancyWorkflowService;
@@ -206,10 +213,41 @@ public class VacancyOpsView extends StandardView {
 
   @Subscribe(id = "updateFromLastLoadBtn", subject = "clickListener")
   public void onUpdateFromLastLoadBtnClick(final ClickEvent<JmixButton> event) {
-    vacancyWorkflowService.sync();
+    // Получаем последнюю дату обновления
+    List<VacancySyncState> list = dataManager.load(VacancySyncState.class)
+        .query("select e from jb2_VacancySyncState e order by e.lastModifiedDate desc")
+        .maxResults(1)
+        .list();
+
+    int daysPeriod;
+
+    if (list.isEmpty()) {
+      // Если записей нет - используем максимальный period
+      daysPeriod = 30;
+      log.info("No sync state found, using maximum period: {} days", daysPeriod);
+    } else {
+      OffsetDateTime lastModified = list.getFirst().getLastModifiedDate();
+
+      // Вычисляем разность в днях между последней датой обновления и текущим моментом
+      long daysBetween = ChronoUnit.DAYS.between(
+          lastModified.toLocalDate(),
+          LocalDate.now()
+      );
+
+      // Ограничиваем значение между 1 и 30
+      daysPeriod = (int) Math.max(1, Math.min(30, daysBetween));
+
+      log.info("Last sync was {} days ago, using period: {} days", daysBetween, daysPeriod);
+    }
+
+    List<Map<String, String>> params = List.of(
+        Map.of("period", String.valueOf(daysPeriod))
+    );
+
+    vacancyWorkflowService.sync(params);
 
     notifications
-        .create("Полное обновление запущено")
+        .create(String.format("Запущено обновление за последние %d дней", daysPeriod))
         .withType(Notifications.Type.SUCCESS)
         .show();
 
