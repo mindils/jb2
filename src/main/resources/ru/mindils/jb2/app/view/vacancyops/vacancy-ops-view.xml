@@ -7,9 +7,11 @@
       <fetchPlan extends="_base"/>
     </collection>
   </data>
+
   <facets>
     <dataLoadCoordinator auto="false"/>
   </facets>
+
   <layout>
     <vbox width="100%" height="100%" padding="true" spacing="true">
 
@@ -21,37 +23,42 @@
                  border-radius: var(--lumo-border-radius-l);
                  padding: var(--lumo-space-l);"
             spacing="true" width="100%">
+
         <h3 text="Синхронизация вакансий" css="margin: 0;"/>
 
-        <vbox spacing="true">
-          <vbox spacing="true">
-            <button id="updateAllVacanciesBtn"
-                    text="Обновление всех вакансий"
-                    icon="REFRESH"
-                    themeNames="primary"
-                    width="AUTO"/>
-            <p text="Полная синхронизация всех вакансий с внешним API"
-               css="margin: 0; color: var(--lumo-secondary-text-color);
-                    font-size: var(--lumo-font-size-s);"/>
-          </vbox>
+        <!-- Кнопки и поле в одну строку -->
+        <hbox spacing="true" alignItems="CENTER" wrap="true">
+          <button id="updateAllVacanciesBtn"
+                  text="Обновление всех"
+                  icon="REFRESH"
+                  themeNames="primary small"/>
 
-          <vbox spacing="true">
-            <button id="updateFromLastLoadBtn"
-                    text="Обновление с последней загрузки"
-                    icon="CLOCK"
-                    themeNames="contrast"
-                    width="AUTO"/>
-            <p text="Синхронизация только новых вакансий"
-               css="margin: 0; color: var(--lumo-secondary-text-color);
-                    font-size: var(--lumo-font-size-s);"/>
-            <p id="lastTimeUpdateText"
-               css="margin: 0; color: var(--lumo-secondary-text-color);
-                    font-size: var(--lumo-font-size-s);"/>
+          <button id="updateFromLastLoadBtn"
+                  text="С последней загрузки"
+                  icon="CLOCK"
+                  themeNames="contrast small"/>
+          <!-- Инфо-строка про последнее обновление -->
+          <p id="lastTimeUpdateText"
+             css="margin: 0; color: var(--lumo-secondary-text-color);
+                font-size: var(--lumo-font-size-s);"/>
+
+          <vbox spacing="false">
+            <!-- Поле для количества дней -->
+            <textField id="daysPeriodField"
+                       label="Период (дней)"
+                       value="3"
+                       width="120px"/>
+
+            <button id="updateByDaysBtn"
+                    text="Обновить за N дней"
+                    icon="CALENDAR"
+                    themeNames="success small"/>
           </vbox>
-        </vbox>
+        </hbox>
+
       </vbox>
 
-      <!-- Analysis Operations Accordion -->
+      <!-- Analysis Operations Accordion (без изменений функционала) -->
       <vbox css="background: var(--lumo-contrast-5pct);
                  border-radius: var(--lumo-border-radius-l);
                  padding: var(--lumo-space-l);"
@@ -59,7 +66,6 @@
         <h3 text="Анализ вакансий" css="margin: 0;"/>
 
         <accordion width="100%">
-          <!-- Primary Analysis -->
           <accordionPanel summaryText="Первичный анализ (Java, Jmix, AI)" opened="true">
             <vbox css="padding: var(--lumo-space-m);" spacing="true">
               <hbox spacing="true" alignItems="CENTER" wrap="true">
@@ -78,7 +84,6 @@
             </vbox>
           </accordionPanel>
 
-          <!-- AI Analysis -->
           <accordionPanel summaryText="AI анализ" opened="false">
             <vbox css="padding: var(--lumo-space-m);" spacing="true">
               <hbox spacing="true" alignItems="CENTER" wrap="true">
@@ -97,7 +102,6 @@
             </vbox>
           </accordionPanel>
 
-          <!-- Deep Analysis -->
           <accordionPanel summaryText="Глубокий анализ" opened="false">
             <vbox css="padding: var(--lumo-space-m);" spacing="true">
               <hbox spacing="true" alignItems="CENTER" wrap="true">
@@ -123,15 +127,15 @@
                  border-radius: var(--lumo-border-radius-l);
                  padding: var(--lumo-space-l);"
             spacing="true" width="100%">
+
         <hbox width="100%" justifyContent="BETWEEN" alignItems="CENTER">
-          <h3 text="Запущенные процессы" css="margin: 0;"/>
+          <h3 id="workflowStatusHeader" text="Запущенные процессы" css="margin: 0;"/>
           <button id="refreshProcessesBtn"
                   text="Обновить"
                   icon="REFRESH"
                   themeNames="small tertiary"/>
         </hbox>
 
-        <!-- Process Monitor Area -->
         <vbox css="border: 1px dashed var(--lumo-contrast-30pct);
                    border-radius: var(--lumo-border-radius-m);
                    padding: var(--lumo-space-l);
@@ -139,8 +143,7 @@
                    min-height: 120px;
                    display: flex;
                    align-items: center;
-                   justify-content: center;"
-              id="processesContainer">
+                   justify-content: center;">
           <dataGrid id="workflowInfoesDataGrid" dataContainer="workflowInfoesDc" minWidth="100px" width="100%">
             <actions/>
             <columns>
@@ -158,10 +161,9 @@
                   font-style: italic;
                   text-align: center;
                   margin: 0;"/>
-
         </vbox>
 
-        <!-- Process Stats Grid -->
+        <!-- Статусы-плитки ниже оставил без изменений -->
         <hbox spacing="true" width="100%">
           <vbox css="background: var(--lumo-base-color);
                      border-radius: var(--lumo-border-radius-m);
@@ -190,7 +192,7 @@
                      flex: 1;">
             <p text="AI анализ" css="font-weight: bold; margin: 0 0 var(--lumo-space-xs) 0;"/>
             <span id="aiAnalysisStatus" text="Не запущен" css="color: var(--lumo-secondary-text-color);"/>
-            <span text="Обработано: 0" css="font-size: var(--lumo-font-size-xs); color: var(--lumo-tertiary-text-color);"/>
+            <span text="Обработано: 0" css="font-size: var(--lumo-font-size-xs); color: var(--lumo-terтиary-text-color);"/>
           </vbox>
 
           <vbox css="background: var(--lumo-base-color);
