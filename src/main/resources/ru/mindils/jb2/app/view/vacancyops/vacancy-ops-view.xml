@@ -27,35 +27,49 @@
         <h3 text="Синхронизация вакансий" css="margin: 0;"/>
 
         <!-- Кнопки и поле в одну строку -->
-        <hbox spacing="true" alignItems="CENTER" wrap="true">
-          <button id="updateAllVacanciesBtn"
-                  text="Обновление всех"
-                  icon="REFRESH"
-                  themeNames="primary small"/>
+        <hbox spacing="true" alignItems="CENTER" wrap="true" width="100%">
+          <!-- Полное обновление -->
+          <vbox spacing="false" width="auto">
+            <button id="updateAllVacanciesBtn"
+                    text="Обновление всех"
+                    icon="REFRESH"
+                    themeNames="primary small"/>
+          </vbox>
 
-          <button id="updateFromLastLoadBtn"
-                  text="С последней загрузки"
-                  icon="CLOCK"
-                  themeNames="contrast small"/>
-          <!-- Инфо-строка про последнее обновление -->
-          <p id="lastTimeUpdateText"
-             css="margin: 0; color: var(--lumo-secondary-text-color);
-                font-size: var(--lumo-font-size-s);"/>
+          <!-- С последней загрузки -->
+          <vbox spacing="false" width="auto">
+            <button id="updateFromLastLoadBtn"
+                    text="С последней загрузки"
+                    icon="CLOCK"
+                    themeNames="contrast small"/>
+            <p id="lastTimeUpdateText"
+               css="margin: 0; color: var(--lumo-secondary-text-color);
+            font-size: var(--lumo-font-size-s);"/>
+          </vbox>
 
-          <vbox spacing="false">
-            <!-- Поле для количества дней -->
+          <vbox spacing="false" width="auto">
+            <button id="updateFromQueueBtnClick"
+                    text="Обновить все из очереди"
+                    icon="REFRESH"
+                    themeNames="primary small"/>
+            <p id="queueText"
+               text="—"
+               css="margin: 0; color: var(--lumo-secondary-text-color);
+            font-size: var(--lumo-font-size-s);"/>
+          </vbox>
+
+          <!-- Обновить за N дней -->
+          <vbox spacing="false" width="auto">
             <textField id="daysPeriodField"
                        label="Период (дней)"
                        value="3"
                        width="120px"/>
-
             <button id="updateByDaysBtn"
                     text="Обновить за N дней"
                     icon="CALENDAR"
                     themeNames="success small"/>
           </vbox>
         </hbox>
-
       </vbox>
 
       <!-- Analysis Operations Accordion (без изменений функционала) -->

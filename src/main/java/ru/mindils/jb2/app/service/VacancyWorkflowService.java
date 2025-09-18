@@ -6,8 +6,10 @@ import org.springframework.stereotype.Service;
 import ru.mindils.jb2.app.entity.AnalysisType;
 import ru.mindils.jb2.app.temporal.VacancyAnalysisConstants;
 import ru.mindils.jb2.app.temporal.VacancySyncConstants;
+import ru.mindils.jb2.app.temporal.VacancyUpdateConstants;
 import ru.mindils.jb2.app.temporal.workflow.VacancyAnalysisWorkflow;
 import ru.mindils.jb2.app.temporal.workflow.VacancySyncWorkflow;
+import ru.mindils.jb2.app.temporal.workflow.VacancyUpdateWorkflow;
 
 import java.util.List;
 import java.util.Map;
@@ -36,6 +38,18 @@ public class VacancyWorkflowService {
     );
 
     WorkflowClient.start(() -> workflow.run(requestParams));
+  }
+
+  public void updateFromQueue() {
+    VacancyUpdateWorkflow workflow = workflowClient.newWorkflowStub(
+        VacancyUpdateWorkflow.class,
+        WorkflowOptions.newBuilder()
+            .setTaskQueue(VacancyUpdateConstants.QUEUE)
+            .setWorkflowId(VacancyUpdateConstants.WORKFLOW_ID)
+            .build()
+    );
+
+    WorkflowClient.start(workflow::run);
   }
 
   public void analyze(AnalysisType type) {

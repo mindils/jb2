@@ -84,7 +84,7 @@ public class VacancyQueueService {
         VacancyAnalysisQueue q = dataManager.create(VacancyAnalysisQueue.class);
         q.setVacancy(dataManager.getReference(Vacancy.class, id)); // без доп. загрузки сущности
         q.setTypeQueue(type);
-        q.setProcessing(Boolean.FALSE);
+        q.setProcessing(Boolean.TRUE);
         saveCtx.saving(q);
       }
 

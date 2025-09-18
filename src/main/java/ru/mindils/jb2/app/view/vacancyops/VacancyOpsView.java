@@ -16,6 +16,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.mindils.jb2.app.dto.WorkflowInfo;
+import ru.mindils.jb2.app.entity.AnalysisType;
+import ru.mindils.jb2.app.entity.VacancyAnalysisQueue;
 import ru.mindils.jb2.app.entity.VacancySyncState;
 import ru.mindils.jb2.app.service.TemporalStatusService;
 import ru.mindils.jb2.app.service.VacancyWorkflowService;
@@ -60,6 +62,8 @@ public class VacancyOpsView extends StandardView {
 
   @ViewComponent
   private TextField daysPeriodField;
+  @ViewComponent
+  private Paragraph queueText;
 
   @Subscribe
   public void onInit(final InitEvent event) {
@@ -73,6 +77,7 @@ public class VacancyOpsView extends StandardView {
     notifications.create("Полное обновление запущено")
         .withType(Notifications.Type.SUCCESS)
         .show();
+
 
     refreshWorkflowStatus();
   }
@@ -97,15 +102,15 @@ public class VacancyOpsView extends StandardView {
     int days = clampDays(parseIntOrDefault(daysPeriodField.getValue(), 3));
 
     // Заглушка — чтобы подключить логику, раскомментируйте 2 строки ниже:
-     List<Map<String, String>> params = List.of(Map.of("period", String.valueOf(days)));
-     vacancyWorkflowService.sync(params);
+    List<Map<String, String>> params = List.of(Map.of("period", String.valueOf(days)));
+    vacancyWorkflowService.sync(params);
 
     notifications.create(String.format("Заглушка: будет обновление за %d дней", days))
         .withType(Notifications.Type.SUCCESS)
         .show();
 
     // Если понадобится — можно обновлять статус
-     refreshWorkflowStatus();
+    refreshWorkflowStatus();
   }
 
   @Subscribe(id = "refreshProcessesBtn", subject = "clickListener")
@@ -126,11 +131,20 @@ public class VacancyOpsView extends StandardView {
       workflowInfoesDl.load();
       updateLastTimeUpdateVacancy();
       updateHeaderCount();
+      updateQueueCount();
     } catch (Exception e) {
       notifications.create("Ошибка при получении статуса workflow'ов: " + e.getMessage())
           .withType(Notifications.Type.ERROR)
           .show();
     }
+  }
+
+  private void updateQueueCount() {
+    Integer count = dataManager.loadValue("select count(e) from jb2_VacancyAnalysisQueue e where e.typeQueue = :typeQueue and e.processing = :processing", Integer.class)
+        .parameter("typeQueue", AnalysisType.VACANCY_UPDATE)
+        .parameter("processing", Boolean.TRUE)
+        .one();
+    queueText.setText("В очереди: " + count);
   }
 
   private void updateHeaderCount() {
@@ -185,5 +199,11 @@ public class VacancyOpsView extends StandardView {
     if (days < 1) return 1;
     if (days > 30) return 30;
     return days;
+  }
+
+  @Subscribe(id = "updateFromQueueBtnClick", subject = "clickListener")
+  public void onUpdateFromQueueBtnClickClick(final ClickEvent<JmixButton> event) {
+    vacancyWorkflowService.updateFromQueue();
+    notifications.create("Запущен workflow обновления вакансий из очереди").show();
   }
 }

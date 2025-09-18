@@ -46,7 +46,11 @@ public class JsonHttpClient {
     HttpResponse<String> resp = client.send(req, HttpResponse.BodyHandlers.ofString());
 
     if (resp.statusCode() / 100 != 2) {
-      throw new ExternalServiceException("GET " + uri + " failed with " + resp.statusCode(), resp.body());
+      throw new ExternalServiceException(
+          "GET " + uri + " failed with " + resp.statusCode(),
+          resp.body(),
+          resp.statusCode()
+      );
     }
 
     T data = mapper.readValue(resp.body(), typeRef);

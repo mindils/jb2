@@ -105,8 +105,20 @@ public class VacancyListView extends StandardListView<Vacancy> {
 
   @Subscribe("updateVacancyButton.addVacancyBtn")
   public void onUpdateVacancyButtonAddVacancyBtnClick(final DropdownButtonItem.ClickEvent event) {
-    AnalysisType queueType = AnalysisType.VACANCY_UPDATE;
+    addQueueTable(AnalysisType.VACANCY_UPDATE);
+  }
 
+  @Subscribe("updateVacancyButton.addVacancyInFirstLlmQueueBtn")
+  public void onUpdateVacancyButtonAddVacancyInFirstLlmQueueBtnClick(final DropdownButtonItem.ClickEvent event) {
+    addQueueTable(AnalysisType.PRIMARY);
+  }
+
+  @Subscribe("updateVacancyButton.addVacancyInSocialLlmQueueBtn")
+  public void onUpdateVacancyButtonAddVacancyInSocialLlmQueueBtnClick(final DropdownButtonItem.ClickEvent event) {
+    addQueueTable(AnalysisType.SOCIAL);
+  }
+
+  private void addQueueTable(AnalysisType queueType) {
     int added = vacancyQueueService.enqueueAllForUpdate(
         vacanciesDl,
         queueType,
@@ -118,5 +130,4 @@ public class VacancyListView extends StandardListView<Vacancy> {
         .withType(Notifications.Type.SUCCESS)
         .show();
   }
-
 }

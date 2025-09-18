@@ -47,6 +47,8 @@
     <dropdownButton id="updateVacancyButton" text="Действия">
       <items>
         <textItem id="addVacancyBtn" text="В очередь выбранные вакансии"/>
+        <textItem id="addVacancyInFirstLlmQueueBtn" text="В очередь First LLM"/>
+        <textItem id="addVacancyInSocialLlmQueueBtn" text="В очередь Social LLM"/>
       </items>
     </dropdownButton>
     <propertyFilter property="vacancyAnalysis.java" operation="EQUAL" dataLoader="vacanciesDl" />
