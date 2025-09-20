@@ -1,251 +1,78 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <view xmlns="http://jmix.io/schema/flowui/view"
-      title="msg://vacancyOpsView.title">
+      xmlns:layout="http://jmix.io/schema/flowui/layout"
+      title="msg://ru.mindils.jb2.app.view.vacancyops/vacancyOpsView.title">
+
   <data>
-    <collection id="workflowInfoesDc" class="ru.mindils.jb2.app.dto.WorkflowInfo">
-      <loader id="workflowInfoesDl" readOnly="true"/>
+    <collection id="workflowInfosDc" class="ru.mindils.jb2.app.dto.WorkflowInfo">
+      <!-- FIX #1: id лоадера -->
+      <loader id="workflowInfosDl" readOnly="true"/>
       <fetchPlan extends="_base"/>
     </collection>
   </data>
 
-  <facets>
-    <dataLoadCoordinator auto="false"/>
-  </facets>
-
   <layout>
-    <vbox width="100%" height="100%" padding="true" spacing="true">
+    <vbox spacing="true" padding="true" width="100%">
 
-      <!-- Header -->
-      <h2 text="Операции с вакансиями" css="margin-bottom: var(--lumo-space-l);"/>
+      <!-- ===== TOP: Stats tiles ===== -->
+      <h3 text="Операции с вакансиями"/>
+      <hbox width="100%" classNames="gap-m" wrap="true">
 
-      <!-- Sync Operations Card -->
-      <vbox css="background: var(--lumo-contrast-5pct);
-                 border-radius: var(--lumo-border-radius-l);
-                 padding: var(--lumo-space-l);"
-            spacing="true" width="100%">
-
-        <h3 text="Синхронизация вакансий" css="margin: 0;"/>
-
-        <!-- Кнопки и поле в одну строку -->
-        <hbox spacing="true" alignItems="CENTER" wrap="true" width="100%">
-          <!-- Полное обновление -->
-          <vbox spacing="false" width="auto">
-            <button id="updateAllVacanciesBtn"
-                    text="Обновление всех"
-                    icon="REFRESH"
-                    themeNames="primary small"/>
-          </vbox>
-
-          <!-- С последней загрузки -->
-          <vbox spacing="false" width="auto">
-            <button id="updateFromLastLoadBtn"
-                    text="С последней загрузки"
-                    icon="CLOCK"
-                    themeNames="contrast small"/>
-            <p id="lastTimeUpdateText"
-               css="margin: 0; color: var(--lumo-secondary-text-color);
-            font-size: var(--lumo-font-size-s);"/>
-          </vbox>
-
-          <vbox spacing="false" width="auto">
-            <button id="updateFromQueueBtnClick"
-                    text="Обновить все из очереди"
-                    icon="REFRESH"
-                    themeNames="primary small"/>
-            <p id="queueText"
-               text="—"
-               css="margin: 0; color: var(--lumo-secondary-text-color);
-            font-size: var(--lumo-font-size-s);"/>
-          </vbox>
-
-          <!-- Обновить за N дней -->
-          <vbox spacing="false" width="auto">
-            <textField id="daysPeriodField"
-                       label="Период (дней)"
-                       value="3"
-                       width="120px"/>
-            <button id="updateByDaysBtn"
-                    text="Обновить за N дней"
-                    icon="CALENDAR"
-                    themeNames="success small"/>
-          </vbox>
-        </hbox>
-      </vbox>
-
-      <!-- Analysis Operations Accordion (без изменений функционала) -->
-      <vbox css="background: var(--lumo-contrast-5pct);
-                 border-radius: var(--lumo-border-radius-l);
-                 padding: var(--lumo-space-l);"
-            spacing="true" width="100%">
-        <h3 text="Анализ вакансий" css="margin: 0;"/>
-
-        <accordion width="100%">
-          <accordionPanel summaryText="Первичный анализ (Java, Jmix, AI)" opened="true">
-            <vbox css="padding: var(--lumo-space-m);" spacing="true">
-              <hbox spacing="true" alignItems="CENTER" wrap="true">
-                <button id="addToQueueBtn"
-                        text="Добавить в очередь"
-                        icon="PLUS"
-                        themeNames="success small"/>
-                <button id="processQueueBtn"
-                        text="Запуск обработки"
-                        icon="PLAY"
-                        themeNames="primary small"/>
-              </hbox>
-              <p id="countFirstAnalyze" text="-"
-                 css="margin: 0; color: var(--lumo-secondary-text-color);
-                      font-size: var(--lumo-font-size-s);"/>
-            </vbox>
-          </accordionPanel>
-
-          <accordionPanel summaryText="AI анализ" opened="false">
-            <vbox css="padding: var(--lumo-space-m);" spacing="true">
-              <hbox spacing="true" alignItems="CENTER" wrap="true">
-                <button id="updateNoAiAnalysisBtn"
-                        text="Обновить без AI анализа"
-                        icon="AUTOMATION"
-                        themeNames="contrast small"/>
-                <button id="updateAiQueueBtn"
-                        text="Обработать очередь"
-                        icon="COG"
-                        themeNames="primary small"/>
-              </hbox>
-              <p id="countSocialAnalyze" text="-"
-                 css="margin: 0; color: var(--lumo-secondary-text-color);
-                      font-size: var(--lumo-font-size-s);"/>
-            </vbox>
-          </accordionPanel>
-
-          <accordionPanel summaryText="Глубокий анализ" opened="false">
-            <vbox css="padding: var(--lumo-space-m);" spacing="true">
-              <hbox spacing="true" alignItems="CENTER" wrap="true">
-                <button id="updateNoDeepAnalysisBtn"
-                        text="Обновить без глубокого анализа"
-                        icon="SEARCH"
-                        themeNames="contrast small"/>
-                <button id="processDeepQueueBtn"
-                        text="Обработать очередь"
-                        icon="ABACUS"
-                        themeNames="primary small"/>
-              </hbox>
-              <p text="Детальный анализ социальных аспектов"
-                 css="margin: 0; color: var(--lumo-secondary-text-color);
-                      font-size: var(--lumo-font-size-s);"/>
-            </vbox>
-          </accordionPanel>
-        </accordion>
-      </vbox>
-
-      <!-- Running Processes Card -->
-      <vbox css="background: var(--lumo-contrast-5pct);
-                 border-radius: var(--lumo-border-radius-l);
-                 padding: var(--lumo-space-l);"
-            spacing="true" width="100%">
-
-        <hbox width="100%" justifyContent="BETWEEN" alignItems="CENTER">
-          <h3 id="workflowStatusHeader" text="Запущенные процессы" css="margin: 0;"/>
-          <button id="refreshProcessesBtn"
-                  text="Обновить"
-                  icon="REFRESH"
-                  themeNames="small tertiary"/>
-        </hbox>
-
-        <vbox css="border: 1px dashed var(--lumo-contrast-30pct);
-                   border-radius: var(--lumo-border-radius-m);
-                   padding: var(--lumo-space-l);
-                   background: var(--lumo-base-color);
-                   min-height: 120px;
-                   display: flex;
-                   align-items: center;
-                   justify-content: center;">
-          <dataGrid id="workflowInfoesDataGrid" dataContainer="workflowInfoesDc" minWidth="100px" width="100%">
-            <actions/>
-            <columns>
-              <column property="workflowId"/>
-              <column property="workflowType"/>
-              <column property="status"/>
-              <column property="startTime"/>
-              <column property="description"/>
-              <column property="runId"/>
-            </columns>
-          </dataGrid>
-          <icon icon="TIMER" css="color: var(--lumo-secondary-text-color); margin-bottom: var(--lumo-space-s);"/>
-          <p text="Здесь будет отображаться статус запущенных процессов"
-             css="color: var(--lumo-secondary-text-color);
-                  font-style: italic;
-                  text-align: center;
-                  margin: 0;"/>
+        <vbox classNames="stat-card" themeNames="spacing" width="16rem">
+          <h4 text="Очередь обновления"/>
+          <p id="updateQueueCountText" classNames="stat-number"/>
         </vbox>
 
-        <!-- Статусы-плитки ниже оставил без изменений -->
-        <hbox spacing="true" width="100%">
-          <vbox css="background: var(--lumo-base-color);
-                     border-radius: var(--lumo-border-radius-m);
-                     padding: var(--lumo-space-m);
-                     text-align: center;
-                     flex: 1;">
-            <p text="Синхронизация" css="font-weight: bold; margin: 0 0 var(--lumo-space-xs) 0;"/>
-            <span id="syncProcessStatus" text="Не запущена" css="color: var(--lumo-secondary-text-color);"/>
-            <span text="Последний: --" css="font-size: var(--lumo-font-size-xs); color: var(--lumo-tertiary-text-color);"/>
-          </vbox>
+        <vbox classNames="stat-card" themeNames="spacing" width="16rem">
+          <h4 text="Очередь первичного анализа"/>
+          <p id="primaryQueueCountText" classNames="stat-number"/>
+        </vbox>
 
-          <vbox css="background: var(--lumo-base-color);
-                     border-radius: var(--lumo-border-radius-m);
-                     padding: var(--lumo-space-m);
-                     text-align: center;
-                     flex: 1;">
-            <p text="Первичный анализ" css="font-weight: bold; margin: 0 0 var(--lumo-space-xs) 0;"/>
-            <span id="primaryAnalysisStatus" text="Не запущен" css="color: var(--lumo-secondary-text-color);"/>
-            <span text="В очереди: 0" css="font-size: var(--lumo-font-size-xs); color: var(--lumo-tertiary-text-color);"/>
-          </vbox>
+        <vbox classNames="stat-card" themeNames="spacing" width="16rem">
+          <h4 text="Очередь соц. анализа"/>
+          <p id="socialQueueCountText" classNames="stat-number"/>
+        </vbox>
 
-          <vbox css="background: var(--lumo-base-color);
-                     border-radius: var(--lumo-border-radius-m);
-                     padding: var(--lumo-space-m);
-                     text-align: center;
-                     flex: 1;">
-            <p text="AI анализ" css="font-weight: bold; margin: 0 0 var(--lumo-space-xs) 0;"/>
-            <span id="aiAnalysisStatus" text="Не запущен" css="color: var(--lumo-secondary-text-color);"/>
-            <span text="Обработано: 0" css="font-size: var(--lumo-font-size-xs); color: var(--lumo-terтиary-text-color);"/>
-          </vbox>
+        <vbox classNames="stat-card" themeNames="spacing" width="24rem">
+          <h4 text="Последняя синхронизация"/>
+          <p id="lastSyncText"/>
+        </vbox>
 
-          <vbox css="background: var(--lumo-base-color);
-                     border-radius: var(--lumo-border-radius-m);
-                     padding: var(--lumo-space-m);
-                     text-align: center;
-                     flex: 1;">
-            <p text="Глубокий анализ" css="font-weight: bold; margin: 0 0 var(--lumo-space-xs) 0;"/>
-            <span id="deepAnalysisStatus" text="Не запущен" css="color: var(--lumo-secondary-text-color);"/>
-            <span text="Прогресс: 0%" css="font-size: var(--lumo-font-size-xs); color: var(--lumo-tertiary-text-color);"/>
-          </vbox>
+      </hbox>
+
+      <!-- ===== Quick actions ===== -->
+      <!-- FIX #2: enum пишется UPPERCASE -->
+      <hbox width="100%" classNames="gap-s" alignItems="END" wrap="true">
+        <button id="syncAllBtn" text="Синхронизация вакансий" themeNames="primary"/>
+        <textField id="daysField" label="Дней (1..30, пусто = авто)" clearButtonVisible="true" width="14rem"/>
+        <button id="syncRecentBtn" text="Синхронизация за период"/>
+        <button id="analyzePrimaryBtn" text="Анализ вакансий (первичный)"/>
+        <button id="analyzeSocialBtn" text="Анализ вакансий (социальный)"/>
+        <button id="refreshBtn" text="Обновить"/>
+      </hbox>
+
+      <!-- ===== Active workflows ===== -->
+      <h3 id="workflowStatusHeader" text="Запущенные процессы"/>
+      <dataGrid id="workflowInfosDataGrid"
+                dataContainer="workflowInfosDc"
+                width="100%" allRowsVisible="true">
+        <columns>
+          <column property="description" header="msg://ru.mindils.jb2.app.view.vacancyops/workflowGrid.description" autoWidth="true"/>
+          <column property="status" header="msg://ru.mindils.jb2.app.view.vacancyops/workflowGrid.status" width="10em"/>
+          <column property="startTime" header="msg://ru.mindils.jb2.app.view.vacancyops/workflowGrid.startTime" width="16em"/>
+          <column property="workflowId" header="msg://ru.mindils.jb2.app.view.vacancyops/workflowGrid.workflowId" width="20em"/>
+        </columns>
+      </dataGrid>
+
+      <!-- ===== Advanced actions (collapsed) ===== -->
+      <details summaryText="Дополнительно" opened="false">
+        <hbox classNames="gap-s" wrap="true">
+          <button id="updateFromQueueBtn" text="Обновить из очереди"/>
+          <button id="enqueueNotAnalyzedBtn" text="Добавить все без анализа (PRIMARY)"/>
+          <button id="enqueuePrimaryAllBtn" text="Добавить все вакансии (PRIMARY)"/>
+          <button id="enqueueSocialJavaBtn" text="Добавить Java-вакансии (SOCIAL)"/>
         </hbox>
-      </vbox>
-
-      <!-- Quick Actions Accordion -->
-      <accordion width="100%">
-        <accordionPanel summaryText="Быстрые действия" opened="false">
-          <vbox css="padding: var(--lumo-space-m);" spacing="true">
-            <hbox spacing="true" wrap="true">
-              <button id="stopAllProcessesBtn"
-                      text="Остановить все"
-                      icon="BAN"
-                      themeNames="error small"/>
-              <button id="clearQueuesBtn"
-                      text="Очистить очереди"
-                      icon="TRASH"
-                      themeNames="error small"/>
-              <button id="exportLogsBtn"
-                      text="Экспорт логов"
-                      icon="DOWNLOAD"
-                      themeNames="contrast small"/>
-              <button id="systemStatusBtn"
-                      text="Статус системы"
-                      icon="INFO"
-                      themeNames="contrast small"/>
-            </hbox>
-          </vbox>
-        </accordionPanel>
-      </accordion>
+      </details>
 
     </vbox>
   </layout>
