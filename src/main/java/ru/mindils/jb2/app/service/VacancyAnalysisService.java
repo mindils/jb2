@@ -109,15 +109,17 @@ public class VacancyAnalysisService {
   @Transactional
   public int markProcessingForJavaVacancy(AnalysisType type) {
     String sql = """
-        insert into jb2_vacancy_analysis_queue (vacancy_id, type_queue, processing, created_date, last_modified_date)
-        select v.id, ?1, true, now(), now()
-        from jb2_vacancy_analysis v
-        where v.java = 'true'
-      """;
+          insert into jb2_vacancy_analysis_queue (vacancy_id, type_queue, processing, created_date, last_modified_date)
+          select v.id, ?1, true, now(), now()
+          from jb2_vacancy_analysis v
+         where v.java = 'true' and
+              v.id not in (select q.vacancy_id from jb2_vacancy_analysis_queue q where q.processing = true and q.type_queue = 'SOCIAL')
+        """;
     return em.createNativeQuery(sql)
         .setParameter(1, type.getId())
         .executeUpdate();
   }
+
   /**
    * Добавляет все вакансии в очередь на обработку для указанного типа анализа.
    */
@@ -131,6 +133,31 @@ public class VacancyAnalysisService {
         """;
     return em.createNativeQuery(sql)
         .setParameter(1, type.getId())
+        .executeUpdate();
+  }
+
+  /**
+   * Добавляет в очередь ВСЕ вакансии, для которых ЕЩЁ НЕТ записи в jb2_vacancy_analysis.
+   * Дубликаты в очереди указанного типа не создаются.
+   * Пример запуска: enqueueNotAnalyzed(AnalysisType.PRIMARY)
+   */
+  @Transactional
+  public int enqueueNotAnalyzed() {
+    String sql = """
+         insert into jb2_vacancy_analysis_queue (vacancy_id, type_queue, processing, created_date, last_modified_date)
+         select v.id, ?1, true, now(), now()
+         from jb2_vacancy v
+         where not exists (
+          select 1 from jb2_vacancy_analysis a
+           where a.id = v.id
+        )
+        and v.id not in (
+           select q.vacancy_id from jb2_vacancy_analysis_queue q
+           where q.type_queue = ?1
+        )
+        """;
+    return em.createNativeQuery(sql)
+        .setParameter(1, AnalysisType.PRIMARY.getId())
         .executeUpdate();
   }
 }

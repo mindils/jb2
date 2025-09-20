@@ -9,8 +9,9 @@ import org.springframework.lang.Nullable;
 public enum AnalysisType implements EnumClass<String> {
 
   PRIMARY("PRIMARY"),
-    SOCIAL("SOCIAL"),
-    VACANCY_UPDATE("VACANCY_UPDATE");
+  SOCIAL("SOCIAL"),
+  VACANCY_UPDATE("VACANCY_UPDATE"),
+  TECHNICAL("TECHNICAL");
 
   private final String id;
 

@@ -92,7 +92,7 @@
                         icon="PLAY"
                         themeNames="primary small"/>
               </hbox>
-              <p text="Анализ технологий в вакансиях"
+              <p id="countFirstAnalyze" text="-"
                  css="margin: 0; color: var(--lumo-secondary-text-color);
                       font-size: var(--lumo-font-size-s);"/>
             </vbox>
@@ -110,7 +110,7 @@
                         icon="COG"
                         themeNames="primary small"/>
               </hbox>
-              <p text="Анализ вакансий с помощью искусственного интеллекта"
+              <p id="countSocialAnalyze" text="-"
                  css="margin: 0; color: var(--lumo-secondary-text-color);
                       font-size: var(--lumo-font-size-s);"/>
             </vbox>

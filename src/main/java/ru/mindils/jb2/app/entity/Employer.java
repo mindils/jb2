@@ -104,6 +104,10 @@ public class Employer {
 
   @JmixProperty
   public String getLogoUrl240() {
+    if (logoUrls == null) {
+      return null;
+    }
+
     return logoUrls.path("240").asText();
   }
 
@@ -114,7 +118,7 @@ public class Employer {
 
   @JmixProperty
   public String getIndustriesStr() {
-    if (industries== null || !industries.isArray()) {
+    if (industries == null || !industries.isArray()) {
       return "";
     }
 

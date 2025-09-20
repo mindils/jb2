@@ -17,9 +17,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.mindils.jb2.app.dto.WorkflowInfo;
 import ru.mindils.jb2.app.entity.AnalysisType;
-import ru.mindils.jb2.app.entity.VacancyAnalysisQueue;
 import ru.mindils.jb2.app.entity.VacancySyncState;
 import ru.mindils.jb2.app.service.TemporalStatusService;
+import ru.mindils.jb2.app.service.VacancyAnalysisService;
 import ru.mindils.jb2.app.service.VacancyWorkflowService;
 import ru.mindils.jb2.app.view.main.MainView;
 
@@ -57,6 +57,9 @@ public class VacancyOpsView extends StandardView {
   @Autowired
   private DataManager dataManager;
 
+  @Autowired
+  VacancyAnalysisService vacancyAnalysisService;
+
   @ViewComponent
   private Paragraph lastTimeUpdateText;
 
@@ -64,6 +67,10 @@ public class VacancyOpsView extends StandardView {
   private TextField daysPeriodField;
   @ViewComponent
   private Paragraph queueText;
+  @ViewComponent
+  private Paragraph countFirstAnalyze;
+  @ViewComponent
+  private Paragraph countSocialAnalyze;
 
   @Subscribe
   public void onInit(final InitEvent event) {
@@ -132,6 +139,10 @@ public class VacancyOpsView extends StandardView {
       updateLastTimeUpdateVacancy();
       updateHeaderCount();
       updateQueueCount();
+
+      updateCountFirstAlylyze();
+      updateCountJavaVacancyForAnalyzy();
+
     } catch (Exception e) {
       notifications.create("Ошибка при получении статуса workflow'ов: " + e.getMessage())
           .withType(Notifications.Type.ERROR)
@@ -139,8 +150,19 @@ public class VacancyOpsView extends StandardView {
     }
   }
 
+  private void updateCountJavaVacancyForAnalyzy() {
+    Integer countJavaVacancies = getCountJavaAlalizyQueue();
+    countSocialAnalyze.setText(String.valueOf(countJavaVacancies));
+  }
+
+  private void updateCountFirstAlylyze() {
+    countFirstAnalyze.setText("В очереди " + getCountFirstAlalis());
+  }
+
   private void updateQueueCount() {
-    Integer count = dataManager.loadValue("select count(e) from jb2_VacancyAnalysisQueue e where e.typeQueue = :typeQueue and e.processing = :processing", Integer.class)
+    Integer count = dataManager.loadValue("""
+             select count(e) from jb2_VacancyAnalysisQueue e where e.typeQueue = :typeQueue and e.processing = :processing
+            """, Integer.class)
         .parameter("typeQueue", AnalysisType.VACANCY_UPDATE)
         .parameter("processing", Boolean.TRUE)
         .one();
@@ -180,7 +202,7 @@ public class VacancyOpsView extends StandardView {
       return 30;
     }
 
-    OffsetDateTime lastModified = list.get(0).getLastModifiedDate();
+    OffsetDateTime lastModified = list.getFirst().getLastModifiedDate();
     long daysBetween = ChronoUnit.DAYS.between(lastModified.toLocalDate(), LocalDate.now());
     int period = (int) Math.max(1, Math.min(30, daysBetween));
     log.info("Last sync was {} days ago, using period: {} days", daysBetween, period);
@@ -205,5 +227,55 @@ public class VacancyOpsView extends StandardView {
   public void onUpdateFromQueueBtnClickClick(final ClickEvent<JmixButton> event) {
     vacancyWorkflowService.updateFromQueue();
     notifications.create("Запущен workflow обновления вакансий из очереди").show();
+  }
+
+  @Subscribe(id = "addToQueueBtn", subject = "clickListener")
+  public void onAddToQueueBtnClick(final ClickEvent<JmixButton> event) {
+    vacancyAnalysisService.enqueueNotAnalyzed();
+    notifications.create("Добавили в очередь все необработанные вакансии").show();
+  }
+
+  @Subscribe(id = "processQueueBtn", subject = "clickListener")
+  public void onProcessQueueBtnClick(final ClickEvent<JmixButton> event) {
+    Integer count = getCountFirstAlalis();
+
+    vacancyWorkflowService.analyze(AnalysisType.PRIMARY);
+    notifications.create("Добавили в очередь все необработанные вакансии: " + count).show();
+  }
+
+
+  @Subscribe(id = "updateNoAiAnalysisBtn", subject = "clickListener")
+  public void onUpdateNoAiAnalysisBtnClick(final ClickEvent<JmixButton> event) {
+    int count = vacancyAnalysisService.markProcessingForJavaVacancy(AnalysisType.SOCIAL);
+    notifications.create("Добавили в очередь все необработанные вакансии: " + count).show();
+  }
+
+  private Integer getCountJavaAlalizyQueue() {
+    return dataManager.loadValue("""
+            select count(e) from jb2_VacancyAnalysisQueue e where e.typeQueue = :typeQueue and e.processing = true
+            """, Integer.class)
+        .parameter("typeQueue", AnalysisType.SOCIAL)
+        .one();
+  }
+
+  private Integer getCountJavaVacancies() {
+    return dataManager.loadValue("""
+            select count(e) from jb2_VacancyAnalysis e where e.java = 'true' and e.domains is not null
+            """, Integer.class)
+        .one();
+  }
+
+  private Integer getCountFirstAlalis() {
+    return dataManager.loadValue("select count(e) from jb2_VacancyAnalysisQueue e where e.typeQueue = :typeQueue and e.processing = true", Integer.class)
+        .parameter("typeQueue", AnalysisType.PRIMARY)
+        .one();
+  }
+
+  @Subscribe(id = "updateAiQueueBtn", subject = "clickListener")
+  public void onUpdateAiQueueBtnClick(final ClickEvent<JmixButton> event) {
+    Integer count = getCountFirstAlalis();
+
+    vacancyWorkflowService.analyze(AnalysisType.SOCIAL);
+    notifications.create("Будет проанализировано " + count + " вакансий").show();
   }
 }

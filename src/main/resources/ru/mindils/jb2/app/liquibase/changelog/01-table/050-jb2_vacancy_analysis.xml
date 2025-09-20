@@ -25,10 +25,12 @@
       <column name="DOMAINS" type="VARCHAR(255)"/>
       <column name="socially_significant" type="VARCHAR(255)"/>
       <column name="work_mode" type="VARCHAR(255)"/>
+
       <column name="created_date"
               type="${offsetDateTime.type}"/>
       <column name="last_modified_date"
               type="${offsetDateTime.type}"/>
+      <column name="EXTRA" type="jsonb"/>
     </createTable>
   </changeSet>
 

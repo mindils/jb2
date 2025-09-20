@@ -1,24 +1,17 @@
+// entity/VacancyAnalysis.java
 package ru.mindils.jb2.app.entity;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.jmix.core.metamodel.annotation.JmixEntity;
 import io.jmix.data.DdlGeneration;
-import jakarta.persistence.Column;
-import jakarta.persistence.ConstraintMode;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.ForeignKey;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.PrimaryKeyJoinColumn;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
+import ru.mindils.jb2.app.util.converter.JsonNodeConverter;
 
 import java.time.OffsetDateTime;
-
 
 @JmixEntity
 @Table(name = "JB2_VACANCY_ANALYSIS")
@@ -54,6 +47,10 @@ public class VacancyAnalysis {
   @Column(name = "work_mode")
   private String workMode;
 
+  @Convert(converter = JsonNodeConverter.class)
+  @Column(name = "EXTRA", columnDefinition = "jsonb")
+  private JsonNode extra;
+
   @CreatedDate
   @Column(name = "created_date")
   private OffsetDateTime createdDate;
@@ -61,5 +58,4 @@ public class VacancyAnalysis {
   @LastModifiedDate
   @Column(name = "last_modified_date")
   private OffsetDateTime lastModifiedDate;
-
 }
