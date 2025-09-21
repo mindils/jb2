@@ -55,7 +55,6 @@ public class VacancyUpdateActivitiesImpl implements VacancyUpdateActivities {
             .query("select e from jb2_VacancyAnalysisQueue e " +
                 "where e.processing = true and e.typeQueue = :type " +
                 "order by e.id")
-            // важно: тут можно передать сам enum — как в анализе — Jmix корректно сконвертирует
             .parameter("type", AnalysisType.VACANCY_UPDATE)
             .maxResults(1)
             .optional()

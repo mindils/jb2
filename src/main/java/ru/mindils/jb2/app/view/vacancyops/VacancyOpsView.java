@@ -2,7 +2,6 @@ package ru.mindils.jb2.app.view.vacancyops;
 
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.html.H3;
-import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
@@ -14,8 +13,11 @@ import io.jmix.flowui.view.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.mindils.jb2.app.dto.WorkflowInfo;
 import ru.mindils.jb2.app.entity.AnalysisType;
+import ru.mindils.jb2.app.entity.ChainAnalysisType;
 import ru.mindils.jb2.app.service.TemporalStatusService;
 import ru.mindils.jb2.app.service.VacancyAnalysisService;
+import ru.mindils.jb2.app.service.VacancyChainQueueService;
+import ru.mindils.jb2.app.service.VacancyChainWorkflowService;
 import ru.mindils.jb2.app.service.VacancyOpsService;
 import ru.mindils.jb2.app.service.VacancyWorkflowService;
 import ru.mindils.jb2.app.view.main.MainView;
@@ -37,10 +39,20 @@ public class VacancyOpsView extends StandardView {
   @Autowired private VacancyAnalysisService vacancyAnalysisService;
   @Autowired private Notifications notifications;
 
+  @Autowired
+  private VacancyChainWorkflowService chainWorkflowService;
+
+  @Autowired
+  private VacancyChainQueueService chainQueueService;
+
   @ViewComponent private Paragraph updateQueueCountText;
   @ViewComponent private Paragraph primaryQueueCountText;
   @ViewComponent private Paragraph socialQueueCountText;
   @ViewComponent private Paragraph lastSyncText;
+
+  @ViewComponent private Paragraph fullChainQueueCountText;
+  @ViewComponent private Paragraph primaryChainQueueCountText;
+  @ViewComponent private Paragraph socialTechnicalChainQueueCountText;
 
   /* ===== Quick actions ===== */
   @ViewComponent private TextField daysField;
@@ -125,6 +137,53 @@ public class VacancyOpsView extends StandardView {
     refreshAll();
   }
 
+  @Subscribe(id = "startFullChainBtn", subject = "clickListener")
+  public void onStartFullChainBtnClick(final ClickEvent<JmixButton> e) {
+    try {
+      chainWorkflowService.startFullAnalysis();
+      notifications.create("Запущен полный цепочный анализ").withType(Notifications.Type.SUCCESS).show();
+    } catch (IllegalStateException ex) {
+      notifications.create("Ошибка: " + ex.getMessage()).withType(Notifications.Type.ERROR).show();
+    }
+    refreshAll();
+  }
+
+  @Subscribe(id = "startPrimaryChainBtn", subject = "clickListener")
+  public void onStartPrimaryChainBtnClick(final ClickEvent<JmixButton> e) {
+    try {
+      chainWorkflowService.startPrimaryAnalysis();
+      notifications.create("Запущен первичный цепочный анализ").withType(Notifications.Type.SUCCESS).show();
+    } catch (IllegalStateException ex) {
+      notifications.create("Ошибка: " + ex.getMessage()).withType(Notifications.Type.ERROR).show();
+    }
+    refreshAll();
+  }
+
+  @Subscribe(id = "startSocialTechnicalChainBtn", subject = "clickListener")
+  public void onStartSocialTechnicalChainBtnClick(final ClickEvent<JmixButton> e) {
+    try {
+      chainWorkflowService.startSocialTechnicalAnalysis();
+      notifications.create("Запущен социально-технический цепочный анализ").withType(Notifications.Type.SUCCESS).show();
+    } catch (IllegalStateException ex) {
+      notifications.create("Ошибка: " + ex.getMessage()).withType(Notifications.Type.ERROR).show();
+    }
+    refreshAll();
+  }
+
+  @Subscribe(id = "enqueueFullChainBtn", subject = "clickListener")
+  public void onEnqueueFullChainBtnClick(final ClickEvent<JmixButton> e) {
+    int added = chainQueueService.enqueueNotAnalyzedVacancies(ChainAnalysisType.FULL_ANALYSIS, 1000);
+    notifications.create("В очередь полного анализа добавлено: " + added).show();
+    refreshAll();
+  }
+
+  @Subscribe(id = "enqueueJavaFullChainBtn", subject = "clickListener")
+  public void onEnqueueJavaFullChainBtnClick(final ClickEvent<JmixButton> e) {
+    int added = chainQueueService.enqueueJavaVacanciesForChainAnalysis(ChainAnalysisType.SOCIAL_TECHNICAL, 1000);
+    notifications.create("В очередь социально-технического анализа (Java) добавлено: " + added).show();
+    refreshAll();
+  }
+
   /* ===== Helpers ===== */
   private void refreshAll() {
     refreshStats();
@@ -137,6 +196,11 @@ public class VacancyOpsView extends StandardView {
     updateQueueCountText.setText(String.valueOf(vacancyOpsService.getUpdateQueueCount()));
     primaryQueueCountText.setText(String.valueOf(vacancyOpsService.getPrimaryQueueCount()));
     socialQueueCountText.setText(String.valueOf(vacancyOpsService.getSocialQueueCount()));
+
+    fullChainQueueCountText.setText(String.valueOf(chainQueueService.getQueueCount(ChainAnalysisType.FULL_ANALYSIS)));
+    primaryChainQueueCountText.setText(String.valueOf(chainQueueService.getQueueCount(ChainAnalysisType.PRIMARY_ONLY)));
+    socialTechnicalChainQueueCountText.setText(String.valueOf(chainQueueService.getQueueCount(ChainAnalysisType.SOCIAL_TECHNICAL)));
+
 
     // Последний sync
     OffsetDateTime last = vacancyOpsService.getLastSyncTime();

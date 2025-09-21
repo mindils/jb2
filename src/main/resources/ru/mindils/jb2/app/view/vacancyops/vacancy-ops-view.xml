@@ -21,6 +21,7 @@
         <vbox classNames="stat-card" themeNames="spacing" width="16rem">
           <h4 text="Очередь обновления"/>
           <p id="updateQueueCountText" classNames="stat-number"/>
+          <button id="updateFromQueueBtn" text="Обновить из очереди"/>
         </vbox>
 
         <vbox classNames="stat-card" themeNames="spacing" width="16rem">
@@ -67,7 +68,6 @@
       <!-- ===== Advanced actions (collapsed) ===== -->
       <details summaryText="Дополнительно" opened="false">
         <hbox classNames="gap-s" wrap="true">
-          <button id="updateFromQueueBtn" text="Обновить из очереди"/>
           <button id="enqueueNotAnalyzedBtn" text="Добавить все без анализа (PRIMARY)"/>
           <button id="enqueuePrimaryAllBtn" text="Добавить все вакансии (PRIMARY)"/>
           <button id="enqueueSocialJavaBtn" text="Добавить Java-вакансии (SOCIAL)"/>
@@ -75,5 +75,49 @@
       </details>
 
     </vbox>
+
+    <hbox id="chainAnalysisGroup" caption="Цепочки анализа">
+      <vbox spacing="true">
+        <!-- Статистика цепочек -->
+        <hbox spacing="true">
+          <vbox>
+            <span text="msg://fullChainQueueCountText.text"/>
+            <p id="fullChainQueueCountText" text="0" classNames="text-lg font-semibold"/>
+          </vbox>
+          <vbox>
+            <span text="msg://primaryChainQueueCountText.text"/>
+            <p id="primaryChainQueueCountText" text="0" classNames="text-lg font-semibold"/>
+          </vbox>
+          <vbox>
+            <span text="msg://socialTechnicalChainQueueCountText.text"/>
+            <p id="socialTechnicalChainQueueCountText" text="0" classNames="text-lg font-semibold"/>
+          </vbox>
+        </hbox>
+
+        <!-- Кнопки запуска цепочек -->
+        <hbox spacing="true">
+          <button id="startFullChainBtn"
+                  text="msg://startFullChainBtn.text"
+                  icon="PLAY"
+                  variant="PRIMARY"/>
+          <button id="startPrimaryChainBtn"
+                  text="msg://startPrimaryChainBtn.text"
+                  icon="PLAY"/>
+          <button id="startSocialTechnicalChainBtn"
+                  text="msg://startSocialTechnicalChainBtn.text"
+                  icon="PLAY"/>
+        </hbox>
+
+        <!-- Кнопки управления очередями -->
+        <hbox spacing="true">
+          <button id="enqueueFullChainBtn"
+                  text="msg://enqueueFullChainBtn.text"
+                  icon="PLUS"/>
+          <button id="enqueueJavaFullChainBtn"
+                  text="msg://enqueueJavaFullChainBtn.text"
+                  icon="PLUS"/>
+        </hbox>
+      </vbox>
+    </hbox>
   </layout>
 </view>

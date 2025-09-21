@@ -17,18 +17,16 @@ import io.jmix.flowui.model.CollectionLoader;
 import io.jmix.flowui.view.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.mindils.jb2.app.entity.AnalysisType;
+import ru.mindils.jb2.app.entity.ChainAnalysisType;
 import ru.mindils.jb2.app.entity.Vacancy;
-import ru.mindils.jb2.app.entity.VacancyAnalysisQueue;
 import ru.mindils.jb2.app.service.LLMDebugService;
 import ru.mindils.jb2.app.service.VacancyAnalysisService;
+import ru.mindils.jb2.app.service.VacancyChainQueueService;
 import ru.mindils.jb2.app.service.VacancyQueueService;
 import ru.mindils.jb2.app.service.VacancyService;
 import ru.mindils.jb2.app.service.VacancyWorkflowService;
 import ru.mindils.jb2.app.view.main.MainView;
 
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 
 @Route(value = "vacancies", layout = MainView.class)
@@ -47,6 +45,9 @@ public class VacancyListView extends StandardListView<Vacancy> {
   private VacancyAnalysisService vacancyAnalysisService;
   @ViewComponent
   private CollectionContainer<Vacancy> vacanciesDc;
+
+  @Autowired
+  private VacancyChainQueueService chainQueueService;
 
   @Autowired
   private LLMDebugService lLMDebugService;
@@ -117,6 +118,42 @@ public class VacancyListView extends StandardListView<Vacancy> {
   public void onUpdateVacancyButtonAddVacancyInSocialLlmQueueBtnClick(final DropdownButtonItem.ClickEvent event) {
     addQueueTable(AnalysisType.SOCIAL);
   }
+
+  @Subscribe("chainAnalysisButton.addToFullChainBtn")
+  public void onChainAnalysisButtonAddToFullChainBtnClick(final DropdownButtonItem.ClickEvent event) {
+    addToChainQueue(ChainAnalysisType.FULL_ANALYSIS);
+  }
+
+  @Subscribe("chainAnalysisButton.addToPrimaryChainBtn")
+  public void onChainAnalysisButtonAddToPrimaryChainBtnClick(final DropdownButtonItem.ClickEvent event) {
+    addToChainQueue(ChainAnalysisType.PRIMARY_ONLY);
+  }
+
+  @Subscribe("chainAnalysisButton.addToSocialTechnicalChainBtn")
+  public void onChainAnalysisButtonAddToSocialTechnicalChainBtnClick(final DropdownButtonItem.ClickEvent event) {
+    addToChainQueue(ChainAnalysisType.SOCIAL_TECHNICAL);
+  }
+
+  private void addToChainQueue(ChainAnalysisType chainType) {
+    int added = chainQueueService.enqueueFromLoader(
+        vacanciesDl,
+        chainType,
+        1000
+    );
+
+    String chainName = switch (chainType) {
+      case FULL_ANALYSIS -> "полного анализа";
+      case PRIMARY_ONLY -> "первичного анализа";
+      case SOCIAL_TECHNICAL -> "социально-технического анализа";
+      default -> "анализа";
+    };
+
+    notifications.create(
+            String.format("В очередь %s добавлено: %d вакансий", chainName, added))
+        .withType(Notifications.Type.SUCCESS)
+        .show();
+  }
+
 
   private void addQueueTable(AnalysisType queueType) {
     int added = vacancyQueueService.enqueueAllForUpdate(

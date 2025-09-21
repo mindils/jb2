@@ -51,9 +51,35 @@
         <textItem id="addVacancyInSocialLlmQueueBtn" text="В очередь Social LLM"/>
       </items>
     </dropdownButton>
-    <propertyFilter property="vacancyAnalysis.java" operation="EQUAL" dataLoader="vacanciesDl" />
-    <propertyFilter property="vacancyAnalysis.jmix" operation="EQUAL" dataLoader="vacanciesDl" />
-    <propertyFilter property="vacancyAnalysis.ai" operation="EQUAL" dataLoader="vacanciesDl" />
+    <dropdownButton id="chainAnalysisButton"
+                    text="msg://chainAnalysisButton.text"
+                    icon="CALC">
+      <items>
+        <textItem id="addToFullChainBtn"
+                  text="msg://chainAnalysisButton.addToFullChainBtn.text"/>
+        <textItem id="addToPrimaryChainBtn"
+                  text="msg://chainAnalysisButton.addToPrimaryChainBtn.text"/>
+        <textItem id="addToSocialTechnicalChainBtn"
+                  text="msg://chainAnalysisButton.addToSocialTechnicalChainBtn.text"/>
+      </items>
+    </dropdownButton>
+    <jpqlFilter
+        id="javaFilter"
+        dataLoader="vacanciesDl"
+        label="Java"
+        labelPosition="ASIDE"
+        parameterClass="java.lang.Boolean"
+        parameterName="javaParam">
+      <condition>
+        <c:jpql>
+          <c:join><![CDATA[left join {E}.vacancyAnalysis va]]></c:join>
+          <c:where><![CDATA[
+            CAST(function('jsonb_extract_path_text', va.stepResults, 'primary','java') boolean) = :javaParam
+          ]]>
+          </c:where>
+        </c:jpql>
+      </condition>
+    </jpqlFilter>
     <dataGrid id="vacanciesDataGrid"
               width="100%"
               minHeight="20em"
@@ -67,10 +93,9 @@
         </action>
       </actions>
       <columns resizable="true">
-        <column property="id" autoWidth="true" />
+        <column property="id" autoWidth="true"/>
         <column property="name" autoWidth="true"/>
         <column property="employer.name" autoWidth="true"/>
-        <column property="vacancyAnalysis.java" />
         <column property="keySkillsStr" width="20em"/>
         <column property="description"/>
         <column property="city" autoWidth="true"/>
