@@ -5,7 +5,10 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
     objectQuotingStrategy="QUOTE_ONLY_RESERVED_WORDS">
-  <changeSet id="1" author="jb2">
+  <changeSet id="1" author="jb2" runOnChange="true">
+    <preConditions onFail="MARK_RAN">
+      <columnExists tableName="jb2_vacancy_analysis" columnName="processing" />
+    </preConditions>
     <dropColumn columnName="processing" tableName="jb2_vacancy_analysis"/>
   </changeSet>
 </databaseChangeLog>

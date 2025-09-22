@@ -1,5 +1,3 @@
-// build.gradle: implementation("org.springframework.ai:spring-ai-openai-spring-boot-starter:1.0.0-M6")
-
 package ru.mindils.jb2.app.config;
 
 import org.springframework.ai.chat.client.ChatClient;
