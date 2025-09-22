@@ -4,11 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.stereotype.Component;
 import ru.mindils.jb2.app.entity.Vacancy;
 import ru.mindils.jb2.app.entity.VacancyAnalysis;
+import ru.mindils.jb2.app.service.ResilientLLMService;
 import ru.mindils.jb2.app.service.analysis.AnalysisResultManager;
 import ru.mindils.jb2.app.service.analysis.chain.ChainAnalysisStep;
 import ru.mindils.jb2.app.service.analysis.chain.ChainStepResult;
@@ -17,14 +17,15 @@ import ru.mindils.jb2.app.service.analysis.chain.ChainStepResult;
 public class PrimaryChainStep implements ChainAnalysisStep {
 
   private static final Logger log = LoggerFactory.getLogger(PrimaryChainStep.class);
-  private static final String LLM_MODEL = "qwen3-30b-a3b-instruct-2507-mlx";
 
-  private final ChatClient chatClient;
+  private final ResilientLLMService llmService;
   private final ObjectMapper objectMapper;
   private final AnalysisResultManager analysisResultManager;
 
-  public PrimaryChainStep(ChatClient chatClient, ObjectMapper objectMapper, AnalysisResultManager analysisResultManager) {
-    this.chatClient = chatClient;
+  public PrimaryChainStep(ResilientLLMService llmService,
+                          ObjectMapper objectMapper,
+                          AnalysisResultManager analysisResultManager) {
+    this.llmService = llmService;
     this.objectMapper = objectMapper;
     this.analysisResultManager = analysisResultManager;
   }
@@ -46,15 +47,16 @@ public class PrimaryChainStep implements ChainAnalysisStep {
     try {
       String prompt = buildPrompt(vacancy);
 
-      String llmResponse = chatClient.prompt()
-          .user(prompt)
-          .options(OpenAiChatOptions.builder().model(LLM_MODEL).build())
-          .call()
-          .content();
+      // Используем новый resilient сервис вместо прямого вызова ChatClient
+      String llmResponse = llmService.callLLM(prompt,
+          OpenAiChatOptions.builder()
+              .temperature(0.0) // Для более стабильных результатов
+              .maxTokens(100)    // Уменьшаем для простого JSON ответа
+              .build());
 
       JsonNode analysisResult = objectMapper.readTree(llmResponse);
 
-      // ОБНОВЛЕННЫЙ КОД - сохраняем в новую структуру
+      // Сохраняем результат в новую структуру
       analysisResultManager.updateStepResult(currentAnalysis, "primary", analysisResult);
 
       // Проверяем условие остановки
@@ -77,7 +79,7 @@ public class PrimaryChainStep implements ChainAnalysisStep {
   private String buildPrompt(Vacancy vacancy) {
     return """
             Analyze the IT job posting (in Russian) and determine category matches. Return ONLY JSON without additional text.
-            
+
             Job posting:
             Title: {name}
             Description: {description}

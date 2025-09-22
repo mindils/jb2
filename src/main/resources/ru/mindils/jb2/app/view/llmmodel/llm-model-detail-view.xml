@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<view xmlns="http://jmix.io/schema/flowui/view"
+      title="msg://LLMModelDetailView.title"
+      focusComponent="form">
+  <data>
+    <instance id="lLMModelDc"
+              class="ru.mindils.jb2.app.entity.LLMModel">
+      <fetchPlan extends="_base"/>
+      <loader id="lLMModelDl"/>
+    </instance>
+  </data>
+  <facets>
+    <dataLoadCoordinator auto="true"/>
+  </facets>
+  <actions>
+    <action id="saveAction" type="detail_saveClose"/>
+    <action id="closeAction" type="detail_close"/>
+  </actions>
+  <layout>
+    <formLayout id="form" dataContainer="lLMModelDc">
+      <responsiveSteps>
+        <responsiveStep minWidth="0" columns="1"/>
+        <responsiveStep minWidth="40em" columns="2"/>
+      </responsiveSteps>
+      <textField id="nameField" property="name"/>
+      <textField id="modelNameField" property="modelName"/>
+      <textField id="baseUrlField" property="baseUrl"/>
+      <textField id="apiKeyField" property="apiKey"/>
+      <textField id="priorityOrderField" property="priorityOrder"/>
+      <checkbox id="enabledField" property="enabled"/>
+      <checkbox id="isDefaultField" property="isDefault"/>
+      <textField id="temperatureField" property="temperature"/>
+      <textField id="maxTokensField" property="maxTokens"/>
+      <textField id="timeoutSecondsField" property="timeoutSeconds"/>
+      <textField id="failureCountField" property="failureCount"/>
+      <dateTimePicker id="lastFailureField" property="lastFailure"/>
+      <dateTimePicker id="lastSuccessField" property="lastSuccess"/>
+      <dateTimePicker id="availableAfterField" property="availableAfter"/>
+      <textField id="descriptionField" property="description"/>
+      <dateTimePicker id="createdDateField" property="createdDate"/>
+      <dateTimePicker id="lastModifiedDateField" property="lastModifiedDate"/>
+    </formLayout>
+    <hbox id="detailActions">
+      <button id="saveAndCloseButton" action="saveAction"/>
+      <button id="closeButton" action="closeAction"/>
+    </hbox>
+  </layout>
+</view>

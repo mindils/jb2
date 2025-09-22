@@ -19,6 +19,7 @@ import java.time.Duration;
 public class LLMConfiguration {
 
   @Bean
+  @Deprecated
   public OpenAiApi openAiApi() {
     return OpenAiApi.builder()
         .baseUrl("http://localhost:1234")
@@ -37,20 +38,21 @@ public class LLMConfiguration {
   }
 
   @Bean
+  @Deprecated
   public OpenAiChatModel openAiChatModel(OpenAiApi api) {
     return new OpenAiChatModel(
         api,
         OpenAiChatOptions.builder()
-            .model("qwen3-30b-a3b-instruct-2507-mlx")        // точно существующая модель
+            .model("qwen3-30b-a3b-instruct-2507-mlx")
             .temperature(0.1)
-            .maxTokens(64)
+            .maxTokens(1000)
             .build()
     );
   }
 
   @Bean
+  @Deprecated
   public ChatClient chatClient(OpenAiChatModel model) {
     return ChatClient.builder(model).build();
   }
 }
-

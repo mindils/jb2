@@ -5,11 +5,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.stereotype.Component;
 import ru.mindils.jb2.app.entity.Vacancy;
 import ru.mindils.jb2.app.entity.VacancyAnalysis;
+import ru.mindils.jb2.app.service.ResilientLLMService;
 import ru.mindils.jb2.app.service.analysis.AnalysisResultManager;
 import ru.mindils.jb2.app.service.analysis.chain.ChainAnalysisStep;
 import ru.mindils.jb2.app.service.analysis.chain.ChainStepResult;
@@ -18,16 +18,15 @@ import ru.mindils.jb2.app.service.analysis.chain.ChainStepResult;
 public class SocialChainStep implements ChainAnalysisStep {
 
   private static final Logger log = LoggerFactory.getLogger(SocialChainStep.class);
-  private static final String LLM_MODEL = "qwen3-30b-a3b-instruct-2507-mlx";
 
-  private final ChatClient chatClient;
+  private final ResilientLLMService llmService;
   private final ObjectMapper objectMapper;
   private final AnalysisResultManager analysisResultManager;
 
-  public SocialChainStep(ChatClient chatClient,
+  public SocialChainStep(ResilientLLMService llmService,
                          ObjectMapper objectMapper,
                          AnalysisResultManager analysisResultManager) {
-    this.chatClient = chatClient;
+    this.llmService = llmService;
     this.objectMapper = objectMapper;
     this.analysisResultManager = analysisResultManager;
   }
@@ -49,11 +48,12 @@ public class SocialChainStep implements ChainAnalysisStep {
     try {
       String prompt = buildPrompt(vacancy);
 
-      String llmResponse = chatClient.prompt()
-          .user(prompt)
-          .options(OpenAiChatOptions.builder().model(LLM_MODEL).build())
-          .call()
-          .content();
+      // Используем новый resilient сервис
+      String llmResponse = llmService.callLLM(prompt,
+          OpenAiChatOptions.builder()
+              .temperature(0.0) // Для более стабильных результатов
+              .maxTokens(150)    // Для более детального JSON ответа
+              .build());
 
       // Парсим ответ LLM (и нормализуем поля с дефолтами)
       JsonNode raw = objectMapper.readTree(llmResponse);
@@ -66,7 +66,7 @@ public class SocialChainStep implements ChainAnalysisStep {
           .put("domains", domains)
           .put("socially_significant", sociallySignificant);
 
-      // ОБНОВЛЁННО: сохраняем результат шага в analysis_metadata/step_results
+      // Сохраняем результат шага в analysis_metadata/step_results
       analysisResultManager.updateStepResult(currentAnalysis, "social", analysisResult);
 
       // Локальное условие остановки (как было раньше)
@@ -98,7 +98,7 @@ public class SocialChainStep implements ChainAnalysisStep {
   private String buildPrompt(Vacancy vacancy) {
     return """
             Analyze the IT job posting (in Russian) and extract work format and project domain information. Return ONLY flat JSON without additional text.
-            
+
             Job posting:
             Title: {name}
             Description: {description}

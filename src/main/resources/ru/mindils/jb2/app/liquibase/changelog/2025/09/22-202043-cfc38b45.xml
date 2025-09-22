@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+    objectQuotingStrategy="QUOTE_ONLY_RESERVED_WORDS">
+  <changeSet id="1" author="jb2">
+    <createTable tableName="JB2_LLM_MODEL">
+      <column autoIncrement="true" name="id" startWith="1" type="BIGINT">
+        <constraints nullable="false" primaryKey="true" primaryKeyName="PK_JB2_LLM_MODEL"/>
+      </column>
+      <column name="name" type="VARCHAR(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="model_name" type="VARCHAR(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="base_url" type="VARCHAR(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="api_key" type="VARCHAR(255)"/>
+      <column name="priority_order" type="INT">
+        <constraints nullable="false"/>
+      </column>
+      <column name="enabled" type="BOOLEAN">
+        <constraints nullable="false"/>
+      </column>
+      <column name="is_default" type="BOOLEAN">
+        <constraints nullable="false"/>
+      </column>
+      <column name="temperature" type="DOUBLE"/>
+      <column name="max_tokens" type="INT"/>
+      <column name="timeout_seconds" type="INT"/>
+      <column name="failure_count" type="INT"/>
+      <column name="last_failure" type="${offsetDateTime.type}"/>
+      <column name="last_success" type="${offsetDateTime.type}"/>
+      <column name="available_after" type="${offsetDateTime.type}"/>
+      <column name="description" type="VARCHAR(255)"/>
+      <column name="CREATED_DATE" type="${offsetDateTime.type}"/>
+      <column name="LAST_MODIFIED_DATE" type="${offsetDateTime.type}"/>
+    </createTable>
+  </changeSet>
+  <changeSet id="2" author="jb2">
+    <createIndex indexName="IDX_JB2_LLM_MODEL_ENABLED" tableName="JB2_LLM_MODEL">
+      <column name="enabled"/>
+    </createIndex>
+  </changeSet>
+  <changeSet id="3" author="jb2">
+    <createIndex indexName="IDX_JB2_LLM_MODEL_IS_DEFAULT" tableName="JB2_LLM_MODEL">
+      <column name="is_default"/>
+    </createIndex>
+  </changeSet>
+  <changeSet id="4" author="jb2">
+    <createIndex indexName="IDX_JB2_LLM_MODEL_PRIORITY" tableName="JB2_LLM_MODEL">
+      <column name="priority_order"/>
+    </createIndex>
+  </changeSet>
+</databaseChangeLog>

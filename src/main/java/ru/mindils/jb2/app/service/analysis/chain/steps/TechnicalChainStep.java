@@ -4,11 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.stereotype.Component;
 import ru.mindils.jb2.app.entity.Vacancy;
 import ru.mindils.jb2.app.entity.VacancyAnalysis;
+import ru.mindils.jb2.app.service.ResilientLLMService;
 import ru.mindils.jb2.app.service.analysis.AnalysisResultManager;
 import ru.mindils.jb2.app.service.analysis.chain.ChainAnalysisStep;
 import ru.mindils.jb2.app.service.analysis.chain.ChainStepResult;
@@ -17,15 +17,15 @@ import ru.mindils.jb2.app.service.analysis.chain.ChainStepResult;
 public class TechnicalChainStep implements ChainAnalysisStep {
 
   private static final Logger log = LoggerFactory.getLogger(TechnicalChainStep.class);
-  private static final String LLM_MODEL = "qwen3-30b-a3b-instruct-2507-mlx";
 
-  private final ChatClient chatClient;
+  private final ResilientLLMService llmService;
   private final ObjectMapper objectMapper;
   private final AnalysisResultManager analysisResultManager;
 
-  public TechnicalChainStep(ChatClient chatClient, ObjectMapper objectMapper,
+  public TechnicalChainStep(ResilientLLMService llmService,
+                            ObjectMapper objectMapper,
                             AnalysisResultManager analysisResultManager) {
-    this.chatClient = chatClient;
+    this.llmService = llmService;
     this.objectMapper = objectMapper;
     this.analysisResultManager = analysisResultManager;
   }
@@ -47,15 +47,16 @@ public class TechnicalChainStep implements ChainAnalysisStep {
     try {
       String prompt = buildPrompt(vacancy);
 
-      String llmResponse = chatClient.prompt()
-          .user(prompt)
-          .options(OpenAiChatOptions.builder().model(LLM_MODEL).build())
-          .call()
-          .content();
+      // Используем новый resilient сервис
+      String llmResponse = llmService.callLLM(prompt,
+          OpenAiChatOptions.builder()
+              .temperature(0.0) // Для более стабильных результатов
+              .maxTokens(200)    // Увеличиваем для более детального анализа
+              .build());
 
       JsonNode analysisResult = objectMapper.readTree(llmResponse);
 
-      // ИСПРАВЛЕНО: используем AnalysisResultManager вместо setExtra
+      // Используем AnalysisResultManager для сохранения результата
       analysisResultManager.updateStepResult(currentAnalysis, getStepId(), analysisResult);
 
       // Проверяем условие остановки
