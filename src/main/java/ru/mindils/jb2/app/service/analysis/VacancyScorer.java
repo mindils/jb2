@@ -5,361 +5,339 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import ru.mindils.jb2.app.entity.VacancyAnalysis;
+import ru.mindils.jb2.app.entity.VacancyRating;
 
-import java.util.Set;
+import java.util.Optional;
 
 /**
- * Калькулятор итогового скора вакансии на основе stepResults
+ * Улучшенный калькулятор скора вакансии
+ * Простая и понятная логика начисления баллов
  */
 @Component
 public class VacancyScorer {
 
   private static final Logger log = LoggerFactory.getLogger(VacancyScorer.class);
 
+  // Максимальные баллы по категориям
+  private static final int MAX_PRIMARY_SCORE = 100;      // Java(50) + Jmix(30) + AI(20)
+  private static final int MAX_WORK_MODE_SCORE = 30;     // Формат работы
+  private static final int MAX_SOCIAL_SCORE = 20;        // Социальная значимость
+  private static final int MAX_TECHNICAL_SCORE = 50;     // Роль(20) + Уровень(15) + Стек(15)
+  private static final int MAX_SALARY_SCORE = 25;        // Зарплата
+  private static final int MAX_TOTAL_SCORE = 225;        // Общий максимум
+
   /**
-   * Рассчитать скор на основе новой структуры stepResults
+   * Рассчитать скор вакансии
    */
   public VacancyScore calculateScore(VacancyAnalysis analysis) {
-    if (analysis.getStepResults() == null) {
-      log.warn("No step results found for vacancy: {}", analysis.getId());
-      return new VacancyScore(0, Rating.VERY_POOR, new ScoreBreakdown());
+    if (analysis == null) {
+      log.warn("VacancyAnalysis is null");
+      return createEmptyScore();
     }
 
-    ScoreBreakdown breakdown = new ScoreBreakdown();
+    if (analysis.getStepResults() == null) {
+      log.warn("Step results are null for vacancy: {}", analysis.getId());
+      return createEmptyScore();
+    }
+
+    log.info("Calculating score for vacancy: {}", analysis.getId());
+
+    ScoreDetails details = new ScoreDetails();
     int totalScore = 0;
 
-    // Первичный анализ (обязательный)
-    totalScore += calculatePrimaryScore(analysis, breakdown);
+    // 1. Первичный анализ (обязательный)
+    totalScore += calculatePrimaryScore(analysis, details);
 
-    // Социальный анализ (если выполнялся)
-    totalScore += calculateSocialScore(analysis, breakdown);
+    // 2. Социальный анализ (формат работы + значимость)
+    totalScore += calculateWorkModeScore(analysis, details);
+    totalScore += calculateSocialSignificanceScore(analysis, details);
 
-    // Технический анализ (если выполнялся)
-    totalScore += calculateTechnicalScore(analysis, breakdown);
+    // 3. Технический анализ
+    totalScore += calculateTechnicalScore(analysis, details);
 
-    // Зарплатный анализ (дополнительный)
-    totalScore += calculateSalaryScore(analysis, breakdown);
-
-    // Исследование компании (дополнительный)
-    totalScore += calculateCompanyScore(analysis, breakdown);
-
-    // Бонусы за полноту анализа
-    totalScore += calculateCompletenessBonus(analysis, breakdown);
+    // 4. Зарплата (дополнительные баллы)
+    totalScore += calculateSalaryScore(analysis, details);
 
     // Определяем рейтинг
-    Rating rating = determineRating(totalScore);
+    VacancyRating rating = determineRating(totalScore);
 
-    log.debug("Calculated score for vacancy {}: {} ({})",
+    details.totalScore = totalScore;
+    details.rating = rating;
+
+    log.info("Calculated score for vacancy {}: {} points ({})",
         analysis.getId(), totalScore, rating);
 
-    return new VacancyScore(totalScore, rating, breakdown);
+    return new VacancyScore(totalScore, rating, details);
   }
 
   /**
-   * Первичный анализ: Java, Jmix, AI (максимум 80 баллов)
+   * Первичный анализ: Java + Jmix + AI (максимум 100 баллов)
    */
-  private int calculatePrimaryScore(VacancyAnalysis analysis, ScoreBreakdown breakdown) {
-    JsonNode primaryResult = analysis.getStepResult("primary");
-    if (primaryResult == null) {
+  private int calculatePrimaryScore(VacancyAnalysis analysis, ScoreDetails details) {
+    JsonNode primary = getStepResult(analysis, "primary");
+    if (primary == null) {
+      log.debug("No primary analysis results for vacancy: {}", analysis.getId());
       return 0;
     }
 
     int score = 0;
 
-    // Java - главный критерий (40 баллов)
-    if (primaryResult.path("java").asBoolean(false)) {
-      breakdown.javaScore = 40;
-      score += 40;
+    // Java - основной критерий (50 баллов)
+    if (getBooleanValue(primary, "java")) {
+      details.javaScore = 50;
+      score += 50;
+      log.debug("Java position detected: +50 points");
     }
 
-    // Jmix - специализация (25 баллов)
-    if (primaryResult.path("jmix").asBoolean(false)) {
-      breakdown.jmixScore = 25;
-      score += 25;
+    // Jmix - специализация (30 баллов)
+    if (getBooleanValue(primary, "jmix")) {
+      details.jmixScore = 30;
+      score += 30;
+      log.debug("Jmix position detected: +30 points");
     }
 
-    // AI - тренд (15 баллов)
-    if (primaryResult.path("ai").asBoolean(false)) {
-      breakdown.aiScore = 15;
-      score += 15;
+    // AI - современные технологии (20 баллов)
+    if (getBooleanValue(primary, "ai")) {
+      details.aiScore = 20;
+      score += 20;
+      log.debug("AI position detected: +20 points");
     }
 
-    breakdown.primaryTotal = score;
+    details.primaryTotal = score;
     return score;
   }
 
   /**
-   * Социальный анализ: формат работы, домены (максимум 35 баллов)
+   * Формат работы (максимум 30 баллов)
    */
-  private int calculateSocialScore(VacancyAnalysis analysis, ScoreBreakdown breakdown) {
-    JsonNode socialResult = analysis.getStepResult("social");
-    if (socialResult == null) {
-      return 0;
-    }
+  private int calculateWorkModeScore(VacancyAnalysis analysis, ScoreDetails details) {
+    JsonNode social = getStepResult(analysis, "social");
+    if (social == null) return 0;
 
-    int score = 0;
-
-    // Формат работы (25 баллов)
-    String workMode = socialResult.path("work_mode").asText("");
-    breakdown.workModeScore = calculateWorkModeScore(workMode);
-    score += breakdown.workModeScore;
-
-    // Социальная значимость (10 баллов)
-    if (socialResult.path("socially_significant").asBoolean(false)) {
-      breakdown.socialSignificanceScore = 10;
-      score += 10;
-    }
-
-    breakdown.socialTotal = score;
-    return score;
-  }
-
-  /**
-   * Расчет баллов за формат работы
-   */
-  private int calculateWorkModeScore(String workMode) {
-    return switch (workMode) {
-      case "remote" -> 25;                    // Полностью удаленно
-      case "flexible" -> 23;                  // Гибкий график
-      case "hybrid_flexible" -> 20;           // Гибкий гибрид
-      case "hybrid" -> 18;                    // Обычный гибрид
-      case "hybrid_2_3" -> 16;                // 2 дня офис / 3 дома
-      case "hybrid_3_2" -> 14;                // 3 дня офис / 2 дома
-      case "hybrid_4_1" -> 10;                // 4 дня офис / 1 дома
-      case "office" -> 3;                     // Только офис
-      default -> 0;                           // Неизвестно
+    String workMode = getStringValue(social, "work_mode");
+    int score = switch (workMode) {
+      case "remote" -> 30;              // Полностью удаленно
+      case "flexible" -> 28;            // Гибкий график
+      case "hybrid_flexible" -> 25;     // Гибкий гибрид
+      case "hybrid" -> 20;              // Обычный гибрид
+      case "hybrid_2_3" -> 18;          // 2 офис / 3 дома
+      case "hybrid_3_2" -> 15;          // 3 офис / 2 дома
+      case "hybrid_4_1" -> 10;          // 4 офис / 1 дома
+      case "office" -> 5;               // Только офис
+      default -> 0;                     // Неизвестно
     };
+
+    details.workModeScore = score;
+    if (score > 0) {
+      log.debug("Work mode '{}': +{} points", workMode, score);
+    }
+
+    return score;
   }
 
   /**
-   * Технический анализ: роль, уровень, стек (максимум 45 баллов)
+   * Социальная значимость (максимум 20 баллов)
    */
-  private int calculateTechnicalScore(VacancyAnalysis analysis, ScoreBreakdown breakdown) {
-    JsonNode technicalResult = analysis.getStepResult("technical");
-    if (technicalResult == null) {
-      return 0;
+  private int calculateSocialSignificanceScore(VacancyAnalysis analysis, ScoreDetails details) {
+    JsonNode social = getStepResult(analysis, "social");
+    if (social == null) return 0;
+
+    if (getBooleanValue(social, "socially_significant")) {
+      details.socialSignificanceScore = 20;
+      log.debug("Socially significant project: +20 points");
+      return 20;
     }
+
+    return 0;
+  }
+
+  /**
+   * Технический анализ: роль + уровень + стек (максимум 50 баллов)
+   */
+  private int calculateTechnicalScore(VacancyAnalysis analysis, ScoreDetails details) {
+    JsonNode technical = getStepResult(analysis, "technical");
+    if (technical == null) return 0;
 
     int score = 0;
 
-    // Тип роли (15 баллов)
-    String roleType = technicalResult.path("role_type").asText("");
-    breakdown.roleTypeScore = calculateRoleTypeScore(roleType);
-    score += breakdown.roleTypeScore;
+    // Тип роли (20 баллов)
+    String roleType = getStringValue(technical, "role_type");
+    int roleScore = switch (roleType) {
+      case "backend" -> 20;
+      case "frontend_plus_backend" -> 18;
+      case "devops_with_dev" -> 15;
+      default -> 0;
+    };
+    details.roleTypeScore = roleScore;
+    score += roleScore;
 
     // Уровень позиции (15 баллов)
-    String positionLevel = technicalResult.path("position_level").asText("");
-    breakdown.positionLevelScore = calculatePositionLevelScore(positionLevel);
-    score += breakdown.positionLevelScore;
+    String positionLevel = getStringValue(technical, "position_level");
+    int levelScore = switch (positionLevel) {
+      case "architect" -> 15;
+      case "principal" -> 14;
+      case "senior" -> 13;
+      case "lead" -> 12;
+      case "middle" -> 8;
+      case "junior" -> 5;
+      default -> 0;
+    };
+    details.positionLevelScore = levelScore;
+    score += levelScore;
 
     // Технологический стек (15 баллов)
-    String stack = technicalResult.path("stack").asText("");
-    breakdown.stackScore = calculateStackScore(stack);
-    score += breakdown.stackScore;
+    String stack = getStringValue(technical, "stack");
+    int stackScore = calculateStackScore(stack);
+    details.stackScore = stackScore;
+    score += stackScore;
 
-    breakdown.technicalTotal = score;
+    details.technicalTotal = score;
+    if (score > 0) {
+      log.debug("Technical analysis: role={}, level={}, stack={} -> {} points",
+          roleType, positionLevel, stack, score);
+    }
+
     return score;
-  }
-
-  /**
-   * Расчет баллов за тип роли
-   */
-  private int calculateRoleTypeScore(String roleType) {
-    return switch (roleType) {
-      case "backend" -> 15;                   // Backend разработка
-      case "frontend_plus_backend" -> 13;     // Full-stack с backend
-      case "devops_with_dev" -> 10;           // DevOps с разработкой
-      case "other" -> 0;                      // Не разработка
-      default -> 0;
-    };
-  }
-
-  /**
-   * Расчет баллов за уровень позиции
-   */
-  private int calculatePositionLevelScore(String positionLevel) {
-    return switch (positionLevel) {
-      case "architect" -> 15;                 // Архитектор
-      case "principal" -> 14;                 // Principal
-      case "senior" -> 13;                    // Senior
-      case "lead" -> 12;                      // Team Lead
-      case "middle" -> 8;                     // Middle
-      case "junior" -> 4;                     // Junior
-      default -> 0;
-    };
   }
 
   /**
    * Расчет баллов за технологический стек
    */
   private int calculateStackScore(String stack) {
-    if (stack == null || stack.isEmpty()) {
-      return 0;
-    }
+    if (stack == null || stack.trim().isEmpty()) return 0;
 
     int score = 0;
-    Set<String> technologies = Set.of(stack.toLowerCase().split("\\|"));
+    String[] technologies = stack.toLowerCase().split("\\|");
 
-    // Spring экосистема (5 баллов)
-    if (technologies.contains("spring")) {
-      score += 5;
+    for (String tech : technologies) {
+      tech = tech.trim();
+      score += switch (tech) {
+        case "spring" -> 5;      // Spring экосистема
+        case "microservices" -> 4; // Микросервисы
+        case "database" -> 3;    // Базы данных
+        case "python" -> 2;      // Дополнительный язык
+        case "devops" -> 1;      // DevOps инструменты
+        default -> 0;
+      };
     }
 
-    // Микросервисы (4 балла)
-    if (technologies.contains("microservices")) {
-      score += 4;
-    }
-
-    // Базы данных (3 балла)
-    if (technologies.contains("database")) {
-      score += 3;
-    }
-
-    // Python (дополнительный язык) (2 балла)
-    if (technologies.contains("python")) {
-      score += 2;
-    }
-
-    // DevOps инструменты (1 балл)
-    if (technologies.contains("devops")) {
-      score += 1;
-    }
-
-    // Максимум 15 баллов за стек
-    return Math.min(score, 15);
+    return Math.min(score, 15); // Максимум 15 баллов за стек
   }
 
   /**
-   * Анализ зарплаты (максимум 20 баллов)
+   * Анализ зарплаты (максимум 25 баллов)
    */
-  private int calculateSalaryScore(VacancyAnalysis analysis, ScoreBreakdown breakdown) {
-    JsonNode salaryResult = analysis.getStepResult("salary");
-    if (salaryResult == null) {
-      return 0;
-    }
+  private int calculateSalaryScore(VacancyAnalysis analysis, ScoreDetails details) {
+    JsonNode salary = getStepResult(analysis, "salary");
+    if (salary == null) return 0;
 
     int score = 0;
 
-    // Наличие указанной зарплаты (5 баллов)
-    if (salaryResult.path("has_salary").asBoolean(false)) {
+    // Бонус за указание зарплаты (5 баллов)
+    if (getBooleanValue(salary, "has_salary")) {
       score += 5;
 
-      // Уровень зарплаты (15 баллов)
-      int salaryFrom = salaryResult.path("salary_from").asInt(0);
+      // Дополнительные баллы за уровень зарплаты (20 баллов)
+      int salaryFrom = getIntValue(salary, "salary_from");
       score += calculateSalaryLevelScore(salaryFrom);
     }
 
-    breakdown.salaryScore = score;
+    details.salaryScore = score;
+    if (score > 0) {
+      log.debug("Salary analysis: +{} points", score);
+    }
+
     return score;
   }
 
   /**
-   * Расчет баллов за уровень зарплаты (для России, в рублях)
+   * Расчет баллов за уровень зарплаты (в рублях)
    */
   private int calculateSalaryLevelScore(int salaryFrom) {
-    if (salaryFrom >= 400000) return 15;       // 400k+ - отличная зарплата
-    if (salaryFrom >= 300000) return 12;       // 300-400k - хорошая зарплата
-    if (salaryFrom >= 200000) return 9;        // 200-300k - нормальная зарплата
-    if (salaryFrom >= 150000) return 6;        // 150-200k - средняя зарплата
-    if (salaryFrom >= 100000) return 3;        // 100-150k - низкая зарплата
+    if (salaryFrom >= 400000) return 20;       // 400k+ - отличная
+    if (salaryFrom >= 300000) return 16;       // 300-400k - очень хорошая
+    if (salaryFrom >= 250000) return 13;       // 250-300k - хорошая
+    if (salaryFrom >= 200000) return 10;       // 200-250k - нормальная
+    if (salaryFrom >= 150000) return 7;        // 150-200k - средняя
+    if (salaryFrom >= 100000) return 4;        // 100-150k - низкая
     return 0;                                  // <100k - очень низкая
   }
 
   /**
-   * Исследование компании (максимум 15 баллов)
+   * Определение рейтинга по общему скору
    */
-  private int calculateCompanyScore(VacancyAnalysis analysis, ScoreBreakdown breakdown) {
-    JsonNode companyResult = analysis.getStepResult("company_research");
-    if (companyResult == null) {
-      return 0;
-    }
+  private VacancyRating determineRating(int totalScore) {
+    double percentage = (double) totalScore / MAX_TOTAL_SCORE * 100;
 
-    int score = 0;
-
-    // Найдена информация о компании (5 баллов)
-    if (companyResult.path("found_info").asBoolean(false)) {
-      score += 5;
-    }
-
-    // Известная компания (5 баллов)
-    if (companyResult.path("is_known_company").asBoolean(false)) {
-      score += 5;
-    }
-
-    // Хорошая репутация (5 баллов)
-    if (companyResult.path("good_reputation").asBoolean(false)) {
-      score += 5;
-    }
-
-    breakdown.companyScore = score;
-    return score;
+    if (percentage >= 80) return VacancyRating.EXCELLENT;    // 80%+
+    if (percentage >= 60) return VacancyRating.GOOD;         // 60-80%
+    if (percentage >= 40) return VacancyRating.MODERATE;     // 40-60%
+    if (percentage >= 20) return VacancyRating.POOR;         // 20-40%
+    return VacancyRating.VERY_POOR;                          // <20%
   }
 
   /**
-   * Бонус за полноту анализа (максимум 10 баллов)
+   * Безопасное получение результата шага
    */
-  private int calculateCompletenessBonus(VacancyAnalysis analysis, ScoreBreakdown breakdown) {
-    int completedSteps = 0;
-
-    // Основные шаги
-    if (analysis.hasStepResult("primary")) completedSteps++;
-    if (analysis.hasStepResult("social")) completedSteps++;
-    if (analysis.hasStepResult("technical")) completedSteps++;
-
-    // Дополнительные шаги
-    if (analysis.hasStepResult("salary")) completedSteps++;
-    if (analysis.hasStepResult("company_research")) completedSteps++;
-
-    // Бонус: 2 балла за каждый выполненный шаг свыше 3
-    int bonus = Math.max(0, (completedSteps - 3) * 2);
-    breakdown.completenessBonus = Math.min(bonus, 10);
-
-    return breakdown.completenessBonus;
+  private JsonNode getStepResult(VacancyAnalysis analysis, String stepId) {
+    try {
+      JsonNode stepResults = analysis.getStepResults();
+      if (stepResults != null && stepResults.isObject()) {
+        return stepResults.get(stepId);
+      }
+    } catch (Exception e) {
+      log.warn("Error accessing step result '{}' for vacancy {}: {}",
+          stepId, analysis.getId(), e.getMessage());
+    }
+    return null;
   }
 
   /**
-   * Определение рейтинга на основе общего скора
+   * Безопасное получение boolean значения
    */
-  private Rating determineRating(int totalScore) {
-    if (totalScore >= 140) return Rating.EXCELLENT;    // 85%+ от максимума
-    if (totalScore >= 110) return Rating.GOOD;         // 65-85%
-    if (totalScore >= 80) return Rating.MODERATE;      // 45-65%
-    if (totalScore >= 50) return Rating.POOR;          // 25-45%
-    return Rating.VERY_POOR;                           // <25%
+  private boolean getBooleanValue(JsonNode node, String fieldName) {
+    if (node == null) return false;
+    JsonNode field = node.get(fieldName);
+    return field != null && field.asBoolean(false);
   }
 
   /**
-   * Результат скоринга вакансии
+   * Безопасное получение string значения
+   */
+  private String getStringValue(JsonNode node, String fieldName) {
+    if (node == null) return "";
+    JsonNode field = node.get(fieldName);
+    return field != null ? field.asText("") : "";
+  }
+
+  /**
+   * Безопасное получение int значения
+   */
+  private int getIntValue(JsonNode node, String fieldName) {
+    if (node == null) return 0;
+    JsonNode field = node.get(fieldName);
+    return field != null ? field.asInt(0) : 0;
+  }
+
+  /**
+   * Создание пустого скора при ошибках
+   */
+  private VacancyScore createEmptyScore() {
+    return new VacancyScore(0, VacancyRating.VERY_POOR, new ScoreDetails());
+  }
+
+  /**
+   * Результат скоринга
    */
   public static record VacancyScore(
       int totalScore,
-      Rating rating,
-      ScoreBreakdown breakdown
+      VacancyRating rating,
+      ScoreDetails details
   ) {
-
-    /**
-     * Получить максимально возможный скор
-     */
-    public static int getMaxPossibleScore() {
-      return 80 +    // Primary (Java + Jmix + AI)
-          35 +    // Social (work mode + significance)
-          45 +    // Technical (role + level + stack)
-          20 +    // Salary
-          15 +    // Company
-          10;     // Completeness bonus
-      // = 205 максимум
-    }
-
-    /**
-     * Получить процент от максимального скора
-     */
     public double getScorePercentage() {
-      return (double) totalScore / getMaxPossibleScore() * 100;
+      return (double) totalScore / MAX_TOTAL_SCORE * 100;
     }
 
-    /**
-     * Получить текстовое описание результата
-     */
     public String getDescription() {
       return String.format("%s (%d баллов, %.1f%%)",
           getRatingDescription(), totalScore, getScorePercentage());
@@ -377,20 +355,9 @@ public class VacancyScorer {
   }
 
   /**
-   * Рейтинг вакансии
+   * Детализация скора
    */
-  public enum Rating {
-    EXCELLENT,    // Отлично (85%+)
-    GOOD,         // Хорошо (65-85%)
-    MODERATE,     // Средне (45-65%)
-    POOR,         // Плохо (25-45%)
-    VERY_POOR     // Очень плохо (<25%)
-  }
-
-  /**
-   * Детализация скора по категориям
-   */
-  public static class ScoreBreakdown {
+  public static class ScoreDetails {
     // Первичный анализ
     public int javaScore = 0;
     public int jmixScore = 0;
@@ -400,7 +367,6 @@ public class VacancyScorer {
     // Социальный анализ
     public int workModeScore = 0;
     public int socialSignificanceScore = 0;
-    public int socialTotal = 0;
 
     // Технический анализ
     public int roleTypeScore = 0;
@@ -408,50 +374,46 @@ public class VacancyScorer {
     public int stackScore = 0;
     public int technicalTotal = 0;
 
-    // Дополнительные критерии
+    // Зарплата
     public int salaryScore = 0;
-    public int companyScore = 0;
-    public int completenessBonus = 0;
 
-    /**
-     * Получить общий скор
-     */
-    public int getTotalScore() {
-      return primaryTotal + socialTotal + technicalTotal +
-          salaryScore + companyScore + completenessBonus;
-    }
+    // Итого
+    public int totalScore = 0;
+    public VacancyRating rating = VacancyRating.VERY_POOR;
 
-    /**
-     * Получить строковое представление разбивки
-     */
     public String getBreakdownText() {
       StringBuilder sb = new StringBuilder();
       sb.append("Первичный: ").append(primaryTotal);
-      if (socialTotal > 0) sb.append(", Социальный: ").append(socialTotal);
-      if (technicalTotal > 0) sb.append(", Технический: ").append(technicalTotal);
-      if (salaryScore > 0) sb.append(", Зарплата: ").append(salaryScore);
-      if (companyScore > 0) sb.append(", Компания: ").append(companyScore);
-      if (completenessBonus > 0) sb.append(", Бонус: ").append(completenessBonus);
+      if (workModeScore > 0 || socialSignificanceScore > 0) {
+        sb.append(", Социальный: ").append(workModeScore + socialSignificanceScore);
+      }
+      if (technicalTotal > 0) {
+        sb.append(", Технический: ").append(technicalTotal);
+      }
+      if (salaryScore > 0) {
+        sb.append(", Зарплата: ").append(salaryScore);
+      }
       return sb.toString();
     }
 
-    /**
-     * Проверить, является ли это Java-вакансией
-     */
     public boolean isJavaPosition() {
       return javaScore > 0;
     }
 
-    /**
-     * Получить основную причину высокого/низкого скора
-     */
     public String getMainScoreReason() {
       if (javaScore == 0) return "Не Java позиция";
-      if (workModeScore <= 3) return "Только офисная работа";
-      if (primaryTotal >= 60) return "Отличное техническое соответствие";
-      if (salaryScore >= 12) return "Высокая зарплата";
-      if (socialTotal >= 30) return "Хорошие условия работы";
+      if (workModeScore <= 5) return "Только офисная работа";
+      if (primaryTotal >= 80) return "Отличное техническое соответствие";
+      if (salaryScore >= 15) return "Высокая зарплата";
+      if (workModeScore >= 25) return "Хорошие условия работы";
       return "Среднее соответствие критериям";
     }
+  }
+
+  /**
+   * Получить максимально возможный скор
+   */
+  public static int getMaxPossibleScore() {
+    return MAX_TOTAL_SCORE;
   }
 }

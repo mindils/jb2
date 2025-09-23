@@ -24,30 +24,43 @@
           <button id="updateFromQueueBtn" text="Обновить из очереди"/>
         </vbox>
 
+        <vbox classNames="stat-card" themeNames="spacing" width="24rem">
+          <h4 text="Последняя синхронизация"/>
+          <p id="lastSyncText"/>
+
+          <button id="syncAllBtn" text="Полная синхронизация вакансий" themeNames="primary small"/>
+
+          <textField id="daysField" label="Дней (1..30, пусто = авто(последнее обновление))" clearButtonVisible="true" width="14rem"/>
+          <button id="syncRecentBtn" text="Синхронизация за период" themeName="small"/>
+        </vbox>
+      </hbox>
+
+      <h3 text="Операции с анализом"/>
+      <hbox width="100%" classNames="gap-m" wrap="true">
+
         <vbox classNames="stat-card" themeNames="spacing" width="16rem">
           <h4 text="Очередь первичного анализа"/>
           <p id="primaryQueueCountText" classNames="stat-number"/>
+          <hbox>
+            <button id="enqueueFirstChainBtn"
+                    icon="PLUS" themeNames="icon" title="Добавить необработанные вакансии"/>
+
+            <button id="analyzePrimaryBtn" icon="lumo:play" title="Запустить обработку"/>
+          </hbox>
         </vbox>
 
         <vbox classNames="stat-card" themeNames="spacing" width="16rem">
           <h4 text="Очередь соц. анализа"/>
           <p id="socialQueueCountText" classNames="stat-number"/>
         </vbox>
-
-        <vbox classNames="stat-card" themeNames="spacing" width="24rem">
-          <h4 text="Последняя синхронизация"/>
-          <p id="lastSyncText"/>
+        <vbox classNames="stat-card" themeNames="spacing" width="16rem">
+          <h4 text="Рейтинг вакансий"/>
+          <button id="calculateScoreBtn" icon="lumo:play" text="Пересчитать рейтинг"/>
         </vbox>
-
       </hbox>
-
       <!-- ===== Quick actions ===== -->
       <!-- FIX #2: enum пишется UPPERCASE -->
       <hbox width="100%" classNames="gap-s" alignItems="END" wrap="true">
-        <button id="syncAllBtn" text="Синхронизация вакансий" themeNames="primary"/>
-        <textField id="daysField" label="Дней (1..30, пусто = авто)" clearButtonVisible="true" width="14rem"/>
-        <button id="syncRecentBtn" text="Синхронизация за период"/>
-        <button id="analyzePrimaryBtn" text="Анализ вакансий (первичный)"/>
         <button id="analyzeSocialBtn" text="Анализ вакансий (социальный)"/>
         <button id="refreshBtn" text="Обновить"/>
       </hbox>
@@ -110,9 +123,6 @@
 
         <!-- Кнопки управления очередями -->
         <hbox spacing="true">
-          <button id="enqueueFullChainBtn"
-                  text="msg://enqueueFullChainBtn.text"
-                  icon="PLUS"/>
           <button id="enqueueJavaFullChainBtn"
                   text="msg://enqueueJavaFullChainBtn.text"
                   icon="PLUS"/>

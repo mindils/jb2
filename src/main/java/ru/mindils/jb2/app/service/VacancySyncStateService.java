@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.mindils.jb2.app.entity.VacancySyncState;
 import ru.mindils.jb2.app.entity.VacancySyncStateType;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -28,11 +29,13 @@ public class VacancySyncStateService {
     if (vacancySyncStates.isEmpty()) {
       VacancySyncState vacancySyncState = dataManager.create(VacancySyncState.class);
       vacancySyncState.setStateType(VacancySyncStateType.ALL_SYNC);
+      vacancySyncState.setUpdateDate(LocalDateTime.now());
       dataManager.save(vacancySyncState);
       return;
     }
 
     VacancySyncState first = vacancySyncStates.getFirst();
+    first.setUpdateDate(LocalDateTime.now());
     first.setStateType(VacancySyncStateType.ALL_SYNC);
 
     dataManager.save(first);

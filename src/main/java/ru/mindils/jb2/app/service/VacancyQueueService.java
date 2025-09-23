@@ -106,7 +106,7 @@ public class VacancyQueueService {
         .setQuery(new ValueLoadContext.Query(
             "select q.vacancy.id as vacancyId " +
                 "from jb2_VacancyAnalysisQueue q " +
-                "where q.typeQueue = :type and q.vacancy.id in :ids"))
+                "where q.typeQueue = :type and q.vacancy.id in :ids and q.processing = true"))
         .addProperty("vacancyId");
     vlc.getQuery().setParameter("type", typeId);
     vlc.getQuery().setParameter("ids", vacancyIds);

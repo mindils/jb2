@@ -214,7 +214,7 @@ public class AnalysisResultManager {
   /**
    * Конвертация из VacancyScorer.Rating в VacancyRating enum
    */
-  private VacancyRating convertToVacancyRating(VacancyScorer.Rating rating) {
+  private VacancyRating convertToVacancyRating(VacancyRating rating) {
     return switch (rating) {
       case EXCELLENT -> VacancyRating.EXCELLENT;
       case GOOD -> VacancyRating.GOOD;

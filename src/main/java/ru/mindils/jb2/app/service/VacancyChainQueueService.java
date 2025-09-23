@@ -10,6 +10,8 @@ import io.jmix.core.entity.EntityValues;
 import io.jmix.core.entity.KeyValueEntity;
 import io.jmix.core.metamodel.model.MetaClass;
 import io.jmix.flowui.model.CollectionLoader;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.mindils.jb2.app.entity.ChainAnalysisType;
@@ -29,6 +31,9 @@ public class VacancyChainQueueService {
   private final DataManager dataManager;
   private final FetchPlans fetchPlans;
   private final Metadata metadata;
+
+  @PersistenceContext
+  private EntityManager em;
 
   public VacancyChainQueueService(DataManager dataManager, FetchPlans fetchPlans, Metadata metadata) {
     this.dataManager = dataManager;
@@ -84,6 +89,44 @@ public class VacancyChainQueueService {
         batchSize,
         "exists (select 1 from jb2_VacancyAnalysis a where a.id = e.id and a.java = 'true')"
     );
+  }
+
+  /**
+   * Добавить вакансии для первичного анализа
+   */
+  @Transactional
+  public int enqueueNotAnalyzedVacanciesNativeSql(ChainAnalysisType chainType) {
+    var sql = """
+      INSERT INTO jb2_vacancy_chain_analysis_queue
+          (vacancy_id, chain_type, processing, success, error_message, priority,
+           created_date, last_modified_date)
+      SELECT
+          v.id,
+          ?1::varchar            AS chain_type,            -- явный cast для SELECT-части
+          true                   AS processing,
+          NULL                   AS success,
+          NULL                   AS error_message,
+          1                      AS priority,
+          NOW()                  AS created_date,
+          NOW()                  AS last_modified_date
+      FROM jb2_vacancy v
+      LEFT JOIN jb2_vacancy_analysis a ON a.id = v.id
+      WHERE NOT EXISTS (
+                SELECT 1
+                FROM jb2_vacancy_chain_analysis_queue q
+                WHERE q.vacancy_id = v.id
+                  AND q.chain_type = ?1
+                  AND q.processing = true
+            )
+        AND (
+              a.step_results IS NULL
+              OR NOT jsonb_exists(a.step_results, 'primary')
+            );
+      """;
+
+    return em.createNativeQuery(sql)
+        .setParameter(1, chainType.getId())
+        .executeUpdate();
   }
 
   /**

@@ -6,6 +6,7 @@ import ru.mindils.jb2.app.entity.AnalysisType;
 import ru.mindils.jb2.app.entity.VacancySyncState;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -43,19 +44,19 @@ public class VacancyOpsService {
   }
 
   /** Последний момент успешного sync-сейва */
-  public OffsetDateTime getLastSyncTime() {
+  public LocalDateTime getLastSyncTime() {
     List<VacancySyncState> list = dataManager.load(VacancySyncState.class)
         .query("select e from jb2_VacancySyncState e order by e.lastModifiedDate desc")
         .maxResults(1)
         .list();
-    return list.isEmpty() ? null : list.get(0).getLastModifiedDate();
+    return list.isEmpty() ? null : list.getFirst().getUpdateDate();
   }
 
   /** Дней с последнего sync (1..30, с «страховкой» по краям) */
   public int calcDaysSinceLastSyncClamped() {
-    OffsetDateTime last = getLastSyncTime();
+    LocalDateTime last = getLastSyncTime();
     if (last == null) return 30;
-    long days = ChronoUnit.DAYS.between(last.toLocalDate(), LocalDate.now());
+    long days = ChronoUnit.DAYS.between(last, LocalDate.now());
     if (days < 1) return 1;
     if (days > 30) return 30;
     return (int) days;

@@ -20,9 +20,11 @@ import ru.mindils.jb2.app.service.VacancyChainQueueService;
 import ru.mindils.jb2.app.service.VacancyChainWorkflowService;
 import ru.mindils.jb2.app.service.VacancyOpsService;
 import ru.mindils.jb2.app.service.VacancyWorkflowService;
+import ru.mindils.jb2.app.service.analysis.VacancyScoreUpdateService;
 import ru.mindils.jb2.app.view.main.MainView;
 
 
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -38,6 +40,8 @@ public class VacancyOpsView extends StandardView {
   @Autowired private VacancyOpsService vacancyOpsService;
   @Autowired private VacancyAnalysisService vacancyAnalysisService;
   @Autowired private Notifications notifications;
+  @Autowired
+  private VacancyScoreUpdateService scoreUpdateService;
 
   @Autowired
   private VacancyChainWorkflowService chainWorkflowService;
@@ -93,8 +97,14 @@ public class VacancyOpsView extends StandardView {
 
   @Subscribe(id = "analyzePrimaryBtn", subject = "clickListener")
   public void onAnalyzePrimaryBtnClick(final ClickEvent<JmixButton> e) {
-    vacancyWorkflowService.analyze(AnalysisType.PRIMARY);
-    notifications.create("Запущен воркфлоу первичного анализа").show();
+    try {
+      chainWorkflowService.startPrimaryAnalysis();
+      notifications.create("Запущен первичный цепочный анализ")
+          .withType(Notifications.Type.SUCCESS).show();
+    } catch (IllegalStateException ex) {
+      notifications.create("Ошибка: " + ex.getMessage())
+          .withType(Notifications.Type.ERROR).show();
+    }
   }
 
   @Subscribe(id = "analyzeSocialBtn", subject = "clickListener")
@@ -170,9 +180,9 @@ public class VacancyOpsView extends StandardView {
     refreshAll();
   }
 
-  @Subscribe(id = "enqueueFullChainBtn", subject = "clickListener")
-  public void onEnqueueFullChainBtnClick(final ClickEvent<JmixButton> e) {
-    int added = chainQueueService.enqueueNotAnalyzedVacancies(ChainAnalysisType.FULL_ANALYSIS, 1000);
+  @Subscribe(id = "enqueueFirstChainBtn", subject = "clickListener")
+  public void onEnqueueFirstChainBtnClick(final ClickEvent<JmixButton> e) {
+    int added = chainQueueService.enqueueNotAnalyzedVacanciesNativeSql(ChainAnalysisType.PRIMARY_ONLY);
     notifications.create("В очередь полного анализа добавлено: " + added).show();
     refreshAll();
   }
@@ -194,7 +204,7 @@ public class VacancyOpsView extends StandardView {
   private void refreshStats() {
     // Очереди
     updateQueueCountText.setText(String.valueOf(vacancyOpsService.getUpdateQueueCount()));
-    primaryQueueCountText.setText(String.valueOf(vacancyOpsService.getPrimaryQueueCount()));
+    primaryQueueCountText.setText(String.valueOf(chainQueueService.getQueueCount(ChainAnalysisType.PRIMARY_ONLY)));
     socialQueueCountText.setText(String.valueOf(vacancyOpsService.getSocialQueueCount()));
 
     fullChainQueueCountText.setText(String.valueOf(chainQueueService.getQueueCount(ChainAnalysisType.FULL_ANALYSIS)));
@@ -203,10 +213,10 @@ public class VacancyOpsView extends StandardView {
 
 
     // Последний sync
-    OffsetDateTime last = vacancyOpsService.getLastSyncTime();
+    LocalDateTime last = vacancyOpsService.getLastSyncTime();
     lastSyncText.setText(last == null
         ? "Нет данных"
-        : last.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+        : last.toString());
   }
 
   private void updateWorkflowsHeader() {
@@ -228,4 +238,10 @@ public class VacancyOpsView extends StandardView {
     } catch (Exception ignored) { }
     return vacancyOpsService.calcDaysSinceLastSyncClamped();
   }
+
+  @Subscribe(id = "calculateScoreBtn", subject = "clickListener")
+  public void onCalculateScoreBtnClick(final ClickEvent<JmixButton> event) {
+    scoreUpdateService.recalcScoresAll(100);
+  }
+
 }
