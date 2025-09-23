@@ -113,7 +113,7 @@ public class TechnicalChainStep implements ChainAnalysisStep {
            • true - встречается платформа Jmix / CUBA Platform / Haulmont Jmix
            • false - не встречается
         
-        5. ИИ / LLM ПРИСУТСТВИЕ (ai_presence) - единственное значение:
+        5. ИИ / LLM ПРИСУТСТВИЕ (ai_presence) - строка через "|" из применимых групп:
            • "none" - отсутствуют сигналы об ИИ/LLM
            • "allowed_for_dev" - явно разрешено/поощряется использовать LLM/генеративный ИИ в разработке (Copilot/Code Assist/обучающие практики)
            • "llm_project_optional" - компания/команда ведёт проект(ы) с LLM/GenAI, участие возможно при желании/росте, требования к ИИ опциональные

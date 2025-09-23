@@ -36,7 +36,7 @@ public class PrimaryChainStep extends AbstractChainAnalysisStep {
 
   @Override
   public String getDescription() {
-    return "Первичный анализ: определение Java, Jmix, AI";
+    return "Первичный анализ: определение Java стек";
   }
 
   @Override
@@ -106,36 +106,9 @@ public class PrimaryChainStep extends AbstractChainAnalysisStep {
                   • If Java mentioned as "будет плюсом" / "желательно" / "nice to have" but main stack is different
                   • DevOps/QA positions without Java development
             
-            2. JMIX (jmix: true) - mentions Jmix platform:
-               ✅ INCLUDE:
-                  • Jmix, Jmix Studio, Jmix framework
-                  • CUBA Platform (Jmix predecessor)
-                  • Haulmont Jmix
-            
-               ❌ EXCLUDE:
-                  • Similar names not related to Jmix
-            
-            3. AI (ai: true) - position requires AI/ML work:
-               ✅ INCLUDE:
-                  • Искусственный интеллект, машинное обучение, нейронные сети, нейросети
-                  • AI, ML, Machine Learning, Deep Learning, Neural Networks
-                  • LLM, GPT, ChatGPT, Claude, Gemini, LangChain, YandexGPT, GigaChat
-                  • TensorFlow, PyTorch, Keras, scikit-learn, JAX
-                  • Data Science with ML focus
-                  • NLP, Computer Vision, Reinforcement Learning
-                  • AI Engineer, ML Engineer, AI Researcher, ML-инженер
-                  • AI solutions development/integration
-            
-               ❌ EXCLUDE:
-                  • Simple analytics without ML
-                  • BI without ML components
-                  • Data Engineering without ML
-            
             Response format (strict JSON):
             {
-              "java": boolean,
-              "jmix": boolean,
-              "ai": boolean
+              "java": boolean
             }
             """
         .replace("{name}", vacancy.getName())
