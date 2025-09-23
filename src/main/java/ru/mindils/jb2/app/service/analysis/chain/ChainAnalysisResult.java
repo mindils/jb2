@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Результат выполнения цепочки анализа
+ * Упрощенный результат выполнения цепочки анализа
  */
 public record ChainAnalysisResult(
     String vacancyId,
@@ -16,7 +16,7 @@ public record ChainAnalysisResult(
     String stoppedAt,           // на каком шаге остановились
     String stopReason,          // причина остановки
     Map<String, ChainStepResult> stepResults,  // результаты каждого шага
-    VacancyScorer.VacancyScore finalScore      // итоговый скор (если вычислялся)
+    VacancyScorer.VacancyScore finalScore      // итоговый скор (только totalScore и rating)
 ) {
 
   public static Builder builder() {

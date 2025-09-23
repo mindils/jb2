@@ -72,7 +72,7 @@ public class VacancyScoreUpdateService {
     Integer beforeScore = va.getFinalScore();
     String beforeRating = va.getRating();
 
-    analysisResultManager.recalculateScore(va);
+    analysisResultManager.recalculateAndSaveScore(va);
 
     if (!equalsInt(beforeScore, va.getFinalScore()) || !equalsStr(beforeRating, va.getRating())) {
       dataManager.save(va);
@@ -120,7 +120,7 @@ public class VacancyScoreUpdateService {
       Integer beforeScore = va.getFinalScore();
       String beforeRating = va.getRating();
 
-      analysisResultManager.recalculateScore(va);
+      analysisResultManager.recalculateAndSaveScore(va);
 
       if (!equalsInt(beforeScore, va.getFinalScore()) || !equalsStr(beforeRating, va.getRating())) {
         saveCtx.saving(va);

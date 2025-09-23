@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.mindils.jb2.app.entity.Vacancy;
 import ru.mindils.jb2.app.entity.VacancyAnalysis;
+import ru.mindils.jb2.app.service.analysis.AnalysisResultManager;
 import ru.mindils.jb2.app.service.analysis.VacancyScorer;
 
 import java.util.List;
@@ -15,7 +16,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Сервис для выполнения цепочки анализа вакансий
+ * Упрощенный сервис для выполнения цепочки анализа вакансий
  */
 @Service
 public class VacancyChainAnalysisService {
@@ -23,16 +24,16 @@ public class VacancyChainAnalysisService {
   private static final Logger log = LoggerFactory.getLogger(VacancyChainAnalysisService.class);
 
   private final DataManager dataManager;
-  private final VacancyScorer vacancyScorer;
+  private final AnalysisResultManager analysisResultManager;
   private final Map<String, ChainAnalysisStep> stepMap;
 
   public VacancyChainAnalysisService(
       DataManager dataManager,
-      VacancyScorer vacancyScorer,
+      AnalysisResultManager analysisResultManager,
       List<ChainAnalysisStep> steps
   ) {
     this.dataManager = dataManager;
-    this.vacancyScorer = vacancyScorer;
+    this.analysisResultManager = analysisResultManager;
     this.stepMap = steps.stream()
         .collect(Collectors.toMap(ChainAnalysisStep::getStepId, Function.identity()));
   }
@@ -52,12 +53,12 @@ public class VacancyChainAnalysisService {
           .optional()
           .orElseGet(() -> createNewAnalysis(vacancy));
 
-      // Выполняем шаги по очереди
       ChainAnalysisResult.Builder resultBuilder = ChainAnalysisResult.builder()
           .vacancyId(vacancyId)
           .chainConfig(config)
           .success(true);
 
+      // Выполняем шаги по очереди
       for (String stepId : config.stepIds()) {
         ChainAnalysisStep step = stepMap.get(stepId);
         if (step == null) {
@@ -76,28 +77,49 @@ public class VacancyChainAnalysisService {
         // Сохраняем промежуточный результат
         dataManager.save(analysis);
 
+        // Проверяем условие остановки
         if (!stepResult.shouldContinue()) {
           log.info("Chain stopped at step: {} for vacancy: {}, reason: {}",
               stepId, vacancyId, stepResult.stopReason());
+
+          // Если нужно, все равно считаем скор даже при остановке
+          VacancyScorer.VacancyScore finalScore = null;
+          if (config.calculateScore()) {
+            analysisResultManager.recalculateAndSaveScore(analysis);
+            finalScore = new VacancyScorer.VacancyScore(
+                analysis.getFinalScore() != null ? analysis.getFinalScore() : 0,
+                analysis.getRatingEnum() != null ? analysis.getRatingEnum() : ru.mindils.jb2.app.entity.VacancyRating.VERY_POOR
+            );
+            dataManager.save(analysis); // Сохраняем с обновленным скором
+          }
+
           return resultBuilder
               .stoppedAt(stepId)
               .stopReason(stepResult.stopReason())
+              .finalScore(finalScore)
               .build();
         }
       }
 
-      // Если нужно, вычисляем итоговый скор
-      VacancyScorer.VacancyScore score = null;
+      // Если нужно, вычисляем итоговый скор после всех шагов
+      VacancyScorer.VacancyScore finalScore = null;
       if (config.calculateScore()) {
-        score = vacancyScorer.calculateScore(analysis);
-        log.info("Calculated score for vacancy {}: {} ({})",
-            vacancyId, score.totalScore(), score.rating());
+        analysisResultManager.recalculateAndSaveScore(analysis);
+        finalScore = new VacancyScorer.VacancyScore(
+            analysis.getFinalScore() != null ? analysis.getFinalScore() : 0,
+            analysis.getRatingEnum() != null ? analysis.getRatingEnum() : ru.mindils.jb2.app.entity.VacancyRating.VERY_POOR
+        );
+
+        dataManager.save(analysis); // Сохраняем с итоговым скором
+
+        log.info("Calculated final score for vacancy {}: {} ({})",
+            vacancyId, finalScore.totalScore(), finalScore.rating());
       }
 
       log.info("Successfully completed chain analysis for vacancy: {}", vacancyId);
 
       return resultBuilder
-          .finalScore(score)
+          .finalScore(finalScore)
           .build();
 
     } catch (Exception e) {
