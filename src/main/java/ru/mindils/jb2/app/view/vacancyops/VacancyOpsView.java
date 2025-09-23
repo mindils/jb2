@@ -51,7 +51,7 @@ public class VacancyOpsView extends StandardView {
 
   @ViewComponent private Paragraph updateQueueCountText;
   @ViewComponent private Paragraph primaryQueueCountText;
-  @ViewComponent private Paragraph socialQueueCountText;
+  @ViewComponent private Paragraph fullQueueCountText;
   @ViewComponent private Paragraph lastSyncText;
 
   @ViewComponent private Paragraph fullChainQueueCountText;
@@ -205,7 +205,7 @@ public class VacancyOpsView extends StandardView {
     // Очереди
     updateQueueCountText.setText(String.valueOf(vacancyOpsService.getUpdateQueueCount()));
     primaryQueueCountText.setText(String.valueOf(chainQueueService.getQueueCount(ChainAnalysisType.PRIMARY_ONLY)));
-    socialQueueCountText.setText(String.valueOf(vacancyOpsService.getSocialQueueCount()));
+    fullQueueCountText.setText(String.valueOf(chainQueueService.getQueueCount(ChainAnalysisType.FULL_ANALYSIS)));
 
     fullChainQueueCountText.setText(String.valueOf(chainQueueService.getQueueCount(ChainAnalysisType.FULL_ANALYSIS)));
     primaryChainQueueCountText.setText(String.valueOf(chainQueueService.getQueueCount(ChainAnalysisType.PRIMARY_ONLY)));
@@ -242,6 +242,25 @@ public class VacancyOpsView extends StandardView {
   @Subscribe(id = "calculateScoreBtn", subject = "clickListener")
   public void onCalculateScoreBtnClick(final ClickEvent<JmixButton> event) {
     scoreUpdateService.recalcScoresAll(100);
+  }
+
+  @Subscribe(id = "enqueueFullChainBtn", subject = "clickListener")
+  public void onEnqueueFullChainBtnClick(final ClickEvent<JmixButton> event) {
+    int added = chainQueueService.enqueueNotAnalyzedVacanciesNativeSql(ChainAnalysisType.FULL_ANALYSIS);
+    notifications.create("В очередь полного анализа добавлено: " + added).show();
+    refreshAll();
+  }
+
+  @Subscribe(id = "analyzeFullBtn", subject = "clickListener")
+  public void onAnalyzeFullBtnClick(final ClickEvent<JmixButton> event) {
+    try {
+      chainWorkflowService.startFullAnalysis();
+      notifications.create("Запущен полной цепочный анализ")
+          .withType(Notifications.Type.SUCCESS).show();
+    } catch (IllegalStateException ex) {
+      notifications.create("Ошибка: " + ex.getMessage())
+          .withType(Notifications.Type.ERROR).show();
+    }
   }
 
 }

@@ -50,8 +50,13 @@
         </vbox>
 
         <vbox classNames="stat-card" themeNames="spacing" width="16rem">
-          <h4 text="Очередь соц. анализа"/>
-          <p id="socialQueueCountText" classNames="stat-number"/>
+          <h4 text="Очередь Полный "/>
+          <p id="fullQueueCountText" classNames="stat-number"/>
+          <hbox>
+            <button id="enqueueFullChainBtn"
+                    icon="PLUS" themeNames="icon" title="Добавить необработанные вакансии"/>
+            <button id="analyzeFullBtn" icon="lumo:play" title="Запустить обработку"/>
+          </hbox>
         </vbox>
         <vbox classNames="stat-card" themeNames="spacing" width="16rem">
           <h4 text="Рейтинг вакансий"/>

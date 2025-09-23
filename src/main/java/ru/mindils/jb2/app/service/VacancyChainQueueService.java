@@ -91,41 +91,52 @@ public class VacancyChainQueueService {
     );
   }
 
+  @Transactional
+  public int enqueueNotAnalyzedVacanciesNativeSql(ChainAnalysisType chainType) {
+    var checkJsonField = "primary";
+    if (chainType == ChainAnalysisType.FULL_ANALYSIS) {
+      checkJsonField = "technical";
+    }
+
+    return enqueueNotAnalyzedVacanciesNativeSql(chainType, checkJsonField);
+  }
+
   /**
    * Добавить вакансии для первичного анализа
    */
   @Transactional
-  public int enqueueNotAnalyzedVacanciesNativeSql(ChainAnalysisType chainType) {
+  public int enqueueNotAnalyzedVacanciesNativeSql(ChainAnalysisType chainType, String checkJsonField) {
     var sql = """
-      INSERT INTO jb2_vacancy_chain_analysis_queue
-          (vacancy_id, chain_type, processing, success, error_message, priority,
-           created_date, last_modified_date)
-      SELECT
-          v.id,
-          ?1::varchar            AS chain_type,            -- явный cast для SELECT-части
-          true                   AS processing,
-          NULL                   AS success,
-          NULL                   AS error_message,
-          1                      AS priority,
-          NOW()                  AS created_date,
-          NOW()                  AS last_modified_date
-      FROM jb2_vacancy v
-      LEFT JOIN jb2_vacancy_analysis a ON a.id = v.id
-      WHERE NOT EXISTS (
-                SELECT 1
-                FROM jb2_vacancy_chain_analysis_queue q
-                WHERE q.vacancy_id = v.id
-                  AND q.chain_type = ?1
-                  AND q.processing = true
-            )
-        AND (
-              a.step_results IS NULL
-              OR NOT jsonb_exists(a.step_results, 'primary')
-            );
-      """;
+        INSERT INTO jb2_vacancy_chain_analysis_queue
+            (vacancy_id, chain_type, processing, success, error_message, priority,
+             created_date, last_modified_date)
+        SELECT
+            v.id,
+            ?1::varchar            AS chain_type,            -- явный cast для SELECT-части
+            true                   AS processing,
+            NULL                   AS success,
+            NULL                   AS error_message,
+            1                      AS priority,
+            NOW()                  AS created_date,
+            NOW()                  AS last_modified_date
+        FROM jb2_vacancy v
+        LEFT JOIN jb2_vacancy_analysis a ON a.id = v.id
+        WHERE NOT EXISTS (
+                  SELECT 1
+                  FROM jb2_vacancy_chain_analysis_queue q
+                  WHERE q.vacancy_id = v.id
+                    AND q.chain_type = ?1
+                    AND q.processing = true
+              )
+          AND (
+                a.step_results IS NULL
+                OR NOT jsonb_exists(a.step_results, ?2)
+              );
+        """;
 
     return em.createNativeQuery(sql)
         .setParameter(1, chainType.getId())
+        .setParameter(2, checkJsonField)
         .executeUpdate();
   }
 
