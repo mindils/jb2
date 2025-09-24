@@ -19,7 +19,18 @@ public record AnalysisChainConfig(
   public static final AnalysisChainConfig FULL_ANALYSIS = new AnalysisChainConfig(
       ChainAnalysisType.FULL_ANALYSIS,
       "Полный анализ: первичный + социальный + технический + скор",
-      List.of("primary", "technical"),
+      List.of(
+          "primary", // Первичный анализ: определение Java стек
+          "stopFactors", // Проверка критических стоп-факторов
+
+          "benefits", // Анализ льгот и дополнительных преимуществ
+          "compensation", // Анализ компенсации и структуры зарплаты
+          "equipment", // Анализ предоставляемого оборудования и технических средств
+          "industry", // Анализ отрасли и социальной значимости
+          "social", // Социальный анализ: формат работы, домены, социальная значимость
+          "technical", // Технический анализ: роль, уровень, стек технологий
+          "workConditions" // Анализ условий работы и требований к релокации
+      ),
       true,
       false  // по умолчанию используем кэшированные результаты
   );

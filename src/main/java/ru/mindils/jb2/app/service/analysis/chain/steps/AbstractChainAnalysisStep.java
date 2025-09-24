@@ -120,12 +120,4 @@ public abstract class AbstractChainAnalysisStep implements ChainAnalysisStep {
 
     return ChainStepResult.success(analysisResult, llmResponse);
   }
-
-  /**
-   * Обрезать текст до указанной длины
-   */
-  protected String truncateText(String text, int maxLength) {
-    if (text == null || text.length() <= maxLength) return text;
-    return text.substring(0, maxLength) + "...";
-  }
 }

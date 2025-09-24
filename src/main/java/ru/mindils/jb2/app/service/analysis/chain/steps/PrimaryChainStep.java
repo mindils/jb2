@@ -11,6 +11,7 @@ import ru.mindils.jb2.app.entity.VacancyAnalysis;
 import ru.mindils.jb2.app.service.ResilientLLMService;
 import ru.mindils.jb2.app.service.analysis.AnalysisResultManager;
 import ru.mindils.jb2.app.service.analysis.chain.ChainStepResult;
+import ru.mindils.jb2.app.util.HtmlToMarkdownConverter;
 
 @Component
 public class PrimaryChainStep extends AbstractChainAnalysisStep {
@@ -18,15 +19,19 @@ public class PrimaryChainStep extends AbstractChainAnalysisStep {
   private static final Logger log = LoggerFactory.getLogger(PrimaryChainStep.class);
 
   private final ResilientLLMService llmService;
+  private final HtmlToMarkdownConverter htmlConverter;
 
   // Поле для хранения информации о принудительном перезапуске
   private volatile boolean forceReanalyzeFlag = false;
 
   public PrimaryChainStep(ResilientLLMService llmService,
                           ObjectMapper objectMapper,
-                          AnalysisResultManager analysisResultManager) {
+                          AnalysisResultManager analysisResultManager,
+                          HtmlToMarkdownConverter htmlConverter
+  ) {
     super(objectMapper, analysisResultManager);
     this.llmService = llmService;
+    this.htmlConverter = htmlConverter;
   }
 
   @Override
@@ -79,40 +84,40 @@ public class PrimaryChainStep extends AbstractChainAnalysisStep {
 
   private String buildPrompt(Vacancy vacancy) {
     return """
-            Analyze the IT job posting (in Russian) and determine category matches. Return ONLY JSON without additional text.
-
-            Job posting:
-            Title: {name}
-            Description: {description}
-            Key skills: {skills}
-            
-            Analysis criteria:
-            
-            1. JAVA (java: true) - position requires DIRECT Java development:
-               ✅ INCLUDE only if candidate will write Java code:
-                  • Java SE/EE, Spring (Boot/Framework/Data/Security/Cloud)
-                  • Hibernate, JPA, JDBC
-                  • Maven, Gradle
-                  • Backend/microservices in Java
-                  • REST API/GraphQL in Java
-                  • JUnit, Mockito, TestNG
-                  • Java-specific tools: Kafka (Java), RabbitMQ (Java), Elasticsearch (Java client)
-            
-               ❌ EXCLUDE (java: false):
-                  • Android development (even if Java is mentioned)
-                  • Kotlin for Android
-                  • JavaScript/TypeScript/Node.js/CoffeeScript (NOT Java!)
-                  • If Java is in company stack but position is for Python/Go/C#/PHP/Ruby developer
-                  • If Java mentioned as "будет плюсом" / "желательно" / "nice to have" but main stack is different
-                  • DevOps/QA positions without Java development
-            
-            Response format (strict JSON):
-            {
-              "java": boolean
-            }
-            """
+        Analyze the IT job posting (in Russian) and determine category matches. Return ONLY JSON without additional text.
+        
+        Job posting:
+        Title: {name}
+        Description: {description}
+        Key skills: {skills}
+        
+        Analysis criteria:
+        
+        1. JAVA (java: true) - position requires DIRECT Java development:
+           ✅ INCLUDE only if candidate will write Java code:
+              • Java SE/EE, Spring (Boot/Framework/Data/Security/Cloud)
+              • Hibernate, JPA, JDBC
+              • Maven, Gradle
+              • Backend/microservices in Java
+              • REST API/GraphQL in Java
+              • JUnit, Mockito, TestNG
+              • Java-specific tools: Kafka (Java), RabbitMQ (Java), Elasticsearch (Java client)
+        
+           ❌ EXCLUDE (java: false):
+              • Android development (even if Java is mentioned)
+              • Kotlin for Android
+              • JavaScript/TypeScript/Node.js/CoffeeScript (NOT Java!)
+              • If Java is in company stack but position is for Python/Go/C#/PHP/Ruby developer
+              • If Java mentioned as "будет плюсом" / "желательно" / "nice to have" but main stack is different
+              • DevOps/QA positions without Java development
+        
+        Response format (strict JSON):
+        {
+          "java": boolean
+        }
+        """
         .replace("{name}", vacancy.getName())
-        .replace("{description}", truncateText(vacancy.getDescription(), 2000))
+        .replace("{description}", htmlConverter.convertToMarkdown(vacancy.getDescription()))
         .replace("{skills}", vacancy.getKeySkillsStr());
   }
 
