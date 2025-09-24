@@ -12,21 +12,27 @@ import ru.mindils.jb2.app.service.ResilientLLMService;
 import ru.mindils.jb2.app.service.analysis.AnalysisResultManager;
 import ru.mindils.jb2.app.service.analysis.chain.ChainAnalysisStep;
 import ru.mindils.jb2.app.service.analysis.chain.ChainStepResult;
+import ru.mindils.jb2.app.util.HtmlToMarkdownConverter;
 
 @Component
 public class IndustryChainStep implements ChainAnalysisStep {
+
   private static final Logger log = LoggerFactory.getLogger(IndustryChainStep.class);
 
   private final ResilientLLMService llmService;
   private final ObjectMapper objectMapper;
   private final AnalysisResultManager analysisResultManager;
+  private final HtmlToMarkdownConverter htmlConverter;
 
   public IndustryChainStep(ResilientLLMService llmService,
                            ObjectMapper objectMapper,
-                           AnalysisResultManager analysisResultManager) {
+                           AnalysisResultManager analysisResultManager,
+                           HtmlToMarkdownConverter htmlConverter
+                           ) {
     this.llmService = llmService;
     this.objectMapper = objectMapper;
     this.analysisResultManager = analysisResultManager;
+    this.htmlConverter = htmlConverter;
   }
 
   @Override
@@ -48,13 +54,11 @@ public class IndustryChainStep implements ChainAnalysisStep {
 
       String llmResponse = llmService.callLLM(prompt,
           OpenAiChatOptions.builder()
-              .temperature(0.0) // Для более стабильных результатов
-              .maxTokens(300)   // Увеличиваем для детального анализа
+              .temperature(0.0)
+              .maxTokens(300)
               .build());
 
       JsonNode analysisResult = objectMapper.readTree(llmResponse);
-
-      // Используем AnalysisResultManager для сохранения результата
       analysisResultManager.updateStepResult(currentAnalysis, getStepId(), analysisResult);
 
       return ChainStepResult.success(analysisResult, llmResponse);
@@ -73,7 +77,12 @@ public class IndustryChainStep implements ChainAnalysisStep {
             Описание вакансии:
             Название: {name}
             Описание: {description}
+            Описание(Бренд): {descriptionBranded}
             Ключевые навыки: {skills}
+            Зарплата: {salary}
+            Компания: {employer}
+            Компания (Бренд): {employerBranded}
+            Компания индустрия: {employerIndustries}
             
             1. КАТЕГОРИЯ КОМПАНИИ (company_category) - одно значение:
                • "positive" - медицина, образование, экология, наука, космос, социальные проекты, доступность, сельское хозяйство
@@ -93,43 +102,6 @@ public class IndustryChainStep implements ChainAnalysisStep {
                Если проект отличается от компании - указать его направления
                Если не отличается - указать пустую строку ""
             
-            ДЕТАЛЬНЫЕ КРИТЕРИИ:
-            
-            positive:
-            • healthcare - медицина, здравоохранение, MedTech, телемедицина, медицинские устройства
-            • education - образование, EdTech, онлайн-обучение, школы, университеты
-            • ecology - экология, GreenTech, Climate Tech, возобновляемая энергия, устойчивое развитие
-            • science - научные исследования, R&D, академические проекты
-            • space - космос, спутники, аэрокосмическая отрасль
-            • social_impact - социальные проекты, благотворительность, НКО
-            • accessibility - доступность, инклюзивность, помощь людям с ограничениями
-            • agriculture - сельское хозяйство, AgriTech, фермерство
-            
-            neutral:
-            • b2b_saas - корпоративное ПО, бизнес-решения, enterprise
-            • govtech - государственные услуги, цифровизация госсектора
-            • logistics - логистика, доставка, транспорт
-            • manufacturing - производство, промышленность, Manufacturing 4.0
-            • ai_infrastructure - AI/ML инфраструктура, платформы машинного обучения
-            • deeptech - глубокие технологии, биотехнологии
-            
-            problematic:
-            • fintech - банки, финансы, платежи, инвестиции, криптовалюты
-            • insurtech - страхование, страховые продукты
-            • proptech - недвижимость, строительство
-            • legaltech - юридические услуги, правовые консультации
-            • martech - маркетинг, реклама, продвижение, CRM
-            
-            toxic:
-            • ecommerce - интернет-магазины, ритейл, торговые площадки
-            • gaming - игры, развлечения, гемблинг
-            • entertainment - медиа, контент, стриминг
-            • adtech - рекламные технологии, таргетинг, трекинг
-            • dating - знакомства, социальные сети для знакомств
-            • microcredit - микрофинансирование, быстрые займы
-            • tobacco_alcohol - табачные/алкогольные компании
-            • weapons - военная промышленность, оружие
-            
             Формат ответа (строгий JSON):
             {
               "company_category": string,
@@ -138,9 +110,21 @@ public class IndustryChainStep implements ChainAnalysisStep {
               "project_direction": string
             }
             """
-        .replace("{name}", vacancy.getName())
-        .replace("{description}", truncateText(vacancy.getDescription(), 2500))
-        .replace("{skills}", vacancy.getKeySkillsStr());
+        .replace("{name}", valueOrEmpty(vacancy.getName()))
+        .replace("{description}", htmlConverter.convertToMarkdown(valueOrEmpty(vacancy.getDescription())))
+        .replace("{descriptionBranded}", htmlConverter.convertToMarkdown(valueOrEmpty(vacancy.getBrandedDescription())))
+        .replace("{skills}", valueOrEmpty(vacancy.getKeySkillsStr()))
+        .replace("{employer}", htmlConverter.convertToMarkdown(vacancy.getEmployer().getDescription()))
+        .replace("{employerBranded}", htmlConverter.convertToMarkdown(vacancy.getEmployer().getBrandedDescription()))
+        .replace("{employerIndustries}", vacancy.getEmployer().getIndustriesStr());
+  }
+
+  private String valueOrEmpty(String value) {
+    return value != null ? value : "";
+  }
+
+  private String getJsonFieldName(JsonNode node) {
+    return node != null ? node.path("name").asText("") : "";
   }
 
   private String truncateText(String text, int maxLength) {

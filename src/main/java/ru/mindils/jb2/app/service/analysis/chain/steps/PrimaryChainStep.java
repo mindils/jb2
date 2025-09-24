@@ -20,15 +20,12 @@ public class PrimaryChainStep extends AbstractChainAnalysisStep {
 
   private final ResilientLLMService llmService;
   private final HtmlToMarkdownConverter htmlConverter;
-
-  // Поле для хранения информации о принудительном перезапуске
   private volatile boolean forceReanalyzeFlag = false;
 
   public PrimaryChainStep(ResilientLLMService llmService,
                           ObjectMapper objectMapper,
                           AnalysisResultManager analysisResultManager,
-                          HtmlToMarkdownConverter htmlConverter
-  ) {
+                          HtmlToMarkdownConverter htmlConverter) {
     super(objectMapper, analysisResultManager);
     this.llmService = llmService;
     this.htmlConverter = htmlConverter;
@@ -51,7 +48,6 @@ public class PrimaryChainStep extends AbstractChainAnalysisStep {
 
   @Override
   protected String determineStopReason(JsonNode cachedResult) {
-    // Проверяем специфическую для первичного анализа логику остановки
     if (cachedResult != null && !cachedResult.path("java").asBoolean(false)) {
       return "Вакансия не является Java-позицией (кэшированный результат)";
     }
@@ -65,11 +61,10 @@ public class PrimaryChainStep extends AbstractChainAnalysisStep {
     try {
       String prompt = buildPrompt(vacancy);
 
-      // Используем новый resilient сервис вместо прямого вызова ChatClient
       String llmResponse = llmService.callLLM(prompt,
           OpenAiChatOptions.builder()
-              .temperature(0.0) // Для более стабильных результатов
-              .maxTokens(100)    // Уменьшаем для простого JSON ответа
+              .temperature(0.0)
+              .maxTokens(100)
               .build());
 
       JsonNode analysisResult = objectMapper.readTree(llmResponse);
@@ -89,6 +84,7 @@ public class PrimaryChainStep extends AbstractChainAnalysisStep {
         Job posting:
         Title: {name}
         Description: {description}
+        DescriptionBranded: {descriptionBranded}
         Key skills: {skills}
         
         Analysis criteria:
@@ -118,13 +114,10 @@ public class PrimaryChainStep extends AbstractChainAnalysisStep {
         """
         .replace("{name}", vacancy.getName())
         .replace("{description}", htmlConverter.convertToMarkdown(vacancy.getDescription()))
+        .replace("{descriptionBranded}", htmlConverter.convertToMarkdown(vacancy.getBrandedDescription()))
         .replace("{skills}", vacancy.getKeySkillsStr());
   }
 
-  /**
-   * Установить флаг принудительного перезапуска
-   * Этот метод может быть вызван из сервиса перед выполнением анализа
-   */
   public void setForceReanalyze(boolean forceReanalyze) {
     this.forceReanalyzeFlag = forceReanalyze;
     log.debug("Set forceReanalyze flag to: {} for PrimaryChainStep", forceReanalyze);

@@ -12,6 +12,7 @@ import ru.mindils.jb2.app.service.ResilientLLMService;
 import ru.mindils.jb2.app.service.analysis.AnalysisResultManager;
 import ru.mindils.jb2.app.service.analysis.chain.ChainAnalysisStep;
 import ru.mindils.jb2.app.service.analysis.chain.ChainStepResult;
+import ru.mindils.jb2.app.util.HtmlToMarkdownConverter;
 
 @Component
 public class TechnicalChainStep implements ChainAnalysisStep {
@@ -21,13 +22,17 @@ public class TechnicalChainStep implements ChainAnalysisStep {
   private final ResilientLLMService llmService;
   private final ObjectMapper objectMapper;
   private final AnalysisResultManager analysisResultManager;
+  private final HtmlToMarkdownConverter htmlConverter;
 
   public TechnicalChainStep(ResilientLLMService llmService,
                             ObjectMapper objectMapper,
-                            AnalysisResultManager analysisResultManager) {
+                            AnalysisResultManager analysisResultManager,
+                            HtmlToMarkdownConverter htmlConverter
+  ) {
     this.llmService = llmService;
     this.objectMapper = objectMapper;
     this.analysisResultManager = analysisResultManager;
+    this.htmlConverter = htmlConverter;
   }
 
   @Override
@@ -47,19 +52,15 @@ public class TechnicalChainStep implements ChainAnalysisStep {
     try {
       String prompt = buildPrompt(vacancy);
 
-      // Используем новый resilient сервис
       String llmResponse = llmService.callLLM(prompt,
           OpenAiChatOptions.builder()
-              .temperature(0.0) // Для более стабильных результатов
-              .maxTokens(200)    // Увеличиваем для более детального анализа
+              .temperature(0.0)
+              .maxTokens(200)
               .build());
 
       JsonNode analysisResult = objectMapper.readTree(llmResponse);
-
-      // Используем AnalysisResultManager для сохранения результата
       analysisResultManager.updateStepResult(currentAnalysis, getStepId(), analysisResult);
 
-      // Проверяем условие остановки
       if (analysisResultManager.shouldStopPipeline(currentAnalysis, getStepId())) {
         return ChainStepResult.stop(
             "Роль не относится к разработке - не подходит",
@@ -80,10 +81,16 @@ public class TechnicalChainStep implements ChainAnalysisStep {
     return """
         Проанализируй описание IT-вакансии (на русском языке) и извлеки техническое соответствие. Верни результат ТОЛЬКО в формате JSON без дополнительного текста.
         
+        
         Описание вакансии:
         Название: {name}
         Описание: {description}
+        Описание(Бренд): {descriptionBranded}
         Ключевые навыки: {skills}
+        Зарплата: {salary}
+        Компания: {employer}
+        Компания (Бренд): {employerBranded}
+        Компания индустрия: {employerIndustries}
         
         Критерии анализа:
         
@@ -128,9 +135,22 @@ public class TechnicalChainStep implements ChainAnalysisStep {
           "ai_presence": string
         }
         """
-        .replace("{name}", vacancy.getName())
-        .replace("{description}", truncateText(vacancy.getDescription(), 2000))
-        .replace("{skills}", vacancy.getKeySkillsStr());
+        .replace("{name}", valueOrEmpty(vacancy.getName()))
+        .replace("{description}", htmlConverter.convertToMarkdown(valueOrEmpty(vacancy.getDescription())))
+        .replace("{descriptionBranded}", htmlConverter.convertToMarkdown(valueOrEmpty(vacancy.getBrandedDescription())))
+        .replace("{skills}", valueOrEmpty(vacancy.getKeySkillsStr()))
+        .replace("{employer}", htmlConverter.convertToMarkdown(vacancy.getEmployer().getDescription()))
+        .replace("{employerBranded}", htmlConverter.convertToMarkdown(vacancy.getEmployer().getBrandedDescription()))
+        .replace("{employerIndustries}", vacancy.getEmployer().getIndustriesStr());
+
+  }
+
+  private String valueOrEmpty(String value) {
+    return value != null ? value : "";
+  }
+
+  private String getJsonFieldName(JsonNode node) {
+    return node != null ? node.path("name").asText("") : "";
   }
 
   private String truncateText(String text, int maxLength) {

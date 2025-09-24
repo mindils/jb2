@@ -48,14 +48,12 @@ public class SocialChainStep implements ChainAnalysisStep {
     try {
       String prompt = buildPrompt(vacancy);
 
-      // Используем новый resilient сервис
       String llmResponse = llmService.callLLM(prompt,
           OpenAiChatOptions.builder()
-              .temperature(0.0) // Для более стабильных результатов
-              .maxTokens(150)    // Для более детального JSON ответа
+              .temperature(0.0)
+              .maxTokens(150)
               .build());
 
-      // Парсим ответ LLM (и нормализуем поля с дефолтами)
       JsonNode raw = objectMapper.readTree(llmResponse);
       String workMode = asTextOr(raw, "work_mode", "unknown");
       String domains = asTextOr(raw, "domains", "unknown");
@@ -66,10 +64,8 @@ public class SocialChainStep implements ChainAnalysisStep {
           .put("domains", domains)
           .put("socially_significant", sociallySignificant);
 
-      // Сохраняем результат шага в analysis_metadata/step_results
       analysisResultManager.updateStepResult(currentAnalysis, "social", analysisResult);
 
-      // Локальное условие остановки (как было раньше)
       if ("office".equals(workMode) && !sociallySignificant) {
         return ChainStepResult.stop(
             "Только офисная работа в коммерческом проекте - не подходит",
@@ -78,7 +74,6 @@ public class SocialChainStep implements ChainAnalysisStep {
         );
       }
 
-      // Дополнительно: централизованные правила остановки (если настроены)
       if (analysisResultManager.shouldStopPipeline(currentAnalysis, "social")) {
         return ChainStepResult.stop(
             "Сработали правила остановки для шага 'social'",
@@ -103,6 +98,16 @@ public class SocialChainStep implements ChainAnalysisStep {
             Title: {name}
             Description: {description}
             Key skills: {skills}
+            Salary: {salary}
+            City: {city}
+            Metro: {metro}
+            Experience: {experience}
+            Schedule: {schedule}
+            Employment: {employment}
+            Professional roles: {professionalRoles}
+            Work format: {workFormat}
+            Premium: {premium}
+            Internship: {internship}
             
             Analysis criteria:
             
@@ -146,9 +151,27 @@ public class SocialChainStep implements ChainAnalysisStep {
               "socially_significant": boolean
             }
             """
-        .replace("{name}", vacancy.getName())
-        .replace("{description}", truncateText(vacancy.getDescription(), 2000))
-        .replace("{skills}", vacancy.getKeySkillsStr());
+        .replace("{name}", valueOrEmpty(vacancy.getName()))
+        .replace("{description}", truncateText(valueOrEmpty(vacancy.getDescription()), 2000))
+        .replace("{skills}", valueOrEmpty(vacancy.getKeySkillsStr()))
+        .replace("{salary}", valueOrEmpty(vacancy.getSalaryStr()))
+        .replace("{city}", valueOrEmpty(vacancy.getCity()))
+        .replace("{metro}", valueOrEmpty(vacancy.getMetro()))
+        .replace("{experience}", getJsonFieldName(vacancy.getExperience()))
+        .replace("{schedule}", getJsonFieldName(vacancy.getSchedule()))
+        .replace("{employment}", getJsonFieldName(vacancy.getEmployment()))
+        .replace("{professionalRoles}", valueOrEmpty(vacancy.getProfessionalRolesStr()))
+        .replace("{workFormat}", valueOrEmpty(vacancy.getWorkFormatStr()))
+        .replace("{premium}", String.valueOf(vacancy.getPremium()))
+        .replace("{internship}", String.valueOf(vacancy.getInternship()));
+  }
+
+  private String valueOrEmpty(String value) {
+    return value != null ? value : "";
+  }
+
+  private String getJsonFieldName(JsonNode node) {
+    return node != null ? node.path("name").asText("") : "";
   }
 
   private String truncateText(String text, int maxLength) {

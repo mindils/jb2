@@ -12,6 +12,7 @@ import ru.mindils.jb2.app.service.ResilientLLMService;
 import ru.mindils.jb2.app.service.analysis.AnalysisResultManager;
 import ru.mindils.jb2.app.service.analysis.chain.ChainAnalysisStep;
 import ru.mindils.jb2.app.service.analysis.chain.ChainStepResult;
+import ru.mindils.jb2.app.util.HtmlToMarkdownConverter;
 
 @Component
 public class WorkConditionsChainStep implements ChainAnalysisStep {
@@ -21,13 +22,17 @@ public class WorkConditionsChainStep implements ChainAnalysisStep {
   private final ResilientLLMService llmService;
   private final ObjectMapper objectMapper;
   private final AnalysisResultManager analysisResultManager;
+  private final HtmlToMarkdownConverter htmlConverter;
 
   public WorkConditionsChainStep(ResilientLLMService llmService,
                                  ObjectMapper objectMapper,
-                                 AnalysisResultManager analysisResultManager) {
+                                 AnalysisResultManager analysisResultManager,
+                                 HtmlToMarkdownConverter htmlConverter
+  ) {
     this.llmService = llmService;
     this.objectMapper = objectMapper;
     this.analysisResultManager = analysisResultManager;
+    this.htmlConverter = htmlConverter;
   }
 
   @Override
@@ -48,13 +53,11 @@ public class WorkConditionsChainStep implements ChainAnalysisStep {
       String prompt = buildPrompt(vacancy);
       String llmResponse = llmService.callLLM(prompt,
           OpenAiChatOptions.builder()
-              .temperature(0.0) // Для стабильных результатов
-              .maxTokens(200)   // Достаточно для анализа условий
+              .temperature(0.0)
+              .maxTokens(200)
               .build());
 
       JsonNode analysisResult = objectMapper.readTree(llmResponse);
-
-      // Используем AnalysisResultManager для сохранения результата
       analysisResultManager.updateStepResult(currentAnalysis, getStepId(), analysisResult);
 
       return ChainStepResult.success(analysisResult, llmResponse);
@@ -67,52 +70,79 @@ public class WorkConditionsChainStep implements ChainAnalysisStep {
 
   private String buildPrompt(Vacancy vacancy) {
     return """
-            Проанализируй описание IT-вакансии и определи условия работы и требования к релокации.
-            Верни результат ТОЛЬКО в формате JSON без дополнительного текста.
-            
-            Описание вакансии:
-            Название: {name}
-            Описание: {description}
-            Ключевые навыки: {skills}
-            
-            КРИТЕРИИ АНАЛИЗА:
-            
-            1. ФОРМАТ РАБОТЫ (workFormat):
-            ✅ "remote_global" - удаленка из любой точки мира, without geographical restrictions
-            ✅ "remote_restricted" - удаленка из определенных стран/регионов
-            ✅ "hybrid_flexible" - гибрид ≤4 дня в месяц в офисе, mostly remote
-            ✅ "hybrid_regular" - гибрид 1-2 дня в неделю в офисе
-            ✅ "hybrid_frequent" - гибрид 3+ дня в неделю в офисе
-            ✅ "office_only" - 100% работа в офисе
-            
-            2. ТРЕБОВАНИЯ К РЕЛОКАЦИИ (relocationRequired):
-            ✅ "none" - не требуется, можно работать из РФ/текущего местоположения
-            ✅ "assisted" - помогают с релокацией, visa sponsorship
-            ✅ "required_no_help" - требуется переезд, но без помощи компании
-            ✅ "mandatory_specific" - обязательная релокация в конкретную страну/город
-            
-            3. ГЕОГРАФИЧЕСКИЕ ОГРАНИЧЕНИЯ (geoRestrictions):
-            ✅ "none" - нет географических ограничений
-            ✅ "timezone" - ограничения по часовым поясам
-            ✅ "country_list" - работа из определенного списка стран
-            ✅ "region_specific" - только из определенного региона (EU, US, etc.)
-            
-            ❌ НЕ УЧИТЫВАТЬ:
-            - Командировки и business trips
-            - Временные выезды в офис
-            - Корпоративные мероприятия
-            - Onboarding в офисе
-            
-            Формат ответа (строгий JSON):
-            {
-              "workFormat": "remote_global|remote_restricted|hybrid_flexible|hybrid_regular|hybrid_frequent|office_only",
-              "relocationRequired": "none|assisted|required_no_help|mandatory_specific",
-              "geoRestrictions": "none|timezone|country_list|region_specific"
-            }
-            """
-        .replace("{name}", vacancy.getName())
-        .replace("{description}", truncateText(vacancy.getDescription(), 2500))
-        .replace("{skills}", vacancy.getKeySkillsStr());
+        Проанализируй описание IT-вакансии и определи условия работы и требования к релокации.
+        Верни результат ТОЛЬКО в формате JSON без дополнительного текста.
+        
+        Описание вакансии:
+        Название: {name}
+        Описание: {description}
+        Описание(Бренд): {descriptionBranded}
+        Ключевые навыки: {skills}
+        Компания: {employer}
+        Компания (Бренд): {employerBranded}
+        Компания индустрия: {employerIndustries}
+        Зарплата: {salary}
+        Город: {city}
+        Опыт: {experience}
+        График: {schedule}
+        Занятость: {employment}
+        Формат работы: {workFormat}
+        
+        КРИТЕРИИ АНАЛИЗА:
+        
+        1. ФОРМАТ РАБОТЫ (workFormat):
+        ✅ "remote_global" - удаленка из любой точки мира, without geographical restrictions
+        ✅ "remote_restricted" - удаленка из определенных стран/регионов
+        ✅ "hybrid_flexible" - гибрид ≤4 дня в месяц в офисе, mostly remote
+        ✅ "hybrid_regular" - гибрид 1-2 дня в неделю в офисе
+        ✅ "hybrid_frequent" - гибрид 3+ дня в неделю в офисе
+        ✅ "office_only" - 100% работа в офисе
+        
+        2. ТРЕБОВАНИЯ К РЕЛОКАЦИИ (relocationRequired):
+        ✅ "none" - не требуется, можно работать из РФ/текущего местоположения
+        ✅ "assisted" - помогают с релокацией, visa sponsorship
+        ✅ "required_no_help" - требуется переезд, но без помощи компании
+        ✅ "mandatory_specific" - обязательная релокация в конкретную страну/город
+        
+        3. ГЕОГРАФИЧЕСКИЕ ОГРАНИЧЕНИЯ (geoRestrictions):
+        ✅ "none" - нет географических ограничений
+        ✅ "timezone" - ограничения по часовым поясам
+        ✅ "country_list" - работа из определенного списка стран
+        ✅ "region_specific" - только из определенного региона (EU, US, etc.)
+        
+        ❌ НЕ УЧИТЫВАТЬ:
+        - Командировки и business trips
+        - Временные выезды в офис
+        - Корпоративные мероприятия
+        - Onboarding в офисе
+        
+        Формат ответа (строгий JSON):
+        {
+          "workFormat": "remote_global|remote_restricted|hybrid_flexible|hybrid_regular|hybrid_frequent|office_only",
+          "relocationRequired": "none|assisted|required_no_help|mandatory_specific",
+          "geoRestrictions": "none|timezone|country_list|region_specific"
+        }
+        """
+        .replace("{name}", valueOrEmpty(vacancy.getName()))
+        .replace("{description}", truncateText(valueOrEmpty(vacancy.getDescription()), 2500))
+        .replace("{skills}", valueOrEmpty(vacancy.getKeySkillsStr()))
+        .replace("{employer}", htmlConverter.convertToMarkdown(vacancy.getEmployer().getDescription()))
+        .replace("{employerBranded}", htmlConverter.convertToMarkdown(vacancy.getEmployer().getBrandedDescription()))
+        .replace("{employerIndustries}", vacancy.getEmployer().getIndustriesStr())
+        .replace("{salary}", valueOrEmpty(vacancy.getSalaryStr()))
+        .replace("{city}", valueOrEmpty(vacancy.getCity()))
+        .replace("{experience}", getJsonFieldName(vacancy.getExperience()))
+        .replace("{schedule}", getJsonFieldName(vacancy.getSchedule()))
+        .replace("{employment}", getJsonFieldName(vacancy.getEmployment()))
+        .replace("{workFormat}", valueOrEmpty(vacancy.getWorkFormatStr()));
+  }
+
+  private String valueOrEmpty(String value) {
+    return value != null ? value : "";
+  }
+
+  private String getJsonFieldName(JsonNode node) {
+    return node != null ? node.path("name").asText("") : "";
   }
 
   private String truncateText(String text, int maxLength) {

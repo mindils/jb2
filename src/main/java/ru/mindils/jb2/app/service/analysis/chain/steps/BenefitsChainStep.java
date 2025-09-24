@@ -20,7 +20,6 @@ public class BenefitsChainStep implements ChainAnalysisStep {
   private static final Logger log = LoggerFactory.getLogger(BenefitsChainStep.class);
 
   private final HtmlToMarkdownConverter htmlConverter;
-
   private final ResilientLLMService llmService;
   private final ObjectMapper objectMapper;
   private final AnalysisResultManager analysisResultManager;
@@ -28,8 +27,7 @@ public class BenefitsChainStep implements ChainAnalysisStep {
   public BenefitsChainStep(ResilientLLMService llmService,
                            ObjectMapper objectMapper,
                            AnalysisResultManager analysisResultManager,
-                           HtmlToMarkdownConverter htmlConverter
-  ) {
+                           HtmlToMarkdownConverter htmlConverter) {
     this.llmService = llmService;
     this.objectMapper = objectMapper;
     this.analysisResultManager = analysisResultManager;
@@ -54,13 +52,11 @@ public class BenefitsChainStep implements ChainAnalysisStep {
       String prompt = buildPrompt(vacancy);
       String llmResponse = llmService.callLLM(prompt,
           OpenAiChatOptions.builder()
-              .temperature(0.0) // Для более стабильных результатов
-              .maxTokens(250)   // Достаточно для анализа льгот
+              .temperature(0.0)
+              .maxTokens(250)
               .build());
 
       JsonNode analysisResult = objectMapper.readTree(llmResponse);
-
-      // Используем AnalysisResultManager для сохранения результата
       analysisResultManager.updateStepResult(currentAnalysis, getStepId(), analysisResult);
 
       return ChainStepResult.success(analysisResult, llmResponse);
@@ -81,6 +77,8 @@ public class BenefitsChainStep implements ChainAnalysisStep {
         Описание: {description}
         Описание (бренд): {brandedDescription}
         Ключевые навыки: {skills}
+        Описание компании: {employer}
+        Описание компании(бренд): {employerBranded}
         
         Критерии анализа (указывай true только при явном упоминании):
         
@@ -153,14 +151,19 @@ public class BenefitsChainStep implements ChainAnalysisStep {
           "paidSickLeave": boolean
         }
         """
-        .replace("{name}", vacancy.getName())
-        .replace("{description}", htmlConverter.convertToMarkdown(vacancy.getDescription()))
-        .replace("{brandedDescription}", htmlConverter.convertToMarkdown(vacancy.getBrandedDescription()))
-        .replace("{skills}", vacancy.getKeySkillsStr());
+        .replace("{name}", valueOrEmpty(vacancy.getName()))
+        .replace("{description}", htmlConverter.convertToMarkdown(valueOrEmpty(vacancy.getDescription())))
+        .replace("{brandedDescription}", htmlConverter.convertToMarkdown(valueOrEmpty(vacancy.getBrandedDescription())))
+        .replace("{skills}", valueOrEmpty(vacancy.getKeySkillsStr()))
+        .replace("{employer}", htmlConverter.convertToMarkdown(vacancy.getEmployer().getDescription()))
+        .replace("{employerBranded}", htmlConverter.convertToMarkdown(vacancy.getEmployer().getBrandedDescription()));
   }
 
-  private String truncateText(String text, int maxLength) {
-    if (text == null || text.length() <= maxLength) return text;
-    return text.substring(0, maxLength) + "...";
+  private String valueOrEmpty(String value) {
+    return value != null ? value : "";
+  }
+
+  private String getJsonFieldName(JsonNode node) {
+    return node != null ? node.path("name").asText("") : "";
   }
 }

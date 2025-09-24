@@ -12,6 +12,7 @@ import ru.mindils.jb2.app.service.ResilientLLMService;
 import ru.mindils.jb2.app.service.analysis.AnalysisResultManager;
 import ru.mindils.jb2.app.service.analysis.chain.ChainAnalysisStep;
 import ru.mindils.jb2.app.service.analysis.chain.ChainStepResult;
+import ru.mindils.jb2.app.util.HtmlToMarkdownConverter;
 
 @Component
 public class EquipmentChainStep implements ChainAnalysisStep {
@@ -21,13 +22,17 @@ public class EquipmentChainStep implements ChainAnalysisStep {
   private final ResilientLLMService llmService;
   private final ObjectMapper objectMapper;
   private final AnalysisResultManager analysisResultManager;
+  private final HtmlToMarkdownConverter htmlConverter;
 
   public EquipmentChainStep(ResilientLLMService llmService,
                             ObjectMapper objectMapper,
-                            AnalysisResultManager analysisResultManager) {
+                            AnalysisResultManager analysisResultManager,
+                            HtmlToMarkdownConverter htmlConverter
+  ) {
     this.llmService = llmService;
     this.objectMapper = objectMapper;
     this.analysisResultManager = analysisResultManager;
+    this.htmlConverter = htmlConverter;
   }
 
   @Override
@@ -48,13 +53,11 @@ public class EquipmentChainStep implements ChainAnalysisStep {
       String prompt = buildPrompt(vacancy);
       String llmResponse = llmService.callLLM(prompt,
           OpenAiChatOptions.builder()
-              .temperature(0.0) // Для стабильных результатов
-              .maxTokens(250)   // Достаточно для анализа оборудования
+              .temperature(0.0)
+              .maxTokens(250)
               .build());
 
       JsonNode analysisResult = objectMapper.readTree(llmResponse);
-
-      // Используем AnalysisResultManager для сохранения результата
       analysisResultManager.updateStepResult(currentAnalysis, getStepId(), analysisResult);
 
       return ChainStepResult.success(analysisResult, llmResponse);
@@ -67,47 +70,62 @@ public class EquipmentChainStep implements ChainAnalysisStep {
 
   private String buildPrompt(Vacancy vacancy) {
     return """
-                Проанализируй описание IT-вакансии и определи технические аспекты, особенно предоставляемое оборудование.
-                Верни результат ТОЛЬКО в формате JSON без дополнительного текста.
-                
-                Описание вакансии:
-                Название: {name}
-                Описание: {description}
-                Ключевые навыки: {skills}
-                
-                КРИТЕРИИ АНАЛИЗА ОБОРУДОВАНИЯ:
-                
-                ✅ ИЩИ В ТЕКСТЕ:
-                - MacBook Pro, Mac, Apple ноутбук → "macbook_pro"
-                - Windows ноутбук, ПК, рабочая станция → "windows_laptop"
-                - BYOD, "свое оборудование", "собственный ноутбук" → определи уровень компенсации
-                - Мониторы, "дополнительный монитор", "два экрана" → "monitors"
-                - Периферия, клавиатура, мышь, "оборудование по запросу" → "peripherals"
-                - "компенсация", "возмещение расходов" → уровень компенсации
-                
-                ❌ НЕ ВКЛЮЧАЙ:
-                - Программное обеспечение (IDE, ПО)
-                - Интернет и связь
-                - Офисную мебель
-                - Общие упоминания "современное оборудование" без конкретики
-                
-                УРОВНИ КОМПЕНСАЦИИ BYOD:
-                - "full" = полная компенсация, возмещение 100%
-                - "partial" = частичная компенсация, доплата
-                - "none" = без компенсации
-                
-                Формат ответа (строгий JSON):
-                {
-                  "equipmentType": "macbook_pro|windows_laptop|byod|not_specified",
-                  "equipmentProvided": boolean,
-                  "byodCompensation": "full|partial|none|not_applicable",
-                  "additionalEquipment": "monitors|peripherals|monitors|peripherals|none",
-                  "equipmentMentioned": boolean
-                }
-                """
-        .replace("{name}", vacancy.getName())
-        .replace("{description}", truncateText(vacancy.getDescription(), 2500))
-        .replace("{skills}", vacancy.getKeySkillsStr());
+        Проанализируй описание IT-вакансии и определи технические аспекты, особенно предоставляемое оборудование.
+        Верни результат ТОЛЬКО в формате JSON без дополнительного текста.
+        
+        Описание вакансии:
+        Название: {name}
+        Описание: {description}
+        Описание(Бренд): {descriptionBranded}
+        Ключевые навыки: {skills}
+        Зарплата: {salary}
+        Компания: {employer}
+        Компания (Бренд): {employerBranded}
+        
+        КРИТЕРИИ АНАЛИЗА ОБОРУДОВАНИЯ:
+        
+        ✅ ИЩИ В ТЕКСТЕ:
+        - MacBook Pro, Mac, Apple ноутбук → "macbook_pro"
+        - Windows ноутбук, ПК, рабочая станция → "windows_laptop"
+        - BYOD, "свое оборудование", "собственный ноутбук" → определи уровень компенсации
+        - Мониторы, "дополнительный монитор", "два экрана" → "monitors"
+        - Периферия, клавиатура, мышь, "оборудование по запросу" → "peripherals"
+        - "компенсация", "возмещение расходов" → уровень компенсации
+        
+        ❌ НЕ ВКЛЮЧАЙ:
+        - Программное обеспечение (IDE, ПО)
+        - Интернет и связь
+        - Офисную мебель
+        - Общие упоминания "современное оборудование" без конкретики
+        
+        УРОВНИ КОМПЕНСАЦИИ BYOD:
+        - "full" = полная компенсация, возмещение 100%
+        - "partial" = частичная компенсация, доплата
+        - "none" = без компенсации
+        
+        Формат ответа (строгий JSON):
+        {
+          "equipmentType": "macbook_pro|windows_laptop|byod|not_specified",
+          "equipmentProvided": boolean,
+          "byodCompensation": "full|partial|none|not_applicable",
+          "additionalEquipment": "monitors|peripherals|monitors_peripherals|none",
+          "equipmentMentioned": boolean
+        }
+        """
+        .replace("{name}", valueOrEmpty(vacancy.getName()))
+        .replace("{description}", htmlConverter.convertToMarkdown(valueOrEmpty(vacancy.getDescription())))
+        .replace("{descriptionBranded}", htmlConverter.convertToMarkdown(valueOrEmpty(vacancy.getBrandedDescription())))
+        .replace("{skills}", valueOrEmpty(vacancy.getKeySkillsStr()))
+        .replace("{employer}", htmlConverter.convertToMarkdown(vacancy.getEmployer().getDescription()))
+        .replace("{employerBranded}", htmlConverter.convertToMarkdown(vacancy.getEmployer().getBrandedDescription()));
+  }
+
+  private String valueOrEmpty(String value) {
+    return value != null ? value : "";
+  }
+
+  private String getJsonFieldName(JsonNode node) {
+    return node != null ? node.path("name").asText("") : "";
   }
 
   private String truncateText(String text, int maxLength) {
