@@ -28,7 +28,6 @@ import ru.mindils.jb2.app.service.VacancyWorkflowService;
 import ru.mindils.jb2.app.view.main.MainView;
 
 
-
 @Route(value = "vacancies", layout = MainView.class)
 @ViewController(id = "jb2_Vacancy.list")
 @ViewDescriptor(path = "vacancy-list-view.xml")
@@ -60,14 +59,6 @@ public class VacancyListView extends StandardListView<Vacancy> {
   @Autowired
   private FetchPlans fetchPlans;
 
-
-  @Subscribe(id = "updateVacancy", subject = "clickListener")
-  public void onUpdateVacancyClick(final ClickEvent<JmixButton> event) {
-//    vacancyAnalysisService.markProcessingForAllVacancy();
-//        vacancyService.update("123111578");
-//    vacancyService.update("117878777");
-//    notifications.show("Vacancy clicked");
-  }
 
   @Subscribe(id = "updateAllVacancy", subject = "clickListener")
   public void onUpdateAllVacancyClick(final ClickEvent<JmixButton> event) {
@@ -164,6 +155,15 @@ public class VacancyListView extends StandardListView<Vacancy> {
 
     notifications.create(
             String.format("В очередь добавлено: %d вакансий (тип: %s)", added, queueType))
+        .withType(Notifications.Type.SUCCESS)
+        .show();
+  }
+
+  @Subscribe(id = "updateAnalysisVacancy", subject = "clickListener")
+  public void onUpdateAnalysisVacancyClick(final ClickEvent<JmixButton> event) {
+    vacancyAnalysisService.analyze();
+    notifications.create(
+            String.format("В %s отправлена на выполнение", "123"))
         .withType(Notifications.Type.SUCCESS)
         .show();
   }

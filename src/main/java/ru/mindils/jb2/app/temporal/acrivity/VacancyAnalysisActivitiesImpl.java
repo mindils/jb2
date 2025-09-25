@@ -32,7 +32,10 @@ public class VacancyAnalysisActivitiesImpl implements VacancyAnalysisActivities 
 
   @Override
   public void analyze(Long vacancyQueueId, AnalysisType type) {
-    authenticator.runWithSystem(() -> vacancyAnalysisService.analyze(vacancyQueueId, type));
+    authenticator.runWithSystem(() -> {
+          vacancyAnalysisService.analyze(vacancyQueueId, type);
+        }
+    );
   }
 
   @Override

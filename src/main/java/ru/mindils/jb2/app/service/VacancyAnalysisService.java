@@ -56,16 +56,15 @@ public class VacancyAnalysisService {
    * Универсальный метод для анализа вакансии по определенному типу.
    */
   @Transactional
-  public VacancyAnalysis analyze(Long vacancyQueueId, AnalysisType type) {
-    log.info("Starting analysis for vacancyQueueId: {}, type: {}", vacancyQueueId, type);
+  public VacancyAnalysis analyze(String vacancyId, AnalysisType type) {
+    log.info("Starting analysis for vacancyId: {}, type: {}", vacancyId, type);
 
     AnalysisStrategy strategy = Optional.ofNullable(strategies.get(type))
         .orElseThrow(() -> new IllegalArgumentException("No strategy found for analysis type: " + type));
 
     try {
-      VacancyAnalysisQueue queueItem = dataManager.load(VacancyAnalysisQueue.class).id(vacancyQueueId).one();
-      Vacancy vacancy = Optional.ofNullable(queueItem.getVacancy())
-          .orElseThrow(() -> new IllegalStateException("Vacancy not found in queue item: " + vacancyQueueId));
+      Vacancy vacancy = dataManager.load(Vacancy.class).id(vacancyId).optional()
+          .orElseThrow(() -> new IllegalStateException("Vacancy not found in queue item: " + vacancyId));
 
       String prompt = strategy.getPrompt(vacancy);
 
