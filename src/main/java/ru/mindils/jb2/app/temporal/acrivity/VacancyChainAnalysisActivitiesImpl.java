@@ -38,7 +38,8 @@ public class VacancyChainAnalysisActivitiesImpl implements VacancyChainAnalysisA
     log.info("Executing chain analysis for vacancy: {} with config: {}", vacancyId, config.chainId());
 
     return authenticator.withSystem(() ->
-        chainAnalysisService.executeChain(vacancyId, config));
+        chainAnalysisService.executeChain(vacancyId, config)
+    );
   }
 
   @Override
@@ -61,7 +62,7 @@ public class VacancyChainAnalysisActivitiesImpl implements VacancyChainAnalysisA
     authenticator.runWithSystem(() -> {
       dataManager.load(VacancyChainAnalysisQueue.class)
           .query("select e from jb2_VacancyChainAnalysisQueue e " +
-              "where e.vacancy.id = :vacancyId and e.chainType = :chainType")
+              "where e.vacancy.id = :vacancyId and e.chainType = :chainType and e.processing = true")
           .parameter("vacancyId", vacancyId)
           .parameter("chainType", chainType.getId())
           .optional()

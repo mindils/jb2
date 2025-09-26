@@ -176,7 +176,7 @@ public class ResilientLLMService {
           OpenAiChatOptions.builder()
               .model(model.getModelName())
               .temperature(model.getTemperature() != null ? model.getTemperature() : 0.1f)
-              .maxTokens(model.getMaxTokens() != null ? model.getMaxTokens() : 1000)
+              .maxTokens(model.getMaxTokens() != null ? model.getMaxTokens() : 4000)
               .build()
       );
 

@@ -54,7 +54,7 @@ public class StopFactorsChainStep implements ChainAnalysisStep {
       String llmResponse = llmService.callLLM(prompt,
           OpenAiChatOptions.builder()
               .temperature(0.0)
-              .maxTokens(300)
+              .maxTokens(5000)
               .build());
 
       JsonNode analysisResult = objectMapper.readTree(llmResponse);
@@ -76,6 +76,15 @@ public class StopFactorsChainStep implements ChainAnalysisStep {
     }
   }
 
+  //        2. 100% ОФИСНАЯ РАБОТА (officeOnly):
+//      ✅ ИЩИТЕ ПРИЗНАКИ:
+//      - "только офис", "исключительно офисная работа"
+//      - "remote/удаленка запрещена", "без возможности работать из дома"
+//      - "обязательное присутствие в офисе 5 дней"
+//      - Отсутствие слов: hybrid, remote, гибкий, удаленно, из дома
+//        ❌ НЕ ВКЛЮЧАЙТЕ если есть:
+//      - "гибридный формат", "можно удаленно", "home office"
+//      - "частично удаленно", "по договоренности"
   private String buildPrompt(Vacancy vacancy) {
     return """
         Проанализируй описание IT-вакансии на наличие критических стоп-факторов.
@@ -90,6 +99,11 @@ public class StopFactorsChainStep implements ChainAnalysisStep {
         Компания: {employer}
         Компания (Бренд): {employerBranded}
         Компания индустрия: {employerIndustries}
+        Город: {city}
+        Опыт: {experience}
+        График: {schedule}
+        Занятость: {employment}
+        Формат работы: {workFormat}
         
         КРИТЕРИИ СТОП-ФАКТОРОВ:
         
@@ -100,17 +114,7 @@ public class StopFactorsChainStep implements ChainAnalysisStep {
         - "работа без трудового договора", "самозанятость обязательна"
         - "серая/черная схема", "минимальная официальная зарплата"
         
-        2. 100% ОФИСНАЯ РАБОТА (officeOnly):
-        ✅ ИЩИТЕ ПРИЗНАКИ:
-        - "только офис", "исключительно офисная работа"
-        - "remote/удаленка запрещена", "без возможности работать из дома"
-        - "обязательное присутствие в офисе 5 дней"
-        - Отсутствие слов: hybrid, remote, гибкий, удаленно, из дома
-        ❌ НЕ ВКЛЮЧАЙТЕ если есть:
-        - "гибридный формат", "можно удаленно", "home office"
-        - "частично удаленно", "по договоренности"
-        
-        3. ТОКСИЧНАЯ КУЛЬТУРА (toxicCulture):
+        2. ТОКСИЧНАЯ КУЛЬТУРА (toxicCulture):
         ✅ ИЩИТЕ ПРИЗНАКИ:
         - "переработки", "готовность работать сверхурочно"
         - "высокие требования к стрессоустойчивости"
@@ -138,20 +142,25 @@ public class StopFactorsChainStep implements ChainAnalysisStep {
         Формат ответа (строгий JSON):
         {
           "graySalary": boolean,
-          "officeOnly": boolean,
           "toxicCulture": boolean,
           "bannedDomain": boolean,
           "stopFactorFound": boolean
         }
         """
         .replace("{name}", valueOrEmpty(vacancy.getName()))
-        .replace("{description}", truncateText(valueOrEmpty(vacancy.getDescription()), 2500))
+        .replace("{description}", htmlConverter.convertToMarkdown(valueOrEmpty(vacancy.getDescription())))
         .replace("{descriptionBranded}", htmlConverter.convertToMarkdown(valueOrEmpty(vacancy.getBrandedDescription())))
         .replace("{skills}", valueOrEmpty(vacancy.getKeySkillsStr()))
         .replace("{salary}", valueOrEmpty(vacancy.getSalaryStr()))
         .replace("{employer}", htmlConverter.convertToMarkdown(vacancy.getEmployer().getDescription()))
         .replace("{employerBranded}", htmlConverter.convertToMarkdown(vacancy.getEmployer().getBrandedDescription()))
-        .replace("{employerIndustries}", vacancy.getEmployer().getIndustriesStr());
+        .replace("{employerIndustries}", vacancy.getEmployer().getIndustriesStr())
+        .replace("{salary}", valueOrEmpty(vacancy.getSalaryStr()))
+        .replace("{city}", valueOrEmpty(vacancy.getCity()))
+        .replace("{experience}", getJsonFieldName(vacancy.getExperience()))
+        .replace("{schedule}", getJsonFieldName(vacancy.getSchedule()))
+        .replace("{employment}", getJsonFieldName(vacancy.getEmployment()))
+        .replace("{workFormat}", valueOrEmpty(vacancy.getWorkFormatStr()));
 
 
   }

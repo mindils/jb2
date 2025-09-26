@@ -119,7 +119,7 @@ public class ChainAnalysisResultUtils {
       VacancyScorer.VacancyScore score = result.finalScore();
       summary.append(", итоговый скор: ").append(score.totalScore());
       summary.append(" (").append(score.rating()).append(")");
-      summary.append(" [").append(String.format("%.1f%%", score.getScorePercentage())).append("]");
+      summary.append(" [").append(String.format("%.1f%%", score.totalScore())).append("]");
     }
 
     return summary.toString();
@@ -138,7 +138,7 @@ public class ChainAnalysisResultUtils {
         "stoppedEarly", result.stoppedAt() != null,
         "finalScore", result.finalScore() != null ? result.finalScore().totalScore() : null,
         "rating", result.finalScore() != null ? result.finalScore().rating().toString() : null,
-        "scorePercentage", result.finalScore() != null ? result.finalScore().getScorePercentage() : null
+        "scorePercentage", result.finalScore() != null ? result.finalScore().totalScore() : null
     );
   }
 

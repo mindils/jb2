@@ -36,7 +36,7 @@
   </actions>
   <layout>
     <hbox id="buttonsPanel" classNames="buttons-panel">
-      <button id="updateVacancy" text="msg://updateVacancy.text"/>
+      <button id="updateAnalysisVacancy" text="msg://updateAnalysisFullVacancy.text"/>
       <button id="updateAllVacancy" text="msg://updateAllVacancy.text"/>
       <button id="addPrimaryToQueueBtn" text="msg://analysisVacancyPrimary.text"/>
       <button id="startPrimaryAnalysisBtn" text="msg://startPrimaryAnalysis.text"/>
@@ -63,6 +63,7 @@
                   text="msg://chainAnalysisButton.addToSocialTechnicalChainBtn.text"/>
       </items>
     </dropdownButton>
+    <propertyFilter property="id" operation="EQUAL" dataLoader="vacanciesDl"/>
     <jpqlFilter
         id="javaFilter"
         dataLoader="vacanciesDl"
@@ -111,6 +112,9 @@
         <column property="initialCreatedAt" autoWidth="true"/>
         <column property="updatedAt" autoWidth="true"/>
       </columns>
+      <contextMenu>
+        <item id="contextFullLlmAnalyse" text="Полный llm анализ"/>
+      </contextMenu>
     </dataGrid>
     <hbox id="lookupActions" visible="false">
       <button id="selectButton" action="selectAction"/>

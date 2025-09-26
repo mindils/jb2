@@ -1,6 +1,7 @@
 package ru.mindils.jb2.app.view.vacancy;
 
 import com.vaadin.flow.component.ClickEvent;
+import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.router.Route;
 import io.jmix.core.DataManager;
 import io.jmix.core.FetchPlans;
@@ -25,8 +26,11 @@ import ru.mindils.jb2.app.service.VacancyChainQueueService;
 import ru.mindils.jb2.app.service.VacancyQueueService;
 import ru.mindils.jb2.app.service.VacancyService;
 import ru.mindils.jb2.app.service.VacancyWorkflowService;
+import ru.mindils.jb2.app.service.analysis.chain.AnalysisChainConfig;
+import ru.mindils.jb2.app.service.analysis.chain.VacancyChainAnalysisService;
 import ru.mindils.jb2.app.view.main.MainView;
 
+import java.util.List;
 
 
 @Route(value = "vacancies", layout = MainView.class)
@@ -59,15 +63,9 @@ public class VacancyListView extends StandardListView<Vacancy> {
   private DataManager dataManager;
   @Autowired
   private FetchPlans fetchPlans;
+  @Autowired
+  private VacancyChainAnalysisService vacancyChainAnalysisService;
 
-
-  @Subscribe(id = "updateVacancy", subject = "clickListener")
-  public void onUpdateVacancyClick(final ClickEvent<JmixButton> event) {
-//    vacancyAnalysisService.markProcessingForAllVacancy();
-//        vacancyService.update("123111578");
-//    vacancyService.update("117878777");
-//    notifications.show("Vacancy clicked");
-  }
 
   @Subscribe(id = "updateAllVacancy", subject = "clickListener")
   public void onUpdateAllVacancyClick(final ClickEvent<JmixButton> event) {
@@ -164,6 +162,38 @@ public class VacancyListView extends StandardListView<Vacancy> {
 
     notifications.create(
             String.format("В очередь добавлено: %d вакансий (тип: %s)", added, queueType))
+        .withType(Notifications.Type.SUCCESS)
+        .show();
+  }
+
+  @Subscribe(id = "updateAnalysisVacancy", subject = "clickListener")
+  public void onUpdateAnalysisVacancyClick(final ClickEvent<JmixButton> event) {
+//    vacancyChainAnalysisService.executeChain(vacancyId, AnalysisChainConfig.FULL_ANALYSIS);
+    notifications.create(
+            String.format("В %s отправлена на выполнение", "123"))
+        .withType(Notifications.Type.SUCCESS)
+        .show();
+  }
+
+  @Subscribe("contextFullLlmAnalyse")
+  public void onContextFullLlmAnalyseGridContextMenuItemClick(final GridContextMenu.GridContextMenuItemClickEvent<Vacancy> event) {
+    if (event.getItem().isEmpty()) {
+      notifications.create("Вакансия не найдена");
+      return;
+    }
+
+    AnalysisChainConfig stopFactors = new AnalysisChainConfig(
+        ChainAnalysisType.CUSTOM,
+        "",
+        List.of("stopFactors"),
+        true,
+        true
+    );
+
+    vacancyChainAnalysisService.executeChain(event.getItem().get().getId(), stopFactors);
+
+    notifications.create(
+            String.format("Вакансия %s отправлена на выполнение", event.getItem().get().getId()))
         .withType(Notifications.Type.SUCCESS)
         .show();
   }

@@ -101,6 +101,45 @@ public class VacancyChainQueueService {
     return enqueueNotAnalyzedVacanciesNativeSql(chainType, checkJsonField);
   }
 
+  @Transactional
+  public int enqueueNotFullAnalyzedVacanciesNativeSql() {
+    var sql = """
+        INSERT INTO jb2_vacancy_chain_analysis_queue
+            (vacancy_id, chain_type, processing, success, error_message, priority,
+             created_date, last_modified_date)
+        SELECT
+            v.id,
+            ?1::varchar            AS chain_type, 
+            true                   AS processing,
+            NULL                   AS success,
+            NULL                   AS error_message,
+            1                      AS priority,
+            NOW()                  AS created_date,
+            NOW()                  AS last_modified_date
+        FROM jb2_vacancy v
+        LEFT JOIN jb2_vacancy_analysis a ON a.id = v.id
+        WHERE NOT EXISTS (
+                  SELECT 1
+                  FROM jb2_vacancy_chain_analysis_queue q
+                  WHERE q.vacancy_id = v.id
+                    AND q.chain_type = ?1
+                    AND q.processing = true
+              )
+          AND (
+                a.step_results IS NULL
+                OR NOT jsonb_exists(a.step_results, ?2)
+              )
+         AND (
+            (a.step_results -> 'primary' ->> 'java')::boolean = true or NOT jsonb_exists(a.step_results, 'primary') -- Проверим что сделан первичный анализ или его нет
+          );
+        """;
+
+    return em.createNativeQuery(sql)
+        .setParameter(1, ChainAnalysisType.FULL_ANALYSIS)
+        .setParameter(2, "stopFactors")
+        .executeUpdate();
+  }
+
   /**
    * Добавить вакансии для первичного анализа
    */
@@ -131,7 +170,10 @@ public class VacancyChainQueueService {
           AND (
                 a.step_results IS NULL
                 OR NOT jsonb_exists(a.step_results, ?2)
-              );
+              )
+         AND (
+            (a.step_results -> 'primary' ->> 'java')::boolean = true or NOT jsonb_exists(a.step_results, 'primary')
+          );
         """;
 
     return em.createNativeQuery(sql)
