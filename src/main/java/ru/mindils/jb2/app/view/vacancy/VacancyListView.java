@@ -23,6 +23,8 @@ import ru.mindils.jb2.app.entity.Vacancy;
 import ru.mindils.jb2.app.service.LLMDebugService;
 import ru.mindils.jb2.app.service.VacancyAnalysisService;
 import ru.mindils.jb2.app.service.VacancyChainQueueService;
+import ru.mindils.jb2.app.service.VacancyLlmAnalysisService;
+import ru.mindils.jb2.app.service.VacancyLlmAnalysisWorkflowService;
 import ru.mindils.jb2.app.service.VacancyQueueService;
 import ru.mindils.jb2.app.service.VacancyService;
 import ru.mindils.jb2.app.service.VacancyWorkflowService;
@@ -65,6 +67,10 @@ public class VacancyListView extends StandardListView<Vacancy> {
   private FetchPlans fetchPlans;
   @Autowired
   private VacancyChainAnalysisService vacancyChainAnalysisService;
+  @Autowired
+  private VacancyLlmAnalysisService vacancyLlmAnalysisService;
+  @Autowired
+  private VacancyLlmAnalysisWorkflowService vacancyLlmAnalysisWorkflowService;
 
 
   @Subscribe(id = "updateAllVacancy", subject = "clickListener")
@@ -168,9 +174,29 @@ public class VacancyListView extends StandardListView<Vacancy> {
 
   @Subscribe(id = "updateAnalysisVacancy", subject = "clickListener")
   public void onUpdateAnalysisVacancyClick(final ClickEvent<JmixButton> event) {
-//    vacancyChainAnalysisService.executeChain(vacancyId, AnalysisChainConfig.FULL_ANALYSIS);
-    notifications.create(
-            String.format("В %s отправлена на выполнение", "123"))
+    Vacancy vacancy = vacanciesDc.getItemOrNull();
+    if (vacancy == null) {
+      notifications.create("Вакансия не выбрана")
+          .withType(Notifications.Type.ERROR)
+          .show();
+      return;
+    }
+
+    vacancyLlmAnalysisWorkflowService.startFirstAnalysisBy(vacancy.getId());
+
+    // 0. получить конфигурацию Согласна тику делать обработку например полный анализ
+    // 1. Получить ли ранее выполнин первичный анализ java
+
+    // 2. если если нет то выполняем его и идем дальше
+    // сохраняем результат в базу данных (string и json ) если json не получился пишем ошибку чтобы можно было потом обработать ошибки повторно
+
+//    vacancyLlmAnalysisService.analyze(vacancy, VacancyLlmAnalysisType.JAVA_PRIMARY);
+
+    // 3. делаем проверку вакансия java или нет
+
+    // 4. если нет закочим если да то идем дальше
+
+    notifications.create("В %s отправлена на выполнение".formatted(vacancy.getId()))
         .withType(Notifications.Type.SUCCESS)
         .show();
   }

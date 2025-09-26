@@ -11,6 +11,8 @@
       <item view="jb2_ChainAnalysisMonitorView"
             title="msg://ru.mindils.jb2.app.view.chainanalysismonitor/chainAnalysisMonitorView.title"/>
       <item view="jb2_LLMModel.list" title="msg://ru.mindils.jb2.app.view.llmmodel/LLMModelListView.title"/>
+      <item view="jb2_VacancyManagerView"
+            title="msg://ru.mindils.jb2.app.view.vacancymanager/vacancyManagerView.title"/>
     </menu>
 
 </menu-config>

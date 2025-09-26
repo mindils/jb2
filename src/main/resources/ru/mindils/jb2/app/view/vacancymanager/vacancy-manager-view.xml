@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<view xmlns="http://jmix.io/schema/flowui/view"
+      title="msg://vacancyManagerView.title">
+  <layout>
+    <h3 text="LLM анализ"/>
+    <hbox width="100%" classNames="gap-m" wrap="true">
+
+      <vbox classNames="stat-card" themeNames="spacing" width="16rem">
+        <h4 text="Очередь первичного анализа"/>
+        <p id="primaryQueueCountText" classNames="stat-number"/>
+        <hbox>
+          <button id="enqueueFirstChainBtn"
+                  icon="PLUS" themeNames="icon" title="Добавить необработанные вакансии"/>
+
+          <button id="analyzePrimaryBtn" icon="lumo:play" title="Запустить обработку"/>
+        </hbox>
+      </vbox>
+
+      <vbox classNames="stat-card" themeNames="spacing" width="16rem">
+        <h4 text="Очередь Полный "/>
+        <p id="fullQueueCountText" classNames="stat-number"/>
+        <hbox>
+          <button id="enqueueFullChainBtn"
+                  icon="PLUS" themeNames="icon" title="Добавить необработанные вакансии"/>
+          <button id="analyzeFullBtn" icon="lumo:play" title="Запустить обработку"/>
+        </hbox>
+      </vbox>
+      <vbox classNames="stat-card" themeNames="spacing" width="16rem">
+        <h4 text="Рейтинг вакансий"/>
+        <button id="calculateScoreBtn" icon="lumo:play" text="Пересчитать рейтинг"/>
+      </vbox>
+    </hbox>
+  </layout>
+</view>
