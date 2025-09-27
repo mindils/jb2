@@ -6,8 +6,8 @@ import io.temporal.spring.boot.WorkflowImpl;
 import io.temporal.workflow.Workflow;
 import org.slf4j.Logger;
 import ru.mindils.jb2.app.dto.GenericTaskQueueDto;
-import ru.mindils.jb2.app.entity.GenericTaskQueue;
 import ru.mindils.jb2.app.entity.GenericTaskQueueStatus;
+import ru.mindils.jb2.app.entity.GenericTaskQueueType;
 import ru.mindils.jb2.app.temporal.VacancyQueueProcessorConstants;
 import ru.mindils.jb2.app.temporal.acrivity.VacancyQueueProcessorActivities;
 
@@ -25,15 +25,22 @@ public class VacancyQueueProcessorWorkflowImpl implements VacancyQueueProcessorW
           .setRetryOptions(
               RetryOptions.newBuilder()
                   .setMaximumAttempts(3)
+                  .setInitialInterval(Duration.ofSeconds(1))
+                  .setMaximumInterval(Duration.ofSeconds(10))
+                  .setBackoffCoefficient(2.0)
                   .build()
           )
-          .setStartToCloseTimeout(Duration.ofMinutes(10)) // Увеличиваем таймаут для запуска child workflow
+          .setStartToCloseTimeout(Duration.ofMinutes(15)) // Увеличиваем для full анализа
           .build()
   );
 
   @Override
-  public void processQueue() {
-    log.info("Starting vacancy queue processor workflow");
+  public void processQueue(GenericTaskQueueType queueType) {
+    if (queueType == null) {
+      throw new IllegalArgumentException("queueType cannot be null");
+    }
+
+    log.info("Starting vacancy queue processor workflow for type: {}", queueType);
 
     int processedCount = 0;
     int successCount = 0;
@@ -41,32 +48,32 @@ public class VacancyQueueProcessorWorkflowImpl implements VacancyQueueProcessorW
 
     try {
       while (true) {
-        // 1. Получаем следующую задачу из очереди со статусом NEW
-        Optional<GenericTaskQueueDto> nextTask = activities.getNextLlmFirstTask();
+        // 1. Получаем следующую задачу из очереди для указанного типа
+        Optional<GenericTaskQueueDto> nextTask = activities.getNextTask(queueType);
 
         if (nextTask.isEmpty()) {
-          log.info("No more NEW tasks in queue. Processed: {}, Success: {}, Failed: {}",
-              processedCount, successCount, failedCount);
+          log.info("No more NEW tasks in {} queue. Processed: {}, Success: {}, Failed: {}",
+              queueType, processedCount, successCount, failedCount);
           break;
         }
 
         GenericTaskQueueDto task = nextTask.get();
-        log.info("Processing task {} for vacancy: {}", task.getId(), task.getEntityId());
+        log.info("Processing {} task {} for vacancy: {}", queueType, task.getId(), task.getEntityId());
 
         try {
           // 2. Помечаем задачу как обрабатываемую
           activities.updateTaskStatus(task.getId(), GenericTaskQueueStatus.PROCESSING, null);
 
-          // 3. Запускаем VacancyLlmFirstAnalysisWorkflow для анализа вакансии
-          activities.executeVacancyAnalysisWorkflow(task.getEntityId());
+          // 3. Запускаем соответствующий workflow в зависимости от типа
+          executeAnalysisWorkflow(queueType, task.getEntityId());
 
           // 4. Помечаем задачу как успешно завершенную
-          log.info("Task {} completed successfully", task.getId());
+          log.info("{} task {} completed successfully", queueType, task.getId());
           activities.updateTaskStatus(task.getId(), GenericTaskQueueStatus.COMPLETED, null);
           successCount++;
 
         } catch (Exception e) {
-          log.error("Error processing task {}: {}", task.getId(), e.getMessage());
+          log.error("Error processing {} task {}: {}", queueType, task.getId(), e.getMessage());
 
           // Помечаем задачу как завершенную с ошибкой
           String errorMessage = "Workflow error: " + e.getMessage();
@@ -84,16 +91,38 @@ public class VacancyQueueProcessorWorkflowImpl implements VacancyQueueProcessorW
 
         processedCount++;
 
-        // Небольшая пауза между задачами
-        Workflow.sleep(Duration.ofSeconds(2));
+        // Пауза между задачами (больше для full анализа)
+        Duration sleepDuration = queueType == GenericTaskQueueType.LLM_FULL ?
+            Duration.ofSeconds(1) : Duration.ofSeconds(1);
+        Workflow.sleep(sleepDuration);
       }
 
-      log.info("Queue processing completed. Total: {}, Success: {}, Failed: {}",
-          processedCount, successCount, failedCount);
+      log.info("{} queue processing completed. Total: {}, Success: {}, Failed: {}",
+          queueType, processedCount, successCount, failedCount);
 
     } catch (Exception e) {
-      log.error("Queue processor workflow failed: {}", e.getMessage(), e);
+      log.error("{} queue processor workflow failed: {}", queueType, e.getMessage(), e);
       throw e;
+    }
+  }
+
+  /**
+   * Запускает соответствующий analysis workflow в зависимости от типа очереди
+   */
+  private void executeAnalysisWorkflow(GenericTaskQueueType queueType, String vacancyId) {
+    switch (queueType) {
+      case LLM_FIRST:
+        log.info("Executing FIRST analysis workflow for vacancy: {}", vacancyId);
+        activities.executeVacancyFirstAnalysisWorkflow(vacancyId);
+        break;
+
+      case LLM_FULL:
+        log.info("Executing FULL analysis workflow for vacancy: {}", vacancyId);
+        activities.executeVacancyFullAnalysisWorkflow(vacancyId);
+        break;
+
+      default:
+        throw new IllegalArgumentException("Unsupported queue type: " + queueType);
     }
   }
 }

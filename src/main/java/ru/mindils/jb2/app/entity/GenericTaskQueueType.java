@@ -8,7 +8,8 @@ import org.springframework.lang.Nullable;
  */
 public enum GenericTaskQueueType implements EnumClass<String> {
 
-  LLM_FIRST("LLM_FIRST");
+  LLM_FIRST("LLM_FIRST"),
+  LLM_FULL("LLM_FULL");
 
   private final String id;
 

@@ -28,12 +28,14 @@ public class VacancyManagerView extends StandardView {
   private Notifications notifications;
   @ViewComponent
   private Paragraph primaryQueueCountText;
+  @ViewComponent
+  private Paragraph fullQueueCountText;
   @Autowired
   private VacancyQueueProcessorWorkflowService vacancyQueueProcessorWorkflowService;
 
   @Subscribe(id = "analyzePrimaryBtn", subject = "clickListener")
   public void onAnalyzePrimaryBtnClick(final ClickEvent<JmixButton> event) {
-    vacancyQueueProcessorWorkflowService.startQueueProcessing();
+    vacancyQueueProcessorWorkflowService.startFirstAnalysisQueueProcessing();
 
     notifications.create("Обработка запущена")
         .withType(Notifications.Type.SUCCESS)
@@ -56,12 +58,22 @@ public class VacancyManagerView extends StandardView {
   private void refreshStats() {
     // Количество вакансий Добавленных в очередь на первичную обработку
     primaryQueueCountText.setText(genericTaskQueueService.getCountLlmAnalysis(GenericTaskQueueType.LLM_FIRST).toString());
+    fullQueueCountText.setText(genericTaskQueueService.getCountLlmAnalysis(GenericTaskQueueType.LLM_FULL).toString());
   }
 
   @Subscribe(id = "enqueueFullChainBtn", subject = "clickListener")
   public void onEnqueueFullChainBtnClick(final ClickEvent<JmixButton> event) {
-    int i = genericTaskQueueService.enqueueFirstLlmAnalysis();
+    int i = genericTaskQueueService.enqueueFullLlmAnalysis();
     notifications.create("В очередь на полный анализ поставлено %d вакансий".formatted(i))
+        .withType(Notifications.Type.SUCCESS)
+        .show();
+  }
+
+  @Subscribe(id = "analyzeFullBtn", subject = "clickListener")
+  public void onAnalyzeFullBtnClick(final ClickEvent<JmixButton> event) {
+    vacancyQueueProcessorWorkflowService.startFullAnalysisQueueProcessing();
+
+    notifications.create("Обработка запущена")
         .withType(Notifications.Type.SUCCESS)
         .show();
   }

@@ -1,5 +1,6 @@
 package ru.mindils.jb2.app.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jmix.core.DataManager;
 import org.slf4j.Logger;
@@ -166,6 +167,10 @@ public class VacancyLlmAnalysisService {
     }
   }
 
+  public void saveAnalysisStatus(String vacancyId, VacancyLlmAnalysisType analysisType, VacancyLlmAnalysisStatus status) {
+    saveAnalysisStatus(vacancyId, analysisType, status, null);
+  }
+
   /**
    * Сохранение записи анализа с указанным статусом (без данных анализа)
    * Использует детерминированный UUID, поэтому может обновлять существующие записи
@@ -174,7 +179,7 @@ public class VacancyLlmAnalysisService {
    * @param analysisType тип анализа
    * @param status       статус анализа (SKIP, ERROR, и т.д.)
    */
-  public void saveAnalysisStatus(String vacancyId, VacancyLlmAnalysisType analysisType, VacancyLlmAnalysisStatus status) {
+  public void saveAnalysisStatus(String vacancyId, VacancyLlmAnalysisType analysisType, VacancyLlmAnalysisStatus status, String message) {
     log.info("Setting analysis status {} for vacancy {} with type {}", status, vacancyId, analysisType);
 
     try {
@@ -209,10 +214,12 @@ public class VacancyLlmAnalysisService {
 
       // Устанавливаем переданный статус, остальные поля оставляем пустыми
       analysis.setStatus(status);
+      analysis.setMessage(message);
 
       // Очищаем данные анализа (если это обновление существующей записи)
-      analysis.setAnalyzeDataString(null);
-      analysis.setAnalyzeData(null);
+//      analysis.setAnalyzeDataString(null);
+//      analysis.setAnalyzeData(null);
+
 
       // Сохраняем в базу данных
       VacancyLlmAnalysis saved = dataManager.save(analysis);
@@ -229,6 +236,89 @@ public class VacancyLlmAnalysisService {
       log.error("Error setting analysis status {} for vacancy {} type {}: {}",
           status, vacancyId, analysisType, e.getMessage(), e);
       throw new RuntimeException("Failed to set analysis status", e);
+    }
+  }
+
+  /**
+   * Проверяет, существует ли уже завершенный анализ для данной вакансии и типа
+   * Проверяет только наличие готового JSON - если его нет, значит была ошибка парсинга
+   */
+  public boolean hasExistingAnalysis(String vacancyId, VacancyLlmAnalysisType analysisType) {
+    log.debug("Checking existing analysis for vacancy {} with type {}", vacancyId, analysisType);
+
+    try {
+      // Генерируем детерминированный UUID для поиска
+      UUID analysisId = uuidGenerator.generateUuid(vacancyId, analysisType.getId());
+
+      // Проверяем существование записи со статусом DONE и готовым JSON
+      Optional<VacancyLlmAnalysis> existingAnalysis = dataManager
+          .load(VacancyLlmAnalysis.class)
+          .id(analysisId)
+          .optional();
+
+      boolean exists = existingAnalysis.isPresent() &&
+          existingAnalysis.get().getStatus() == VacancyLlmAnalysisStatus.DONE &&
+          existingAnalysis.get().getAnalyzeData() != null;
+
+      log.debug("Existing analysis for vacancy {} type {}: {}", vacancyId, analysisType, exists);
+      return exists;
+
+    } catch (Exception e) {
+      log.error("Error checking existing analysis for vacancy {} type {}: {}",
+          vacancyId, analysisType, e.getMessage(), e);
+      return false;
+    }
+  }
+
+  /**
+   * Получает существующий результат анализа и конвертирует в DTO
+   * Требует наличие готового JSON - если его нет, считаем что нужна новая генерация
+   */
+  public LlmAnalysisResponse getExistingAnalysis(String vacancyId, VacancyLlmAnalysisType analysisType) {
+    log.info("Getting existing analysis for vacancy {} with type {}", vacancyId, analysisType);
+
+    try {
+      // Генерируем детерминированный UUID для поиска
+      UUID analysisId = uuidGenerator.generateUuid(vacancyId, analysisType.getId());
+
+      // Загружаем существующую запись
+      Optional<VacancyLlmAnalysis> existingAnalysis = dataManager
+          .load(VacancyLlmAnalysis.class)
+          .id(analysisId)
+          .optional();
+
+      if (existingAnalysis.isEmpty()) {
+        throw new RuntimeException("No existing analysis found for vacancy " + vacancyId + " type " + analysisType);
+      }
+
+      VacancyLlmAnalysis analysis = existingAnalysis.get();
+
+      if (analysis.getStatus() != VacancyLlmAnalysisStatus.DONE) {
+        throw new RuntimeException("Existing analysis is not completed for vacancy " + vacancyId + " type " + analysisType +
+            ", status: " + analysis.getStatus());
+      }
+
+      // Получаем данные из записи
+      String rawResponse = analysis.getAnalyzeDataString();
+      JsonNode jsonNode = analysis.getAnalyzeData();
+      Long llmCallId = analysis.getLlmCallLogId();
+      String llmModel = analysis.getLlmModel();
+
+      // Требуем наличие готового JSON
+      if (jsonNode != null && rawResponse != null) {
+        log.info("Successfully retrieved existing analysis for vacancy {} type {} from LLM call {}",
+            vacancyId, analysisType, llmCallId);
+        return LlmAnalysisResponse.success(rawResponse, jsonNode, llmCallId, llmModel);
+      }
+
+      // Если готового JSON нет - считаем что была ошибка парсинга, нужна новая генерация
+      throw new RuntimeException("Existing analysis has no valid JSON data for vacancy " + vacancyId + " type " + analysisType +
+          " - previous parsing failed, need fresh analysis");
+
+    } catch (Exception e) {
+      log.error("Error getting existing analysis for vacancy {} type {}: {}",
+          vacancyId, analysisType, e.getMessage(), e);
+      throw new RuntimeException("Failed to get existing analysis", e);
     }
   }
 

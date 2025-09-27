@@ -25,6 +25,8 @@ public class GenericTaskQueueService {
     this.genericTaskQueueRepository = genericTaskQueueRepository;
   }
 
+  // ============ ПЕРВИЧНЫЙ АНАЛИЗ ============
+
   /**
    * Поставить в очередь все вакансии для первичного анализа
    * Добавляет только те вакансии, которые еще не анализировались
@@ -34,10 +36,29 @@ public class GenericTaskQueueService {
   @Transactional
   public int enqueueFirstLlmAnalysis() {
     log.info("Starting to enqueue vacancies for LLM first analysis");
-    int count = genericTaskQueueRepository.enqueueForLlmAnalyzed(GenericTaskQueueType.LLM_FIRST, "primary");
+    int count = genericTaskQueueRepository.enqueueForLlmAnalyzed(GenericTaskQueueType.LLM_FIRST, "JAVA_PRIMARY");
     log.info("Enqueued {} vacancies for first LLM analysis", count);
     return count;
   }
+
+  // ============ ПОЛНЫЙ АНАЛИЗ ============
+
+  /**
+   * Поставить в очередь все вакансии для полного анализа
+   * Добавляет только те вакансии, у которых отсутствует хотя бы один тип анализа
+   * или которые не находятся в очереди на обработку
+   *
+   * @return количество добавленных записей
+   */
+  @Transactional
+  public int enqueueFullLlmAnalysis() {
+    log.info("Starting to enqueue vacancies for LLM full analysis");
+    int count = genericTaskQueueRepository.enqueueForLlmFullAnalysis(GenericTaskQueueType.LLM_FULL);
+    log.info("Enqueued {} vacancies for full LLM analysis", count);
+    return count;
+  }
+
+  // ============ ОБЩИЕ МЕТОДЫ ============
 
   /**
    * Получить количество задач по типу и статусу PROCESSING (для обратной совместимости)
@@ -63,57 +84,64 @@ public class GenericTaskQueueService {
     return genericTaskQueueRepository.getStatsForTaskType(queueType);
   }
 
-  // Удобные методы для первичного анализа
+  // ============ УДОБНЫЕ МЕТОДЫ ДЛЯ ПЕРВИЧНОГО АНАЛИЗА ============
 
-  /**
-   * Получить количество новых задач для первичного анализа
-   */
   @Transactional(readOnly = true)
   public Integer getNewLlmFirstTasksCount() {
     return getCountByTypeAndStatus(GenericTaskQueueType.LLM_FIRST, GenericTaskQueueStatus.NEW);
   }
 
-  /**
-   * Получить количество обрабатываемых задач для первичного анализа
-   */
   @Transactional(readOnly = true)
   public Integer getProcessingLlmFirstTasksCount() {
     return getCountByTypeAndStatus(GenericTaskQueueType.LLM_FIRST, GenericTaskQueueStatus.PROCESSING);
   }
 
-  /**
-   * Получить количество завершенных задач для первичного анализа
-   */
   @Transactional(readOnly = true)
   public Integer getCompletedLlmFirstTasksCount() {
     return getCountByTypeAndStatus(GenericTaskQueueType.LLM_FIRST, GenericTaskQueueStatus.COMPLETED);
   }
 
-  /**
-   * Получить количество неудачных задач для первичного анализа
-   */
   @Transactional(readOnly = true)
   public Integer getFailedLlmFirstTasksCount() {
     return getCountByTypeAndStatus(GenericTaskQueueType.LLM_FIRST, GenericTaskQueueStatus.FAILED);
   }
 
-  /**
-   * Получить полную статистику для первичного анализа
-   */
   @Transactional(readOnly = true)
   public TaskQueueStats getLlmFirstAnalysisStats() {
     return getStatsForTaskType(GenericTaskQueueType.LLM_FIRST);
   }
 
-  // Утилитарные методы
+  // ============ УДОБНЫЕ МЕТОДЫ ДЛЯ ПОЛНОГО АНАЛИЗА ============
+
+  @Transactional(readOnly = true)
+  public Integer getNewLlmFullTasksCount() {
+    return getCountByTypeAndStatus(GenericTaskQueueType.LLM_FULL, GenericTaskQueueStatus.NEW);
+  }
+
+  @Transactional(readOnly = true)
+  public Integer getProcessingLlmFullTasksCount() {
+    return getCountByTypeAndStatus(GenericTaskQueueType.LLM_FULL, GenericTaskQueueStatus.PROCESSING);
+  }
+
+  @Transactional(readOnly = true)
+  public Integer getCompletedLlmFullTasksCount() {
+    return getCountByTypeAndStatus(GenericTaskQueueType.LLM_FULL, GenericTaskQueueStatus.COMPLETED);
+  }
+
+  @Transactional(readOnly = true)
+  public Integer getFailedLlmFullTasksCount() {
+    return getCountByTypeAndStatus(GenericTaskQueueType.LLM_FULL, GenericTaskQueueStatus.FAILED);
+  }
+
+  @Transactional(readOnly = true)
+  public TaskQueueStats getLlmFullAnalysisStats() {
+    return getStatsForTaskType(GenericTaskQueueType.LLM_FULL);
+  }
+
+  // ============ УТИЛИТАРНЫЕ МЕТОДЫ ============
 
   /**
    * Сбросить "зависшие" задачи в статусе PROCESSING на FAILED
-   * Полезно после сбоев системы
-   *
-   * @param queueType тип задач
-   * @param olderThanMinutes задачи старше этого количества минут будут сброшены
-   * @return количество сброшенных задач
    */
   @Transactional
   public int resetStuckProcessingTasks(GenericTaskQueueType queueType, int olderThanMinutes) {
@@ -125,9 +153,6 @@ public class GenericTaskQueueService {
 
   /**
    * Перезапустить все неудачные задачи - меняет статус с FAILED на NEW
-   *
-   * @param queueType тип задач
-   * @return количество перезапущенных задач
    */
   @Transactional
   public int retryFailedTasks(GenericTaskQueueType queueType) {
@@ -137,19 +162,55 @@ public class GenericTaskQueueService {
     return count;
   }
 
-  /**
-   * Перезапустить все неудачные задачи для первичного анализа
-   */
+  // ============ СПЕЦИФИЧНЫЕ УТИЛИТАРНЫЕ МЕТОДЫ ============
+
   @Transactional
   public int retryFailedLlmFirstTasks() {
     return retryFailedTasks(GenericTaskQueueType.LLM_FIRST);
   }
 
-  /**
-   * Сбросить зависшие задачи для первичного анализа (старше 30 минут)
-   */
+  @Transactional
+  public int retryFailedLlmFullTasks() {
+    return retryFailedTasks(GenericTaskQueueType.LLM_FULL);
+  }
+
   @Transactional
   public int resetStuckLlmFirstTasks() {
     return resetStuckProcessingTasks(GenericTaskQueueType.LLM_FIRST, 30);
+  }
+
+  @Transactional
+  public int resetStuckLlmFullTasks() {
+    return resetStuckProcessingTasks(GenericTaskQueueType.LLM_FULL, 60); // Больше времени для full анализа
+  }
+
+  // ============ КОМБИНИРОВАННЫЕ МЕТОДЫ ============
+
+  /**
+   * Добавить в очередь все типы анализа
+   */
+  @Transactional
+  public void enqueueAllAnalysis() {
+    int firstCount = enqueueFirstLlmAnalysis();
+    int fullCount = enqueueFullLlmAnalysis();
+    log.info("Total enqueued: {} first analysis, {} full analysis", firstCount, fullCount);
+  }
+
+  /**
+   * Получить сводную статистику по всем типам анализа
+   */
+  @Transactional(readOnly = true)
+  public String getAllAnalysisStatsSummary() {
+    TaskQueueStats firstStats = getLlmFirstAnalysisStats();
+    TaskQueueStats fullStats = getLlmFullAnalysisStats();
+
+    return String.format(
+        "First Analysis - New: %d, Processing: %d, Completed: %d, Failed: %d | " +
+            "Full Analysis - New: %d, Processing: %d, Completed: %d, Failed: %d",
+        firstStats.getNewTasks(), firstStats.getProcessingTasks(),
+        firstStats.getCompletedTasks(), firstStats.getFailedTasks(),
+        fullStats.getNewTasks(), fullStats.getProcessingTasks(),
+        fullStats.getCompletedTasks(), fullStats.getFailedTasks()
+    );
   }
 }

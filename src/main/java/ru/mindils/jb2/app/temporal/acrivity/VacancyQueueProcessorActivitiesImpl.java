@@ -17,6 +17,7 @@ import ru.mindils.jb2.app.mapper.GenericTaskQueueMapper;
 import ru.mindils.jb2.app.service.TemporalStatusService;
 import ru.mindils.jb2.app.temporal.VacancyLlmAnalysisConstants;
 import ru.mindils.jb2.app.temporal.workflow.VacancyLlmFirstAnalysisWorkflow;
+import ru.mindils.jb2.app.temporal.workflow.VacancyLlmFullAnalysisWorkflow;
 
 import java.util.Optional;
 
@@ -32,7 +33,6 @@ public class VacancyQueueProcessorActivitiesImpl implements VacancyQueueProcesso
   private final SystemAuthenticator authenticator;
   private final GenericTaskQueueMapper taskQueueMapper;
 
-
   public VacancyQueueProcessorActivitiesImpl(DataManager dataManager,
                                              WorkflowClient workflowClient,
                                              SystemAuthenticator authenticator,
@@ -47,22 +47,21 @@ public class VacancyQueueProcessorActivitiesImpl implements VacancyQueueProcesso
 
   @Override
   @Transactional(readOnly = true)
-  public Optional<GenericTaskQueueDto> getNextLlmFirstTask() {
-    log.debug("Looking for next LLM_FIRST task in queue");
+  public Optional<GenericTaskQueueDto> getNextTask(GenericTaskQueueType queueType) {
+    log.debug("Looking for next {} task in queue", queueType);
 
     return authenticator.withSystem(() -> {
-          Optional<GenericTaskQueue> optional = dataManager.load(GenericTaskQueue.class)
-              .query("select t from jb2_GenericTaskQueue t " +
-                  "where t.taskType = :taskType " +
-                  "and t.status = :status " +
-                  "order by t.priority asc, t.createdDate asc")
-              .parameter("taskType", GenericTaskQueueType.LLM_FIRST.getId())
-              .parameter("status", GenericTaskQueueStatus.NEW.getId())
-              .maxResults(1)
-              .optional();
-          return optional.map(taskQueueMapper::toDto);
-        }
-    );
+      Optional<GenericTaskQueue> optional = dataManager.load(GenericTaskQueue.class)
+          .query("select t from jb2_GenericTaskQueue t " +
+              "where t.taskType = :taskType " +
+              "and t.status = :status " +
+              "order by t.priority asc, t.createdDate asc")
+          .parameter("taskType", queueType.getId())
+          .parameter("status", GenericTaskQueueStatus.NEW.getId())
+          .maxResults(1)
+          .optional();
+      return optional.map(taskQueueMapper::toDto);
+    });
   }
 
   @Override
@@ -79,21 +78,18 @@ public class VacancyQueueProcessorActivitiesImpl implements VacancyQueueProcesso
   }
 
   @Override
-  public void executeVacancyAnalysisWorkflow(String vacancyId) {
+  public void executeVacancyFirstAnalysisWorkflow(String vacancyId) {
     log.info("Starting VacancyLlmFirstAnalysisWorkflow for vacancy: {}", vacancyId);
 
-    // Создаем уникальный workflow ID для анализа вакансии
-    String workflowId = VacancyLlmAnalysisConstants.WORKFLOW_ID + "_" + vacancyId + "_" + System.currentTimeMillis();
+    String workflowId = VacancyLlmAnalysisConstants.WORKFLOW_ID + "_first_" + vacancyId;
 
     // Проверяем, не запущен ли уже workflow для этой вакансии
-    String baseWorkflowId = VacancyLlmAnalysisConstants.WORKFLOW_ID + "_" + vacancyId;
-    if (temporalStatusService.isWorkflowRunning(baseWorkflowId)) {
-      log.warn("Workflow for vacancy {} is already running, skipping", vacancyId);
-      throw new IllegalStateException("Workflow для вакансии " + vacancyId + " уже запущен");
+    if (temporalStatusService.isWorkflowRunning(workflowId)) {
+      log.warn("First analysis workflow for vacancy {} is already running, skipping", vacancyId);
+      throw new IllegalStateException("First analysis workflow для вакансии " + vacancyId + " уже запущен");
     }
 
     try {
-      // Создаем workflow stub
       VacancyLlmFirstAnalysisWorkflow workflow = workflowClient.newWorkflowStub(
           VacancyLlmFirstAnalysisWorkflow.class,
           WorkflowOptions.newBuilder()
@@ -102,7 +98,7 @@ public class VacancyQueueProcessorActivitiesImpl implements VacancyQueueProcesso
               .build()
       );
 
-      // Запускаем workflow синхронно (ждем завершения)
+      // Запускаем workflow синхронно
       workflow.run(vacancyId, false);
 
       log.info("VacancyLlmFirstAnalysisWorkflow completed successfully for vacancy: {}", vacancyId);
@@ -110,7 +106,40 @@ public class VacancyQueueProcessorActivitiesImpl implements VacancyQueueProcesso
     } catch (Exception e) {
       log.error("Error during VacancyLlmFirstAnalysisWorkflow execution for vacancy {}: {}",
           vacancyId, e.getMessage(), e);
-      throw new RuntimeException("Vacancy analysis workflow failed: " + e.getMessage(), e);
+      throw new RuntimeException("First analysis workflow failed: " + e.getMessage(), e);
+    }
+  }
+
+  @Override
+  public void executeVacancyFullAnalysisWorkflow(String vacancyId) {
+    log.info("Starting VacancyLlmFullAnalysisWorkflow for vacancy: {}", vacancyId);
+
+    String workflowId = VacancyLlmAnalysisConstants.WORKFLOW_ID + "_full_" + vacancyId;
+
+    // Проверяем, не запущен ли уже workflow для этой вакансии
+    if (temporalStatusService.isWorkflowRunning(workflowId)) {
+      log.warn("Full analysis workflow for vacancy {} is already running, skipping", vacancyId);
+      throw new IllegalStateException("Full analysis workflow для вакансии " + vacancyId + " уже запущен");
+    }
+
+    try {
+      VacancyLlmFullAnalysisWorkflow workflow = workflowClient.newWorkflowStub(
+          VacancyLlmFullAnalysisWorkflow.class,
+          WorkflowOptions.newBuilder()
+              .setTaskQueue(VacancyLlmAnalysisConstants.QUEUE)
+              .setWorkflowId(workflowId)
+              .build()
+      );
+
+      // Запускаем workflow синхронно (refresh=false, используем существующие данные)
+      workflow.run(vacancyId, false);
+
+      log.info("VacancyLlmFullAnalysisWorkflow completed successfully for vacancy: {}", vacancyId);
+
+    } catch (Exception e) {
+      log.error("Error during VacancyLlmFullAnalysisWorkflow execution for vacancy {}: {}",
+          vacancyId, e.getMessage(), e);
+      throw new RuntimeException("Full analysis workflow failed: " + e.getMessage(), e);
     }
   }
 }

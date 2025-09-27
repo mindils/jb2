@@ -63,6 +63,10 @@ public class VacancyLlmAnalysis {
   @Column(name = "CREATED_DATE")
   private OffsetDateTime createdDate;
 
+  @Column(name = "MESSAGE")
+  @Lob
+  private String message;
+
   @LastModifiedDate
   @Column(name = "LAST_MODIFIED_DATE")
   private OffsetDateTime lastModifiedDate;

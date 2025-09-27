@@ -35,11 +35,21 @@ import java.util.List;
 public class VacancyOpsView extends StandardView {
 
   /* ===== Services ===== */
-  @Autowired private VacancyWorkflowService vacancyWorkflowService;
-  @Autowired private TemporalStatusService temporalStatusService;
-  @Autowired private VacancyOpsService vacancyOpsService;
-  @Autowired private VacancyAnalysisService vacancyAnalysisService;
-  @Autowired private Notifications notifications;
+  @Autowired
+  private VacancyWorkflowService vacancyWorkflowService;
+
+  @Autowired
+  private TemporalStatusService temporalStatusService;
+
+  @Autowired
+  private VacancyOpsService vacancyOpsService;
+
+  @Autowired
+  private VacancyAnalysisService vacancyAnalysisService;
+
+  @Autowired
+
+  private Notifications notifications;
   @Autowired
   private VacancyScoreUpdateService scoreUpdateService;
 

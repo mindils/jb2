@@ -8,7 +8,14 @@ import org.springframework.lang.Nullable;
 public enum VacancyLlmAnalysisType implements EnumClass<String> {
 
   JAVA_PRIMARY("JAVA_PRIMARY"),
-    STOP_FACTORS("STOP_FACTORS");
+    STOP_FACTORS("STOP_FACTORS"),
+    BENEFITS("BENEFITS"),
+    COMPENSATION("COMPENSATION"),
+    EQUIPMENT("EQUIPMENT"),
+    INDUSTRY("INDUSTRY"),
+    SOCIAL("SOCIAL"),
+    TECHNICAL("TECHNICAL"),
+    WORK_CONDITIONS("WORK_CONDITIONS");
 
   private final String id;
 

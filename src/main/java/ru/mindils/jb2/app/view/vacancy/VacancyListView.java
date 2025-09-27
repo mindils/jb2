@@ -182,7 +182,8 @@ public class VacancyListView extends StandardListView<Vacancy> {
       return;
     }
 
-    vacancyLlmAnalysisWorkflowService.startFirstAnalysisBy(vacancy.getId());
+    vacancyLlmAnalysisWorkflowService.startFullAnalysisBy(vacancy.getId());
+//    vacancyLlmAnalysisWorkflowService.startFirstAnalysisBy(vacancy.getId());
 
     // 0. получить конфигурацию Согласна тику делать обработку например полный анализ
     // 1. Получить ли ранее выполнин первичный анализ java
@@ -222,5 +223,18 @@ public class VacancyListView extends StandardListView<Vacancy> {
             String.format("Вакансия %s отправлена на выполнение", event.getItem().get().getId()))
         .withType(Notifications.Type.SUCCESS)
         .show();
+  }
+
+  @Subscribe(id = "updateFirstAnalysisVacancy", subject = "clickListener")
+  public void onUpdateFirstAnalysisVacancyClick(final ClickEvent<JmixButton> event) {
+    Vacancy vacancy = vacanciesDc.getItemOrNull();
+    if (vacancy == null) {
+      notifications.create("Вакансия не выбрана")
+          .withType(Notifications.Type.ERROR)
+          .show();
+      return;
+    }
+
+    vacancyLlmAnalysisWorkflowService.startFirstAnalysisBy(vacancy.getId());
   }
 }

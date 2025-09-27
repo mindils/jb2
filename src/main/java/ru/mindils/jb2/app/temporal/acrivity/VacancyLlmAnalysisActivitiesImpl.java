@@ -14,8 +14,8 @@ import ru.mindils.jb2.app.entity.VacancyLlmAnalysisType;
 import ru.mindils.jb2.app.service.VacancyLlmAnalysisService;
 import ru.mindils.jb2.app.temporal.VacancyLlmAnalysisConstants;
 
-import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @ActivityImpl(taskQueues = VacancyLlmAnalysisConstants.QUEUE)
 @Component
@@ -69,31 +69,53 @@ public class VacancyLlmAnalysisActivitiesImpl implements VacancyLllAnalysisActiv
   }
 
   @Override
-  public void setStatusSkipIfJavaFalse(String vacancyId, LlmAnalysisResponse llmResponse) {
-    List<VacancyLlmAnalysisType> stopFactors = List.of(
-        VacancyLlmAnalysisType.STOP_FACTORS
-    );
-
-    boolean isJavaTrue = Optional.ofNullable(llmResponse.jsonNode())
+  public boolean checkJavaTrue(LlmAnalysisResponse llmResponse) {
+    return Optional.ofNullable(llmResponse.jsonNode())
         .map(n -> n.get("java"))
         .filter(JsonNode::isBoolean)
         .map(JsonNode::booleanValue)
         .orElse(true);
+  }
 
-    if (isJavaTrue) return;
-
+  @Override
+  public void setStatusSkip(String vacancyId, Set<VacancyLlmAnalysisType> status, String reason) {
     authenticator.runWithSystem(() -> {
-      log.info("Setting SKIPPED status for vacancy {} for types: {}", vacancyId, stopFactors);
+      log.info("Setting SKIPPED status for vacancy {} for types: {}", vacancyId, status);
 
-      stopFactors.forEach(type ->
-          vacancyLlmAnalysisService.saveAnalysisStatus(vacancyId, type, VacancyLlmAnalysisStatus.SKIPPED)
+      status.forEach(type ->
+          vacancyLlmAnalysisService.saveAnalysisStatus(vacancyId, type, VacancyLlmAnalysisStatus.SKIPPED, reason)
       );
     });
+  }
+
+  @Override
+  public boolean checkStopFactorsFound(LlmAnalysisResponse llmResponse) {
+    return Optional.ofNullable(llmResponse.jsonNode())
+        .map(n -> n.get("stopFactorFound"))
+        .filter(JsonNode::isBoolean)
+        .map(JsonNode::booleanValue)
+        .orElse(false); // По умолчанию считаем, что стоп-факторы НЕ найдены
   }
 
   @Override
   public void saveAnalysisStatus(String vacancyId, VacancyLlmAnalysisType type, VacancyLlmAnalysisStatus status) {
     authenticator.runWithSystem(() ->
         vacancyLlmAnalysisService.saveAnalysisStatus(vacancyId, type, status));
+  }
+
+  @Override
+  public boolean hasExistingAnalysis(String vacancyId, VacancyLlmAnalysisType type) {
+    return authenticator.withSystem(() -> {
+      log.debug("Checking existing analysis for vacancy {} with type {}", vacancyId, type);
+      return vacancyLlmAnalysisService.hasExistingAnalysis(vacancyId, type);
+    });
+  }
+
+  @Override
+  public LlmAnalysisResponse getExistingAnalysis(String vacancyId, VacancyLlmAnalysisType type) {
+    return authenticator.withSystem(() -> {
+      log.info("Getting existing analysis for vacancy {} with type {}", vacancyId, type);
+      return vacancyLlmAnalysisService.getExistingAnalysis(vacancyId, type);
+    });
   }
 }

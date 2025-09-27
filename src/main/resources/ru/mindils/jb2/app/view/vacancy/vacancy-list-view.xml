@@ -36,6 +36,7 @@
   </actions>
   <layout>
     <hbox id="buttonsPanel" classNames="buttons-panel">
+      <button id="updateFirstAnalysisVacancy" text="Анализ на java"/>
       <button id="updateAnalysisVacancy" text="msg://updateAnalysisFullVacancy.text"/>
       <button id="updateAllVacancy" text="msg://updateAllVacancy.text"/>
       <button id="addPrimaryToQueueBtn" text="msg://analysisVacancyPrimary.text"/>
