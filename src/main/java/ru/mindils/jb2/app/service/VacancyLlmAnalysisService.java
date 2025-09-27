@@ -1,15 +1,15 @@
 package ru.mindils.jb2.app.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jmix.core.DataManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.stereotype.Service;
+import ru.mindils.jb2.app.dto.LlmAnalysisResponse;
 import ru.mindils.jb2.app.entity.Vacancy;
 import ru.mindils.jb2.app.entity.VacancyLlmAnalysis;
+import ru.mindils.jb2.app.entity.VacancyLlmAnalysisStatus;
 import ru.mindils.jb2.app.entity.VacancyLlmAnalysisType;
 import ru.mindils.jb2.app.service.analysis.prompt.PromptGenerator;
 import ru.mindils.jb2.app.util.UuidGenerator;
@@ -50,9 +50,9 @@ public class VacancyLlmAnalysisService {
    *
    * @param vacancy      вакансия для анализа
    * @param analysisType тип анализа
-   * @return результат анализа в виде JSON
+   * @return результат анализа в виде DTO с распарсенным JSON
    */
-  public String analyze(Vacancy vacancy, VacancyLlmAnalysisType analysisType) {
+  public LlmAnalysisResponse analyze(Vacancy vacancy, VacancyLlmAnalysisType analysisType) {
     log.info("Starting analysis for vacancy {} with type {}", vacancy.getId(), analysisType);
 
     try {
@@ -66,7 +66,7 @@ public class VacancyLlmAnalysisService {
       String prompt = promptGenerator.generatePrompt(vacancy);
       log.debug("Generated prompt for analysis type {}: {}", analysisType, prompt);
 
-      // Вызываем LLM
+      // Вызываем LLM и получаем DTO
       return llmService.callLLM(prompt, getOptionsForAnalysisType(analysisType));
 
     } catch (Exception e) {
@@ -79,24 +79,25 @@ public class VacancyLlmAnalysisService {
   /**
    * Анализ вакансии по строковому коду типа
    */
-  public String analyze(Vacancy vacancy, String analysisTypeCode) {
+  public LlmAnalysisResponse analyze(Vacancy vacancy, String analysisTypeCode) {
     VacancyLlmAnalysisType analysisType = VacancyLlmAnalysisType.fromId(analysisTypeCode);
     return analyze(vacancy, analysisType);
   }
 
   /**
-   * Сохранение результата анализа в базу данных
+   * Сохранение результата анализа в базу данных из DTO
    * Использует детерминированный UUID, поэтому может обновлять существующие записи
    *
-   * @param analysisType тип анализа
    * @param vacancyId    ID вакансии
-   * @param result       результат анализа в виде строки
-   * @return Optional с ошибкой, если JSON не удалось распарсить, иначе empty
+   * @param analysisType тип анализа
+   * @param llmResponse  DTO с результатом анализа
+   * @return Optional с ошибкой парсинга JSON, если была, иначе empty
    */
-  public Optional<String> saveAnalysisResult(String vacancyId,
-                                             VacancyLlmAnalysisType analysisType,
-                                             String result) {
-    log.info("Saving analysis result for vacancy {} with type {}", vacancyId, analysisType);
+  public void saveAnalysisResult(String vacancyId,
+                                 VacancyLlmAnalysisType analysisType,
+                                 LlmAnalysisResponse llmResponse) {
+    log.info("Saving analysis result for vacancy {} with type {} from LLM call {}",
+        vacancyId, analysisType, llmResponse.llmCallId());
 
     try {
       // Генерируем детерминированный UUID для этой комбинации вакансии и типа анализа
@@ -128,45 +129,106 @@ public class VacancyLlmAnalysisService {
         log.debug("Creating new analysis record with UUID {}", analysisId);
       }
 
-      // Обновляем данные
-      analysis.setAnalyzeDataString(result);
+      // Сохраняем данные из DTO
+      analysis.setAnalyzeDataString(llmResponse.rawResponse());
+      analysis.setStatus(VacancyLlmAnalysisStatus.DONE);
+      analysis.setLlmCallLogId(llmResponse.llmCallId());
+      analysis.setLlmModel(llmResponse.llmModel());
 
-      // Пытаемся распарсить JSON
-      String jsonParseError = null;
-      try {
-        JsonNode jsonNode = objectMapper.readTree(result);
-        // Если успешно распарсили, сохраняем и в JSON поле
-        analysis.setAnalyzeData(jsonNode);
-        log.debug("Successfully parsed JSON for vacancy {} analysis type {}", vacancyId, analysisType);
-
-      } catch (JsonProcessingException e) {
-        jsonParseError = "Failed to parse JSON: " + e.getMessage();
-        log.warn("Failed to parse JSON for vacancy {} analysis type {}: {}",
-            vacancyId, analysisType, e.getMessage());
-        // analyzeData будет null для обновления, или останется старое значение
+      // Устанавливаем JSON данные и ID лога LLM
+      if (llmResponse.hasValidJson()) {
+        analysis.setAnalyzeData(llmResponse.jsonNode());
+        log.debug("Successfully set JSON data for vacancy {} analysis type {}", vacancyId, analysisType);
+      } else {
+        // Если JSON не распарсился, оставляем поле пустым
         if (!isUpdate) {
           analysis.setAnalyzeData(null);
         }
       }
 
+      // Сохраняем ID вызова LLM для трейсабилити (если есть такое поле)
+      // analysis.setLlmCallId(llmResponse.getLlmCallId());
+
       // Сохраняем в базу данных
       VacancyLlmAnalysis saved = dataManager.save(analysis);
 
       if (isUpdate) {
-        log.info("Successfully updated analysis result with UUID {} for vacancy {} type {}",
-            saved.getId(), vacancyId, analysisType);
+        log.info("Successfully updated analysis result with UUID {} for vacancy {} type {} from LLM call {}",
+            saved.getId(), vacancyId, analysisType, llmResponse.llmCallId());
       } else {
-        log.info("Successfully created analysis result with UUID {} for vacancy {} type {}",
-            saved.getId(), vacancyId, analysisType);
+        log.info("Successfully created analysis result with UUID {} for vacancy {} type {} from LLM call {}",
+            saved.getId(), vacancyId, analysisType, llmResponse.llmCallId());
+      }
+    } catch (Exception e) {
+      log.error("Error saving analysis result for vacancy {} type {} from LLM call {}: {}",
+          vacancyId, analysisType, llmResponse.llmCallId(), e.getMessage(), e);
+      throw new RuntimeException("Failed to save analysis result", e);
+    }
+  }
+
+  /**
+   * Сохранение записи анализа с указанным статусом (без данных анализа)
+   * Использует детерминированный UUID, поэтому может обновлять существующие записи
+   *
+   * @param vacancyId    ID вакансии
+   * @param analysisType тип анализа
+   * @param status       статус анализа (SKIP, ERROR, и т.д.)
+   */
+  public void saveAnalysisStatus(String vacancyId, VacancyLlmAnalysisType analysisType, VacancyLlmAnalysisStatus status) {
+    log.info("Setting analysis status {} for vacancy {} with type {}", status, vacancyId, analysisType);
+
+    try {
+      // Генерируем детерминированный UUID для этой комбинации вакансии и типа анализа
+      UUID analysisId = uuidGenerator.generateUuid(vacancyId, analysisType.getId());
+      log.debug("Generated UUID {} for vacancy {} analysis type {}", analysisId, vacancyId, analysisType);
+
+      // Загружаем вакансию
+      Vacancy vacancy = dataManager.load(Vacancy.class).id(vacancyId).one();
+
+      // Пытаемся найти существующую запись
+      Optional<VacancyLlmAnalysis> existingAnalysis = dataManager.load(VacancyLlmAnalysis.class)
+          .id(analysisId)
+          .optional();
+
+      VacancyLlmAnalysis analysis;
+      boolean isUpdate = false;
+
+      if (existingAnalysis.isPresent()) {
+        // Обновляем существующую запись
+        analysis = existingAnalysis.get();
+        isUpdate = true;
+        log.debug("Found existing analysis record with UUID {}, updating to {} status", analysisId, status);
+      } else {
+        // Создаем новую запись
+        analysis = dataManager.create(VacancyLlmAnalysis.class);
+        analysis.setId(analysisId);
+        analysis.setVacancy(vacancy);
+        analysis.setAnalyzeType(analysisType.getId());
+        log.debug("Creating new analysis record with UUID {} and {} status", analysisId, status);
       }
 
-      // Возвращаем ошибку парсинга JSON если была
-      return Optional.ofNullable(jsonParseError);
+      // Устанавливаем переданный статус, остальные поля оставляем пустыми
+      analysis.setStatus(status);
+
+      // Очищаем данные анализа (если это обновление существующей записи)
+      analysis.setAnalyzeDataString(null);
+      analysis.setAnalyzeData(null);
+
+      // Сохраняем в базу данных
+      VacancyLlmAnalysis saved = dataManager.save(analysis);
+
+      if (isUpdate) {
+        log.info("Successfully updated analysis record with UUID {} for vacancy {} type {} to {} status",
+            saved.getId(), vacancyId, analysisType, status);
+      } else {
+        log.info("Successfully created analysis record with UUID {} for vacancy {} type {} with {} status",
+            saved.getId(), vacancyId, analysisType, status);
+      }
 
     } catch (Exception e) {
-      log.error("Error saving analysis result for vacancy {} type {}: {}",
-          vacancyId, analysisType, e.getMessage(), e);
-      throw new RuntimeException("Failed to save analysis result", e);
+      log.error("Error setting analysis status {} for vacancy {} type {}: {}",
+          status, vacancyId, analysisType, e.getMessage(), e);
+      throw new RuntimeException("Failed to set analysis status", e);
     }
   }
 

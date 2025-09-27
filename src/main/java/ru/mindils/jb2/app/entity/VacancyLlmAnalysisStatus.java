@@ -1,18 +1,18 @@
 package ru.mindils.jb2.app.entity;
 
 import io.jmix.core.metamodel.datatype.EnumClass;
-
 import org.springframework.lang.Nullable;
 
 
-public enum VacancyLlmAnalysisType implements EnumClass<String> {
+public enum VacancyLlmAnalysisStatus implements EnumClass<String> {
 
-  JAVA_PRIMARY("JAVA_PRIMARY"),
-    STOP_FACTORS("STOP_FACTORS");
+  DONE("DONE"),
+  SKIPPED("SKIPPED"),
+  ERROR("ERROR");
 
   private final String id;
 
-  VacancyLlmAnalysisType(String id) {
+  VacancyLlmAnalysisStatus(String id) {
     this.id = id;
   }
 
@@ -21,8 +21,8 @@ public enum VacancyLlmAnalysisType implements EnumClass<String> {
   }
 
   @Nullable
-  public static VacancyLlmAnalysisType fromId(String id) {
-    for (VacancyLlmAnalysisType at : VacancyLlmAnalysisType.values()) {
+  public static VacancyLlmAnalysisStatus fromId(String id) {
+    for (VacancyLlmAnalysisStatus at : VacancyLlmAnalysisStatus.values()) {
       if (at.getId().equals(id)) {
         return at;
       }

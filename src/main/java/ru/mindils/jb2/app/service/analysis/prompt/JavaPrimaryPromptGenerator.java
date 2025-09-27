@@ -1,10 +1,8 @@
 package ru.mindils.jb2.app.service.analysis.prompt;
 
 import org.springframework.stereotype.Component;
-import ru.mindils.jb2.app.entity.AnalysisType;
 import ru.mindils.jb2.app.entity.Vacancy;
 import ru.mindils.jb2.app.entity.VacancyLlmAnalysisType;
-import ru.mindils.jb2.app.service.analysis.prompt.PromptGenerator;
 import ru.mindils.jb2.app.util.HtmlToMarkdownConverter;
 
 @Component

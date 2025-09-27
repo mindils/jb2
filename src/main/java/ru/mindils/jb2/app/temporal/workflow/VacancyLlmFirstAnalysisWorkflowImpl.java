@@ -5,6 +5,8 @@ import io.temporal.common.RetryOptions;
 import io.temporal.spring.boot.WorkflowImpl;
 import io.temporal.workflow.Workflow;
 import org.slf4j.Logger;
+import ru.mindils.jb2.app.dto.LlmAnalysisResponse;
+import ru.mindils.jb2.app.entity.VacancyLlmAnalysisStatus;
 import ru.mindils.jb2.app.entity.VacancyLlmAnalysisType;
 import ru.mindils.jb2.app.temporal.VacancyLlmAnalysisConstants;
 import ru.mindils.jb2.app.temporal.acrivity.VacancyLllAnalysisActivities;
@@ -33,15 +35,34 @@ public class VacancyLlmFirstAnalysisWorkflowImpl implements VacancyLlmFirstAnaly
     log.info("Starting first analyze workflow for vacancyId: {}", vacancyId);
 
     try {
-      String llmResponse = activities.analyze(vacancyId, VacancyLlmAnalysisType.JAVA_PRIMARY);
+      // Получаем DTO с результатом анализа и метаинформацией
+      LlmAnalysisResponse llmResponse = activities.analyze(vacancyId, VacancyLlmAnalysisType.JAVA_PRIMARY);
 
-      Optional<String> error = activities.saveAnalysisResult(vacancyId, VacancyLlmAnalysisType.JAVA_PRIMARY, llmResponse);
+      log.info("Analysis completed for vacancy {}, LLM call ID: {}, JSON valid: {}",
+          vacancyId, llmResponse.llmCallId(), llmResponse.hasValidJson());
 
-      if (error.isPresent()) {
-        // todo: сохранить куда нибудь ошибку парсинга при сохранении
+      // Если java false установим всем шагам skip чтобы не обрабатывать их потом
+      activities.setStatusSkipIfJavaFalse(vacancyId, llmResponse);
+
+      // Сохраняем результат анализа
+      activities.saveAnalysisResult(vacancyId, VacancyLlmAnalysisType.JAVA_PRIMARY, llmResponse);
+
+      if (llmResponse.hasParseError()) {
+        log.warn("LLM response JSON parse error for vacancy {}: {}",
+            vacancyId, llmResponse.jsonParseError());
+        // TODO: можно добавить логику для повторного анализа или уведомлений
       }
+
+      if (llmResponse.hasValidJson()) {
+        log.info("Successfully completed analysis with valid JSON for vacancy {}", vacancyId);
+      } else {
+        log.warn("Analysis completed but JSON is invalid for vacancy {}", vacancyId);
+      }
+
     } catch (Exception e) {
       log.error("Vacancy analyze first failed for vacancyId {}: {}", vacancyId, e.getMessage(), e);
+      activities.saveAnalysisStatus(vacancyId, VacancyLlmAnalysisType.JAVA_PRIMARY, VacancyLlmAnalysisStatus.ERROR);
+
       throw e;
     }
   }

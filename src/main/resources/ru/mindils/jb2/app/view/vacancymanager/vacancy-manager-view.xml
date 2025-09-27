@@ -17,7 +17,7 @@
       </vbox>
 
       <vbox classNames="stat-card" themeNames="spacing" width="16rem">
-        <h4 text="Очередь Полный "/>
+        <h4 text="Очередь полного анализа вакансии"/>
         <p id="fullQueueCountText" classNames="stat-number"/>
         <hbox>
           <button id="enqueueFullChainBtn"

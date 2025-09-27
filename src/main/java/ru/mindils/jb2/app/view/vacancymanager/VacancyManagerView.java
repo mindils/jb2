@@ -57,4 +57,12 @@ public class VacancyManagerView extends StandardView {
     // Количество вакансий Добавленных в очередь на первичную обработку
     primaryQueueCountText.setText(genericTaskQueueService.getCountLlmAnalysis(GenericTaskQueueType.LLM_FIRST).toString());
   }
+
+  @Subscribe(id = "enqueueFullChainBtn", subject = "clickListener")
+  public void onEnqueueFullChainBtnClick(final ClickEvent<JmixButton> event) {
+    int i = genericTaskQueueService.enqueueFirstLlmAnalysis();
+    notifications.create("В очередь на полный анализ поставлено %d вакансий".formatted(i))
+        .withType(Notifications.Type.SUCCESS)
+        .show();
+  }
 }

@@ -13,6 +13,10 @@ import org.springframework.web.client.ResourceAccessException;
 import ru.mindils.jb2.app.entity.LLMModel;
 import ru.mindils.jb2.app.entity.LlmCallLog;
 import ru.mindils.jb2.app.repository.LLMModelRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import ru.mindils.jb2.app.dto.LlmAnalysisResponse;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -21,6 +25,8 @@ import java.util.UUID;
 @Service
 public class SimpleLLMService {
   private static final Logger log = LoggerFactory.getLogger(SimpleLLMService.class);
+
+  private final ObjectMapper objectMapper;
 
   // Типы ошибок для классификации
   private static final String ERROR_RATE_LIMIT = "RATE_LIMIT";
@@ -41,16 +47,19 @@ public class SimpleLLMService {
 
   public SimpleLLMService(LLMModelRepository modelRepository,
                           UnconstrainedDataManager dataManager,
-                          ChatClientFactory chatClientFactory) {
+                          ChatClientFactory chatClientFactory,
+                          ObjectMapper objectMapper) {
     this.modelRepository = modelRepository;
     this.dataManager = dataManager;
     this.chatClientFactory = chatClientFactory;
+    this.objectMapper = objectMapper;
   }
 
   /**
    * Главный метод для вызова LLM с автоматическим переключением между моделями
+   * Возвращает DTO с распарсенным JSON и метаинформацией
    */
-  public String callLLM(String prompt, OpenAiChatOptions options) {
+  public LlmAnalysisResponse callLLM(String prompt, OpenAiChatOptions options) {
     String requestId = UUID.randomUUID().toString();
     log.info("Starting LLM call with requestId: {}", requestId);
 
@@ -86,7 +95,9 @@ public class SimpleLLMService {
         updateModelSuccess(model);
 
         log.info("Successfully called model {} in {} ms", model.getName(), duration);
-        return response;
+
+        // Парсим JSON и создаем DTO
+        return parseResponseToDto(response, callLog.getId(), callLog.getModelName());
 
       } catch (Exception e) {
         long duration = System.currentTimeMillis() - startTime;
@@ -115,8 +126,24 @@ public class SimpleLLMService {
   /**
    * Упрощенный метод без дополнительных опций
    */
-  public String callLLM(String prompt) {
+  public LlmAnalysisResponse callLLM(String prompt) {
     return callLLM(prompt, null);
+  }
+
+
+  /**
+   * Парсит ответ LLM в DTO с JSON и метаинформацией
+   */
+  private LlmAnalysisResponse parseResponseToDto(String rawResponse, Long llmCallId, String llmModel) {
+    try {
+      JsonNode jsonNode = objectMapper.readTree(rawResponse);
+      log.debug("Successfully parsed JSON response for call {}", llmCallId);
+      return LlmAnalysisResponse.success(rawResponse, jsonNode, llmCallId, llmModel);
+    } catch (JsonProcessingException e) {
+      String parseError = "Failed to parse JSON: " + e.getMessage();
+      log.warn("Failed to parse JSON response for call {}: {}", llmCallId, e.getMessage());
+      return LlmAnalysisResponse.withParseError(rawResponse, llmCallId, llmModel, parseError);
+    }
   }
 
   /**

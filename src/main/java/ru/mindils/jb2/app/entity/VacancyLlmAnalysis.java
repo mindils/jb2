@@ -7,8 +7,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
@@ -37,6 +35,12 @@ public class VacancyLlmAnalysis {
   @Column(name = "uid", nullable = false)
   private UUID id;
 
+  @Column(name = "LLM_MODEL")
+  private String llmModel;
+
+  @Column(name = "LLM_CALL_LOG_ID")
+  private Long llmCallLogId;
+
   @JoinColumn(name = "vacancy_id")
   @ManyToOne(fetch = FetchType.LAZY)
   private Vacancy vacancy;
@@ -52,6 +56,9 @@ public class VacancyLlmAnalysis {
   @Lob
   private String analyzeDataString;
 
+  @Column(name = "status")
+  private String status;
+
   @CreatedDate
   @Column(name = "CREATED_DATE")
   private OffsetDateTime createdDate;
@@ -59,5 +66,14 @@ public class VacancyLlmAnalysis {
   @LastModifiedDate
   @Column(name = "LAST_MODIFIED_DATE")
   private OffsetDateTime lastModifiedDate;
+
+  public VacancyLlmAnalysisStatus getStatus() {
+    return status == null ? null : VacancyLlmAnalysisStatus.fromId(status);
+  }
+
+  public void setStatus(VacancyLlmAnalysisStatus status) {
+    this.status = status == null ? null : status.getId();
+  }
+
 
 }
