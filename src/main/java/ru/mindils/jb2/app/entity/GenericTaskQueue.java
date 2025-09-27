@@ -8,9 +8,9 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
-import org.springframework.data.annotation.CreatedBy;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.OffsetDateTime;
@@ -18,6 +18,8 @@ import java.time.OffsetDateTime;
 @JmixEntity
 @Table(name = "JB2_GENERIC_TASK_QUEUE")
 @Entity(name = "jb2_GenericTaskQueue")
+@Getter
+@Setter
 public class GenericTaskQueue {
   @Column(name = "ID", nullable = false)
   @Id
@@ -33,11 +35,8 @@ public class GenericTaskQueue {
   @Column(name = "TASK_TYPE")
   private String taskType;
 
-  @Column(name = "PROCESSING")
-  private Boolean processing;
-
-  @Column(name = "SUCCESS")
-  private Boolean success;
+  @Column(name = "STATUS")
+  private String status;
 
   @Column(name = "error_message")
   @Lob
@@ -54,84 +53,27 @@ public class GenericTaskQueue {
   @Column(name = "LAST_MODIFIED_DATE")
   private OffsetDateTime lastModifiedDate;
 
-  public OffsetDateTime getLastModifiedDate() {
-    return lastModifiedDate;
+  public GenericTaskQueueStatus getStatus() {
+    return status == null ? null : GenericTaskQueueStatus.fromId(status);
   }
 
-  public void setLastModifiedDate(OffsetDateTime lastModifiedDate) {
-    this.lastModifiedDate = lastModifiedDate;
+  public void setStatus(GenericTaskQueueStatus status) {
+    this.status = status == null ? null : status.getId();
   }
 
-  public OffsetDateTime getCreatedDate() {
-    return createdDate;
+  public boolean isNew() {
+    return GenericTaskQueueStatus.NEW.getId().equals(status);
   }
 
-  public void setCreatedDate(OffsetDateTime createdDate) {
-    this.createdDate = createdDate;
+  public boolean isProcessing() {
+    return GenericTaskQueueStatus.PROCESSING.getId().equals(status);
   }
 
-  public Integer getPriority() {
-    return priority;
+  public boolean isCompleted() {
+    return GenericTaskQueueStatus.COMPLETED.getId().equals(status);
   }
 
-  public void setPriority(Integer priority) {
-    this.priority = priority;
+  public boolean isFailed() {
+    return GenericTaskQueueStatus.FAILED.getId().equals(status);
   }
-
-  public String getErrorMessage() {
-    return errorMessage;
-  }
-
-  public void setErrorMessage(String errorMessage) {
-    this.errorMessage = errorMessage;
-  }
-
-  public void setSuccess(Boolean success) {
-    this.success = success;
-  }
-
-  public Boolean getSuccess() {
-    return success;
-  }
-
-  public void setProcessing(Boolean processing) {
-    this.processing = processing;
-  }
-
-  public Boolean getProcessing() {
-    return processing;
-  }
-
-  public String getTaskType() {
-    return taskType;
-  }
-
-  public void setTaskType(String taskType) {
-    this.taskType = taskType;
-  }
-
-  public String getEntityId() {
-    return entityId;
-  }
-
-  public void setEntityId(String entityId) {
-    this.entityId = entityId;
-  }
-
-  public String getEntityName() {
-    return entityName;
-  }
-
-  public void setEntityName(String entityName) {
-    this.entityName = entityName;
-  }
-
-  public Long getId() {
-    return id;
-  }
-
-  public void setId(Long id) {
-    this.id = id;
-  }
-
 }

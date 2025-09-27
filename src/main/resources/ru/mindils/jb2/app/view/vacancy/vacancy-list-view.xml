@@ -64,18 +64,25 @@
       </items>
     </dropdownButton>
     <propertyFilter property="id" operation="EQUAL" dataLoader="vacanciesDl"/>
-    <jpqlFilter
-        id="javaFilter"
-        dataLoader="vacanciesDl"
-        label="Java"
-        labelPosition="ASIDE"
-        parameterClass="java.lang.Boolean"
-        parameterName="javaParam">
+    <jpqlFilter id="javaFilter"
+                dataLoader="vacanciesDl"
+                label="Java"
+                labelPosition="ASIDE"
+                parameterClass="java.lang.Boolean"
+                parameterName="javaParam">
       <condition>
         <c:jpql>
-          <c:join><![CDATA[left join {E}.vacancyAnalysis va]]></c:join>
+          <!-- 1. связываемся с нужной таблицей -->
+          <c:join><![CDATA[
+              join jb2_VacancyLlmAnalysis vla
+                   on vla.vacancy = {E}
+              ]]>
+          </c:join>
+
+          <!-- 2. фильтр по типу и содержимому JSON -->
           <c:where><![CDATA[
-            CAST(function('jsonb_extract_path_text', va.stepResults, 'primary','java') boolean) = :javaParam
+              vla.analyzeType = 'JAVA_PRIMARY'
+              and cast(function('jsonb_extract_path_text', vla.analyzeData, 'java') boolean) = :javaParam
           ]]>
           </c:where>
         </c:jpql>

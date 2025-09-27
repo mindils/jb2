@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+    objectQuotingStrategy="QUOTE_ONLY_RESERVED_WORDS">
+  <changeSet id="1" author="jb2">
+    <createTable tableName="JB2_LLM_CALL_LOG">
+      <column autoIncrement="true" name="ID" startWith="1" type="BIGINT">
+        <constraints nullable="false" primaryKey="true" primaryKeyName="PK_JB2_LLM_CALL_LOG"/>
+      </column>
+      <column name="REQUEST_ID" type="VARCHAR(255)"/>
+      <column name="MODEL_NAME" type="VARCHAR(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="MODEL_ID" type="BIGINT"/>
+      <column name="BASE_URL" type="VARCHAR(255)"/>
+      <column name="PROMPT" type="CLOB"/>
+      <column name="PROMPT_LENGTH" type="INT"/>
+      <column name="TEMPERATURE" type="DOUBLE"/>
+      <column name="MAX_TOKENS" type="INT"/>
+      <column name="RESPONSE" type="CLOB"/>
+      <column name="RESPONSE_LENGTH" type="INT"/>
+      <column name="SUCCESS" type="BOOLEAN">
+        <constraints nullable="false"/>
+      </column>
+      <column name="HTTP_STATUS_CODE" type="INT"/>
+      <column name="ERROR_TYPE" type="VARCHAR(255)"/>
+      <column name="ERROR_MESSAGE" type="CLOB"/>
+      <column name="ERROR_DETAILS" type="VARCHAR(255)"/>
+      <column name="DURATION_MS" type="BIGINT"/>
+      <column name="RETRY_COUNT" type="INT"/>
+      <column name="CREATED_DATE" type="${offsetDateTime.type}"/>
+    </createTable>
+  </changeSet>
+  <changeSet id="2" author="jb2">
+    <createIndex indexName="IDX_LLM_CALL_LOG_DATE" tableName="JB2_LLM_CALL_LOG">
+      <column name="CREATED_DATE"/>
+    </createIndex>
+  </changeSet>
+  <changeSet id="3" author="jb2">
+    <createIndex indexName="IDX_LLM_CALL_LOG_MODEL" tableName="JB2_LLM_CALL_LOG">
+      <column name="MODEL_NAME"/>
+    </createIndex>
+  </changeSet>
+  <changeSet id="4" author="jb2">
+    <createIndex indexName="IDX_LLM_CALL_LOG_REQUEST_ID" tableName="JB2_LLM_CALL_LOG">
+      <column name="REQUEST_ID"/>
+    </createIndex>
+  </changeSet>
+  <changeSet id="5" author="jb2">
+    <createIndex indexName="IDX_LLM_CALL_LOG_STATUS" tableName="JB2_LLM_CALL_LOG">
+      <column name="SUCCESS"/>
+    </createIndex>
+  </changeSet>
+</databaseChangeLog>

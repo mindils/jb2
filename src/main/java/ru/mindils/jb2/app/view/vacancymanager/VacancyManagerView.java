@@ -15,6 +15,7 @@ import io.jmix.flowui.view.ViewDescriptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.mindils.jb2.app.entity.GenericTaskQueueType;
 import ru.mindils.jb2.app.service.GenericTaskQueueService;
+import ru.mindils.jb2.app.service.VacancyQueueProcessorWorkflowService;
 import ru.mindils.jb2.app.view.main.MainView;
 
 @Route(value = "vacancy-manager-view", layout = MainView.class)
@@ -27,11 +28,15 @@ public class VacancyManagerView extends StandardView {
   private Notifications notifications;
   @ViewComponent
   private Paragraph primaryQueueCountText;
+  @Autowired
+  private VacancyQueueProcessorWorkflowService vacancyQueueProcessorWorkflowService;
 
   @Subscribe(id = "analyzePrimaryBtn", subject = "clickListener")
   public void onAnalyzePrimaryBtnClick(final ClickEvent<JmixButton> event) {
-    notifications.create("В разработке")
-        .withType(Notifications.Type.ERROR)
+    vacancyQueueProcessorWorkflowService.startQueueProcessing();
+
+    notifications.create("Обработка запущена")
+        .withType(Notifications.Type.SUCCESS)
         .show();
   }
 

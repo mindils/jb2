@@ -26,13 +26,13 @@ public class VacancyLlmAnalysisService {
 
   private static final Logger log = LoggerFactory.getLogger(VacancyLlmAnalysisService.class);
 
-  private final ResilientLLMService llmService;
+  private final SimpleLLMService llmService;
   private final Map<VacancyLlmAnalysisType, PromptGenerator> promptGenerators;
   private final DataManager dataManager;
   private final ObjectMapper objectMapper;
   private final UuidGenerator uuidGenerator;
 
-  public VacancyLlmAnalysisService(ResilientLLMService llmService,
+  public VacancyLlmAnalysisService(SimpleLLMService llmService,
                                    List<PromptGenerator> promptGenerators, DataManager dataManager, ObjectMapper objectMapper, UuidGenerator uuidGenerator) {
     this.llmService = llmService;
     this.promptGenerators = promptGenerators.stream()

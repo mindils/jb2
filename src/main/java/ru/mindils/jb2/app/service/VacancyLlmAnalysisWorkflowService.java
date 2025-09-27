@@ -33,6 +33,6 @@ public class VacancyLlmAnalysisWorkflowService {
             .build()
     );
 
-    WorkflowClient.start(workflow::run, vacancyId);
+    WorkflowClient.start(workflow::run, vacancyId, false);
   }
 }

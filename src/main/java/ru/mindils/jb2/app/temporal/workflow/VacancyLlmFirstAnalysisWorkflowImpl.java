@@ -29,7 +29,7 @@ public class VacancyLlmFirstAnalysisWorkflowImpl implements VacancyLlmFirstAnaly
               .build());
 
   @Override
-  public void run(String vacancyId) {
+  public void run(String vacancyId, Boolean refresh) {
     log.info("Starting first analyze workflow for vacancyId: {}", vacancyId);
 
     try {

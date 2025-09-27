@@ -4,8 +4,8 @@ import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
 
 @WorkflowInterface
-public interface VacancyLlmFirstAnalysisWorkflow {
+public interface VacancyQueueProcessorWorkflow {
 
   @WorkflowMethod
-  void run(String vacancyId, Boolean refresh);
+  void processQueue();
 }
