@@ -28,6 +28,9 @@
     <dataLoadCoordinator auto="true"/>
     <urlQueryParameters>
       <pagination component="pagination"/>
+      <propertyFilter component="idFilter" param="id"/>
+      <propertyFilter component="archFilter" param="archived"/>
+<!--      <jpqlFilter component="javaFilter"/>-->
     </urlQueryParameters>
   </facets>
   <actions>
@@ -64,7 +67,7 @@
                   text="msg://chainAnalysisButton.addToSocialTechnicalChainBtn.text"/>
       </items>
     </dropdownButton>
-    <propertyFilter property="id" operation="EQUAL" dataLoader="vacanciesDl"/>
+    <propertyFilter id="idFilter" property="id" operation="EQUAL" dataLoader="vacanciesDl"/>
     <jpqlFilter id="javaFilter"
                 dataLoader="vacanciesDl"
                 label="Java"
@@ -89,6 +92,7 @@
         </c:jpql>
       </condition>
     </jpqlFilter>
+    <propertyFilter id="archFilter" property="archived" operation="EQUAL" dataLoader="vacanciesDl"/>
     <dataGrid id="vacanciesDataGrid"
               width="100%"
               minHeight="20em"

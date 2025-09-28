@@ -2,6 +2,7 @@ package ru.mindils.jb2.app.view.vacancy;
 
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
+import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import io.jmix.core.DataManager;
 import io.jmix.core.FetchPlans;
@@ -11,6 +12,9 @@ import io.jmix.core.ValueLoadContext;
 import io.jmix.core.entity.EntityValues;
 import io.jmix.core.entity.KeyValueEntity;
 import io.jmix.flowui.Notifications;
+import io.jmix.flowui.component.jpqlfilter.JpqlFilter;
+import io.jmix.flowui.facet.UrlQueryParametersFacet;
+import io.jmix.flowui.facet.urlqueryparameters.AbstractUrlQueryParametersBinder;
 import io.jmix.flowui.kit.component.button.JmixButton;
 import io.jmix.flowui.kit.component.dropdownbutton.DropdownButtonItem;
 import io.jmix.flowui.model.CollectionContainer;
@@ -33,6 +37,7 @@ import ru.mindils.jb2.app.service.analysis.chain.VacancyChainAnalysisService;
 import ru.mindils.jb2.app.view.main.MainView;
 
 import java.util.List;
+import java.util.Map;
 
 
 @Route(value = "vacancies", layout = MainView.class)
@@ -72,6 +77,17 @@ public class VacancyListView extends StandardListView<Vacancy> {
   @Autowired
   private VacancyLlmAnalysisWorkflowService vacancyLlmAnalysisWorkflowService;
 
+  @ViewComponent
+  private UrlQueryParametersFacet urlQueryParameters;
+
+  @ViewComponent
+  private JpqlFilter<Boolean> javaFilter;
+
+
+  @Subscribe
+  public void onInit(final InitEvent event) {
+//    urlQueryParameters.registerBinder(new JavaFilterUrlBinder());
+  }
 
   @Subscribe(id = "updateAllVacancy", subject = "clickListener")
   public void onUpdateAllVacancyClick(final ClickEvent<JmixButton> event) {
@@ -237,4 +253,33 @@ public class VacancyListView extends StandardListView<Vacancy> {
 
     vacancyLlmAnalysisWorkflowService.startFirstAnalysisBy(vacancy.getId());
   }
+
+//  private class JavaFilterUrlBinder extends AbstractUrlQueryParametersBinder {
+//
+//    JavaFilterUrlBinder() {
+//      javaFilter.addValueChangeListener(e -> {
+//        Boolean value = e.getValue();
+//        Map<String, List<String>> params = value == null
+//            ? Map.of()
+//            : Map.of("java", List.of(value.toString()));
+//        QueryParameters qp = new QueryParameters(params);
+//        fireQueryParametersChanged(new UrlQueryParametersFacet.UrlQueryParametersChangeEvent(this, qp));
+//      });
+//    }
+//
+//    @Override
+//    public void updateState(QueryParameters qp) {
+//      List<String> vals = qp.getParameters().get("java");
+//      if (vals == null || vals.isEmpty()) {
+//        javaFilter.setValue(null);
+//      } else {
+//        javaFilter.setValue(Boolean.valueOf(vals.get(0)));
+//      }
+//    }
+//
+//    @Override
+//    public com.vaadin.flow.component.Component getComponent() {
+//      return javaFilter;
+//    }
+//  }
 }

@@ -58,6 +58,7 @@ public class GenericTaskQueueRepository {
                     AND q.task_type   = ?1::varchar
                     AND q.status IN (?4::varchar, ?5::varchar, ?6::varchar)
               )
+        AND (v.archived IS NULL OR v.archived = false)
         """;
 
     return em.createNativeQuery(sql)
@@ -215,7 +216,7 @@ public class GenericTaskQueueRepository {
                 SELECT COUNT(DISTINCT a.analyze_type)
                 FROM jb2_vacancy_llm_analysis a
                 WHERE a.vacancy_id = v.id
-                  AND a.status = 'DONE'
+                  AND a.status IN ('DONE','SKIPPED')
                   AND a.analyze_type IN (%s)
             ) < ?3
         
@@ -228,6 +229,7 @@ public class GenericTaskQueueRepository {
                   AND q.task_type   = ?1
                   AND q.status IN (?4, ?5, ?6)
             )
+            AND (v.archived IS NULL OR v.archived = false)
         """, inClause);
 
     return em.createNativeQuery(sql)

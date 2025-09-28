@@ -92,9 +92,9 @@ public class VacancyQueueProcessorWorkflowImpl implements VacancyQueueProcessorW
         processedCount++;
 
         // Пауза между задачами (больше для full анализа)
-        Duration sleepDuration = queueType == GenericTaskQueueType.LLM_FULL ?
-            Duration.ofSeconds(1) : Duration.ofSeconds(1);
-        Workflow.sleep(sleepDuration);
+//        Duration sleepDuration = queueType == GenericTaskQueueType.LLM_FULL ?
+//            Duration.ofSeconds(1) : Duration.ofSeconds(1);
+//        Workflow.sleep(sleepDuration);
       }
 
       log.info("{} queue processing completed. Total: {}, Success: {}, Failed: {}",

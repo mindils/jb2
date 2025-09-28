@@ -36,6 +36,9 @@ public class VacancyUpdateWorkflowImpl implements VacancyUpdateWorkflow {
         }
         log.info("Updating by queue id: {}", nextId);
         activities.update(nextId);
+
+        // Небольшая пауза между обработкой вакансий
+        Workflow.sleep(Duration.ofSeconds(1));
       }
       log.info("Vacancy UPDATE completed successfully.");
     } catch (Exception e) {

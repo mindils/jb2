@@ -29,10 +29,7 @@ public class CompensationPromptGenerator implements PromptGenerator {
         Название: {name}
         Описание: {description}
         Описание(Бренд): {descriptionBranded}
-        Ключевые навыки: {skills}
         Зарплата: {salary}
-        Компания: {employer}
-        Компания (Бренд): {employerBranded}
         
         КРИТЕРИИ АНАЛИЗА:
         
@@ -42,7 +39,7 @@ public class CompensationPromptGenerator implements PromptGenerator {
         
         2. ДИАПАЗОН БАЗОВОЙ ЗАРПЛАТЫ (salaryRange):
         ✅ "high_400plus" - базовая зарплата ≥400к рублей в месяц
-        ✅ "upper_350_400" - базовая зарплата 350-400к рублей в месяц  
+        ✅ "upper_350_400" - базовая зарплата 350-400к рублей в месяц
         ✅ "middle_300_350" - базовая зарплата 300-350к рублей в месяц
         ✅ "lower_250_300" - базовая зарплата 250-300к рублей в месяц
         ✅ "below_250" - базовая зарплата менее 250к рублей в месяц
@@ -84,10 +81,7 @@ public class CompensationPromptGenerator implements PromptGenerator {
         .replace("{name}", valueOrEmpty(vacancy.getName()))
         .replace("{description}", htmlConverter.convertToMarkdown(valueOrEmpty(vacancy.getDescription())))
         .replace("{descriptionBranded}", htmlConverter.convertToMarkdown(valueOrEmpty(vacancy.getBrandedDescription())))
-        .replace("{skills}", valueOrEmpty(vacancy.getKeySkillsStr()))
-        .replace("{salary}", valueOrEmpty(vacancy.getSalaryStr()))
-        .replace("{employer}", htmlConverter.convertToMarkdown(vacancy.getEmployer().getDescription()))
-        .replace("{employerBranded}", htmlConverter.convertToMarkdown(vacancy.getEmployer().getBrandedDescription()));
+        .replace("{salary}", valueOrEmpty(vacancy.getSalaryStr()));
   }
 
   private String valueOrEmpty(String value) {
