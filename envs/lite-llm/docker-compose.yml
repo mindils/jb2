@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  litellm:
+    image: ghcr.io/berriai/litellm:main-v1.77.3-stable
+    container_name: litellm_proxy
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./litellm_config.yaml:/app/config.yaml
+    environment:
+      # API ключи для провайдеров
+      - GROQ_API_KEY=gsk_YOUR_GROQ_API_KEY_HERE
+      - OPENROUTER_API_KEY=sk-or-v1-YOUR_OPENROUTER_API_KEY_HERE
+
+      # Настройки базы данных (опционально)
+      - DATABASE_URL=postgresql://user:password@postgres:5432/litellm
+
+      # Redis для кэширования (ВАЖНО для экономии лимитов!)
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+
+      # Настройки прокси
+      - STORE_MODEL_IN_DB=True
+      - LITELLM_MASTER_KEY=sk-1234  # Измените на свой мастер-ключ
+    command: --config /app/config.yaml --detailed_debug
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - litellm_network
+
+  # Redis для кэширования (экономит rate limits!)
+  redis:
+    image: redis:7-alpine
+    container_name: litellm_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - litellm_network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # Опционально: PostgreSQL для хранения логов и настроек
+  postgres:
+    image: postgres:15-alpine
+    container_name: litellm_postgres
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=litellm
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - litellm_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  litellm_network:
+    driver: bridge

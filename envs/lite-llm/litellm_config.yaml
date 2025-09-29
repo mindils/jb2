@@ -1,0 +1,95 @@
+model_list:
+  # Модель 1: GPT-OSS-120B через Groq
+  - model_name: gpt-oss-120b
+    litellm_params:
+      model: openai/gpt-oss-120b
+      api_base: https://api.groq.com/openai/v1
+      api_key: os.environ/GROQ_API_KEY
+      temperature: 0.1
+      max_tokens: 10000
+      timeout: 30
+      rpm: 30  # Groq Free Tier: 30 requests per minute
+      tpm: 6000  # Groq Free Tier: 6000 tokens per minute
+    model_info:
+      id: gpt-oss-120b
+      mode: chat
+      supports_function_calling: true
+      supports_vision: false
+      # Лимиты Groq Free Tier
+      max_requests_per_minute: 30
+      max_tokens_per_minute: 6000
+      max_requests_per_day: 1000
+
+  # Модель 2: Deepseek через OpenRouter
+  - model_name: deepseek-chat
+    litellm_params:
+      model: openrouter/deepseek/deepseek-chat-v3.1
+      api_base: https://openrouter.ai/api/v1
+      api_key: os.environ/OPENROUTER_API_KEY
+      temperature: 0.1
+      max_tokens: 10000
+      timeout: 30
+      rpm: 20  # OpenRouter Free Tier: 20 requests per minute для :free моделей
+    model_info:
+      id: deepseek-chat
+      mode: chat
+      supports_function_calling: true
+      supports_vision: false
+      # Лимиты OpenRouter Free Tier
+      max_requests_per_minute: 20
+      max_requests_per_day: 50
+
+# Общие настройки
+general_settings:
+  # Мастер-ключ для аутентификации
+  master_key: sk-1234  # Измените на свой безопасный ключ
+
+  # Настройки базы данных (опционально)
+  database_url: postgresql://user:password@postgres:5432/litellm
+
+  # Логирование
+  set_verbose: true
+  json_logs: true
+
+  # Кэширование
+  cache: true
+  cache_params:
+    type: redis
+    host: redis
+    port: 6379
+
+  # Бюджеты и лимиты (опционально)
+  max_budget: 100
+  budget_duration: 30d
+
+  # Rate Limiting - глобальные настройки
+  # LiteLLM будет автоматически следить за лимитами провайдеров
+  enable_rate_limit: true
+
+  # Fallback strategy - если одна модель недоступна, использовать другую
+  fallbacks:
+    - model: gpt-oss-120b
+      fallback_models:
+        - deepseek-chat
+
+# Настройки роутера (опционально)
+router_settings:
+  routing_strategy: simple-shuffle  # или "least-busy", "latency-based-routing"
+  model_group_alias:
+    chat-models:
+      - gpt-oss-120b
+      - deepseek-chat
+
+# Настройки успеха/неудачи
+litellm_settings:
+  success_callback: []
+  failure_callback: []
+
+  # Количество повторных попыток при ошибке
+  num_retries: 3
+
+  # Настройки timeout
+  request_timeout: 600
+
+  # Настройки для потоковой передачи
+  stream_response: true
