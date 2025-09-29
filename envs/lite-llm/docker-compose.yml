@@ -10,8 +10,8 @@ services:
       - ./litellm_config.yaml:/app/config.yaml
     environment:
       # API ключи для провайдеров
-      - GROQ_API_KEY=gsk_YOUR_GROQ_API_KEY_HERE
-      - OPENROUTER_API_KEY=sk-or-v1-YOUR_OPENROUTER_API_KEY_HERE
+      - GROQ_API_KEY=
+      - OPENROUTER_API_KEY=
 
       # Настройки базы данных (опционально)
       - DATABASE_URL=postgresql://user:password@postgres:5432/litellm
