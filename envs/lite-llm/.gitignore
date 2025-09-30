@@ -1,0 +1,10 @@
+.env
+.env.local
+.env.*.local
+
+# Docker volumes
+postgres_data/
+redis_data/
+
+# Логи
+*.log

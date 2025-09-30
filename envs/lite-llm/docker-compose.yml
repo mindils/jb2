@@ -8,21 +8,8 @@ services:
       - "4000:4000"
     volumes:
       - ./litellm_config.yaml:/app/config.yaml
-    environment:
-      # API ключи для провайдеров
-      - GROQ_API_KEY=
-      - OPENROUTER_API_KEY=
-
-      # Настройки базы данных (опционально)
-      - DATABASE_URL=postgresql://user:password@postgres:5432/litellm
-
-      # Redis для кэширования (ВАЖНО для экономии лимитов!)
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-
-      # Настройки прокси
-      - STORE_MODEL_IN_DB=True
-      - LITELLM_MASTER_KEY=sk-1234  # Измените на свой мастер-ключ
+    env_file:
+      - .env
     command: --config /app/config.yaml --detailed_debug
     restart: unless-stopped
     depends_on:
@@ -31,7 +18,6 @@ services:
     networks:
       - litellm_network
 
-  # Redis для кэширования (экономит rate limits!)
   redis:
     image: redis:7-alpine
     container_name: litellm_redis
@@ -44,14 +30,11 @@ services:
     restart: unless-stopped
     command: redis-server --appendonly yes
 
-  # Опционально: PostgreSQL для хранения логов и настроек
   postgres:
     image: postgres:15-alpine
     container_name: litellm_postgres
-    environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=litellm
+    env_file:
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
