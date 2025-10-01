@@ -5,7 +5,7 @@ services:
     image: ghcr.io/berriai/litellm:main-v1.77.3-stable
     container_name: litellm_proxy
     ports:
-      - "4000:4000"
+      - "127.0.0.1:4000:4000"
     volumes:
       - ./litellm_config.yaml:/app/config.yaml
     env_file:
@@ -22,7 +22,7 @@ services:
     image: redis:7-alpine
     container_name: litellm_redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     networks:
