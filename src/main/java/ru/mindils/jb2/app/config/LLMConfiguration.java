@@ -1,10 +1,10 @@
 package ru.mindils.jb2.app.config;
 
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.model.NoopApiKey;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
@@ -18,40 +18,49 @@ import java.time.Duration;
 @Configuration
 public class LLMConfiguration {
 
+  @Value("${spring.ai.openai.base-url:http://localhost:4000}")
+  private String baseUrl;
+
+  @Value("${spring.ai.openai.api-key:sk-1234}")
+  private String apiKey;
+
+  @Value("${spring.ai.openai.chat.options.timeout:60s}")
+  private Duration timeout;
+
   @Bean
-  @Deprecated
   public OpenAiApi openAiApi() {
     return OpenAiApi.builder()
-        .baseUrl("http://localhost:1234")
-        .apiKey(new NoopApiKey())
+        .baseUrl(baseUrl)
+        .apiKey(apiKey)
         .webClientBuilder(WebClient.builder()
             .clientConnector(new JdkClientHttpConnector(HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
-                .connectTimeout(Duration.ofSeconds(30))
+                .connectTimeout(timeout)
                 .build())))
         .restClientBuilder(RestClient.builder()
             .requestFactory(new JdkClientHttpRequestFactory(HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
-                .connectTimeout(Duration.ofSeconds(30))
+                .connectTimeout(timeout)
                 .build())))
         .build();
   }
 
   @Bean
-  @Deprecated
-  public OpenAiChatModel openAiChatModel(OpenAiApi api) {
+  public OpenAiChatModel openAiChatModel(OpenAiApi api,
+                                         @Value("${spring.ai.openai.chat.options.model:gpt-4}") String model,
+                                         @Value("${spring.ai.openai.chat.options.temperature:0.7}") Double temperature,
+                                         @Value("${spring.ai.openai.chat.options.max-tokens:1000}") Integer maxTokens) {
     return new OpenAiChatModel(
         api,
         OpenAiChatOptions.builder()
-            .model("qwen3-30b-a3b-instruct-2507-mlx")
-            .temperature(0.1)
-            .maxTokens(1000)
+            .model(model)
+            .temperature(temperature)
+            .maxTokens(maxTokens)
             .build()
     );
   }
 
   @Bean
-  @Deprecated
   public ChatClient chatClient(OpenAiChatModel model) {
     return ChatClient.builder(model).build();
   }

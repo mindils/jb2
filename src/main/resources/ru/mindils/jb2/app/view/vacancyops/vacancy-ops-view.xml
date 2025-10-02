@@ -45,7 +45,6 @@
             <button id="enqueueFirstChainBtn"
                     icon="PLUS" themeNames="icon" title="Добавить необработанные вакансии"/>
 
-            <button id="analyzePrimaryBtn" icon="lumo:play" title="Запустить обработку"/>
           </hbox>
         </vbox>
 
@@ -55,7 +54,6 @@
           <hbox>
             <button id="enqueueFullChainBtn"
                     icon="PLUS" themeNames="icon" title="Добавить необработанные вакансии"/>
-            <button id="analyzeFullBtn" icon="lumo:play" title="Запустить обработку"/>
           </hbox>
         </vbox>
         <vbox classNames="stat-card" themeNames="spacing" width="16rem">
@@ -112,19 +110,6 @@
           </vbox>
         </hbox>
 
-        <!-- Кнопки запуска цепочек -->
-        <hbox spacing="true">
-          <button id="startFullChainBtn"
-                  text="msg://startFullChainBtn.text"
-                  icon="PLAY"
-                  variant="PRIMARY"/>
-          <button id="startPrimaryChainBtn"
-                  text="msg://startPrimaryChainBtn.text"
-                  icon="PLAY"/>
-          <button id="startSocialTechnicalChainBtn"
-                  text="msg://startSocialTechnicalChainBtn.text"
-                  icon="PLAY"/>
-        </hbox>
 
         <!-- Кнопки управления очередями -->
         <hbox spacing="true">

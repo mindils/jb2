@@ -125,7 +125,7 @@
         <column property="updatedAt" autoWidth="true"/>
       </columns>
       <contextMenu>
-        <item id="contextFullLlmAnalyse" text="Полный llm анализ"/>
+        <item id="firstLlmAnalyseMenu" text="Первичный анализ выбранной вакансии"/>
       </contextMenu>
     </dataGrid>
     <hbox id="lookupActions" visible="false">

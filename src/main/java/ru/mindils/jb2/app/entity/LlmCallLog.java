@@ -26,26 +26,21 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 public class LlmCallLog {
+
   @Column(name = "ID", nullable = false)
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  // Идентификатор запроса для связи retry попыток
   @Column(name = "REQUEST_ID")
   private String requestId;
 
-  // Информация о модели
   @Column(name = "MODEL_NAME", nullable = false)
   private String modelName;
 
-  @Column(name = "MODEL_ID")
-  private Long modelId;
+  @Column(name = "ACTUAL_MODEL_USED")
+  private String actualModelUsed;
 
-  @Column(name = "BASE_URL")
-  private String baseUrl;
-
-  // Запрос
   @Lob
   @Column(name = "PROMPT")
   private String prompt;
@@ -53,14 +48,12 @@ public class LlmCallLog {
   @Column(name = "PROMPT_LENGTH")
   private Integer promptLength;
 
-  // Параметры запроса
   @Column(name = "TEMPERATURE")
   private Double temperature;
 
   @Column(name = "MAX_TOKENS")
   private Integer maxTokens;
 
-  // Ответ
   @Lob
   @Column(name = "RESPONSE")
   private String response;
@@ -68,7 +61,18 @@ public class LlmCallLog {
   @Column(name = "RESPONSE_LENGTH")
   private Integer responseLength;
 
-  // Статус и ошибки
+  @Column(name = "PROMPT_TOKENS")
+  private Integer promptTokens;
+
+  @Column(name = "COMPLETION_TOKENS")
+  private Integer completionTokens;
+
+  @Column(name = "TOTAL_TOKENS")
+  private Integer totalTokens;
+
+  @Column(name = "COST")
+  private Double cost;
+
   @Column(name = "SUCCESS", nullable = false)
   private Boolean success = false;
 
@@ -97,13 +101,11 @@ public class LlmCallLog {
   private OffsetDateTime createdDate;
 
   // Вспомогательные методы для быстрого создания логов
-  public static LlmCallLog startCall(String requestId, LLMModel model, String prompt,
+  public static LlmCallLog startCall(String requestId, String modelName, String prompt,
                                      Double temperature, Integer maxTokens) {
     LlmCallLog log = new LlmCallLog();
     log.setRequestId(requestId);
-    log.setModelId(model.getId());
-    log.setModelName(model.getModelName());
-    log.setBaseUrl(model.getBaseUrl());
+    log.setModelName(modelName);
     log.setPrompt(prompt);
     log.setPromptLength(prompt != null ? prompt.length() : 0);
     log.setTemperature(temperature);
@@ -128,5 +130,4 @@ public class LlmCallLog {
     this.errorDetails = e.getClass().getName();
     this.durationMs = durationMs;
   }
-
 }

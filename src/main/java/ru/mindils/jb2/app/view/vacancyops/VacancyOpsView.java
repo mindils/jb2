@@ -17,7 +17,6 @@ import ru.mindils.jb2.app.entity.ChainAnalysisType;
 import ru.mindils.jb2.app.service.TemporalStatusService;
 import ru.mindils.jb2.app.service.VacancyAnalysisService;
 import ru.mindils.jb2.app.service.VacancyChainQueueService;
-import ru.mindils.jb2.app.service.VacancyChainWorkflowService;
 import ru.mindils.jb2.app.service.VacancyOpsService;
 import ru.mindils.jb2.app.service.VacancyWorkflowService;
 import ru.mindils.jb2.app.service.analysis.VacancyScoreUpdateService;
@@ -25,8 +24,6 @@ import ru.mindils.jb2.app.view.main.MainView;
 
 
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Route(value = "vacancy-ops-view", layout = MainView.class)
@@ -53,8 +50,6 @@ public class VacancyOpsView extends StandardView {
   @Autowired
   private VacancyScoreUpdateService scoreUpdateService;
 
-  @Autowired
-  private VacancyChainWorkflowService chainWorkflowService;
 
   @Autowired
   private VacancyChainQueueService chainQueueService;
@@ -105,18 +100,6 @@ public class VacancyOpsView extends StandardView {
     refreshAll();
   }
 
-  @Subscribe(id = "analyzePrimaryBtn", subject = "clickListener")
-  public void onAnalyzePrimaryBtnClick(final ClickEvent<JmixButton> e) {
-    try {
-      chainWorkflowService.startPrimaryAnalysis();
-      notifications.create("Запущен первичный цепочный анализ")
-          .withType(Notifications.Type.SUCCESS).show();
-    } catch (IllegalStateException ex) {
-      notifications.create("Ошибка: " + ex.getMessage())
-          .withType(Notifications.Type.ERROR).show();
-    }
-  }
-
   @Subscribe(id = "analyzeSocialBtn", subject = "clickListener")
   public void onAnalyzeSocialBtnClick(final ClickEvent<JmixButton> e) {
     vacancyWorkflowService.analyze(AnalysisType.SOCIAL);
@@ -128,7 +111,6 @@ public class VacancyOpsView extends StandardView {
     refreshAll();
   }
 
-  /* ===== Buttons: Advanced (optional) ===== */
   @Subscribe(id = "updateFromQueueBtn", subject = "clickListener")
   public void onUpdateFromQueueBtnClick(final ClickEvent<JmixButton> e) {
     vacancyWorkflowService.updateFromQueue();
@@ -154,39 +136,6 @@ public class VacancyOpsView extends StandardView {
   public void onEnqueueSocialJavaBtnClick(final ClickEvent<JmixButton> e) {
     int count = vacancyAnalysisService.markProcessingForJavaVacancy(AnalysisType.SOCIAL);
     notifications.create("В очередь социального анализа (Java) добавлено: " + count).show();
-    refreshAll();
-  }
-
-  @Subscribe(id = "startFullChainBtn", subject = "clickListener")
-  public void onStartFullChainBtnClick(final ClickEvent<JmixButton> e) {
-    try {
-      chainWorkflowService.startFullAnalysis();
-      notifications.create("Запущен полный цепочный анализ").withType(Notifications.Type.SUCCESS).show();
-    } catch (IllegalStateException ex) {
-      notifications.create("Ошибка: " + ex.getMessage()).withType(Notifications.Type.ERROR).show();
-    }
-    refreshAll();
-  }
-
-  @Subscribe(id = "startPrimaryChainBtn", subject = "clickListener")
-  public void onStartPrimaryChainBtnClick(final ClickEvent<JmixButton> e) {
-    try {
-      chainWorkflowService.startPrimaryAnalysis();
-      notifications.create("Запущен первичный цепочный анализ").withType(Notifications.Type.SUCCESS).show();
-    } catch (IllegalStateException ex) {
-      notifications.create("Ошибка: " + ex.getMessage()).withType(Notifications.Type.ERROR).show();
-    }
-    refreshAll();
-  }
-
-  @Subscribe(id = "startSocialTechnicalChainBtn", subject = "clickListener")
-  public void onStartSocialTechnicalChainBtnClick(final ClickEvent<JmixButton> e) {
-    try {
-      chainWorkflowService.startSocialTechnicalAnalysis();
-      notifications.create("Запущен социально-технический цепочный анализ").withType(Notifications.Type.SUCCESS).show();
-    } catch (IllegalStateException ex) {
-      notifications.create("Ошибка: " + ex.getMessage()).withType(Notifications.Type.ERROR).show();
-    }
     refreshAll();
   }
 
@@ -259,18 +208,6 @@ public class VacancyOpsView extends StandardView {
     int added = chainQueueService.enqueueNotAnalyzedVacanciesNativeSql(ChainAnalysisType.FULL_ANALYSIS);
     notifications.create("В очередь полного анализа добавлено: " + added).show();
     refreshAll();
-  }
-
-  @Subscribe(id = "analyzeFullBtn", subject = "clickListener")
-  public void onAnalyzeFullBtnClick(final ClickEvent<JmixButton> event) {
-    try {
-      chainWorkflowService.startFullAnalysis();
-      notifications.create("Запущен полной цепочный анализ")
-          .withType(Notifications.Type.SUCCESS).show();
-    } catch (IllegalStateException ex) {
-      notifications.create("Ошибка: " + ex.getMessage())
-          .withType(Notifications.Type.ERROR).show();
-    }
   }
 
 }

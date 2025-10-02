@@ -2,19 +2,12 @@ package ru.mindils.jb2.app.view.vacancy;
 
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
-import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import io.jmix.core.DataManager;
 import io.jmix.core.FetchPlans;
-import io.jmix.core.LoadContext;
-import io.jmix.core.SaveContext;
-import io.jmix.core.ValueLoadContext;
-import io.jmix.core.entity.EntityValues;
-import io.jmix.core.entity.KeyValueEntity;
 import io.jmix.flowui.Notifications;
 import io.jmix.flowui.component.jpqlfilter.JpqlFilter;
 import io.jmix.flowui.facet.UrlQueryParametersFacet;
-import io.jmix.flowui.facet.urlqueryparameters.AbstractUrlQueryParametersBinder;
 import io.jmix.flowui.kit.component.button.JmixButton;
 import io.jmix.flowui.kit.component.dropdownbutton.DropdownButtonItem;
 import io.jmix.flowui.model.CollectionContainer;
@@ -32,12 +25,8 @@ import ru.mindils.jb2.app.service.VacancyLlmAnalysisWorkflowService;
 import ru.mindils.jb2.app.service.VacancyQueueService;
 import ru.mindils.jb2.app.service.VacancyService;
 import ru.mindils.jb2.app.service.VacancyWorkflowService;
-import ru.mindils.jb2.app.service.analysis.chain.AnalysisChainConfig;
-import ru.mindils.jb2.app.service.analysis.chain.VacancyChainAnalysisService;
 import ru.mindils.jb2.app.view.main.MainView;
 
-import java.util.List;
-import java.util.Map;
 
 
 @Route(value = "vacancies", layout = MainView.class)
@@ -70,8 +59,7 @@ public class VacancyListView extends StandardListView<Vacancy> {
   private DataManager dataManager;
   @Autowired
   private FetchPlans fetchPlans;
-  @Autowired
-  private VacancyChainAnalysisService vacancyChainAnalysisService;
+
   @Autowired
   private VacancyLlmAnalysisService vacancyLlmAnalysisService;
   @Autowired
@@ -199,51 +187,16 @@ public class VacancyListView extends StandardListView<Vacancy> {
     }
 
     vacancyLlmAnalysisWorkflowService.startFullAnalysisBy(vacancy.getId());
-//    vacancyLlmAnalysisWorkflowService.startFirstAnalysisBy(vacancy.getId());
-
-    // 0. получить конфигурацию Согласна тику делать обработку например полный анализ
-    // 1. Получить ли ранее выполнин первичный анализ java
-
-    // 2. если если нет то выполняем его и идем дальше
-    // сохраняем результат в базу данных (string и json ) если json не получился пишем ошибку чтобы можно было потом обработать ошибки повторно
-
-//    vacancyLlmAnalysisService.analyze(vacancy, VacancyLlmAnalysisType.JAVA_PRIMARY);
-
-    // 3. делаем проверку вакансия java или нет
-
-    // 4. если нет закочим если да то идем дальше
 
     notifications.create("В %s отправлена на выполнение".formatted(vacancy.getId()))
         .withType(Notifications.Type.SUCCESS)
         .show();
   }
 
-  @Subscribe("contextFullLlmAnalyse")
-  public void onContextFullLlmAnalyseGridContextMenuItemClick(final GridContextMenu.GridContextMenuItemClickEvent<Vacancy> event) {
-    if (event.getItem().isEmpty()) {
-      notifications.create("Вакансия не найдена");
-      return;
-    }
-
-    AnalysisChainConfig stopFactors = new AnalysisChainConfig(
-        ChainAnalysisType.CUSTOM,
-        "",
-        List.of("stopFactors"),
-        true,
-        true
-    );
-
-    vacancyChainAnalysisService.executeChain(event.getItem().get().getId(), stopFactors);
-
-    notifications.create(
-            String.format("Вакансия %s отправлена на выполнение", event.getItem().get().getId()))
-        .withType(Notifications.Type.SUCCESS)
-        .show();
-  }
-
-  @Subscribe(id = "updateFirstAnalysisVacancy", subject = "clickListener")
-  public void onUpdateFirstAnalysisVacancyClick(final ClickEvent<JmixButton> event) {
+  @Subscribe("firstLlmAnalyseMenu")
+  public void onFirstLlmAnalyseMenuGridContextMenuItemClick(final GridContextMenu.GridContextMenuItemClickEvent<?> event) {
     Vacancy vacancy = vacanciesDc.getItemOrNull();
+
     if (vacancy == null) {
       notifications.create("Вакансия не выбрана")
           .withType(Notifications.Type.ERROR)
@@ -253,33 +206,4 @@ public class VacancyListView extends StandardListView<Vacancy> {
 
     vacancyLlmAnalysisWorkflowService.startFirstAnalysisBy(vacancy.getId());
   }
-
-//  private class JavaFilterUrlBinder extends AbstractUrlQueryParametersBinder {
-//
-//    JavaFilterUrlBinder() {
-//      javaFilter.addValueChangeListener(e -> {
-//        Boolean value = e.getValue();
-//        Map<String, List<String>> params = value == null
-//            ? Map.of()
-//            : Map.of("java", List.of(value.toString()));
-//        QueryParameters qp = new QueryParameters(params);
-//        fireQueryParametersChanged(new UrlQueryParametersFacet.UrlQueryParametersChangeEvent(this, qp));
-//      });
-//    }
-//
-//    @Override
-//    public void updateState(QueryParameters qp) {
-//      List<String> vals = qp.getParameters().get("java");
-//      if (vals == null || vals.isEmpty()) {
-//        javaFilter.setValue(null);
-//      } else {
-//        javaFilter.setValue(Boolean.valueOf(vals.get(0)));
-//      }
-//    }
-//
-//    @Override
-//    public com.vaadin.flow.component.Component getComponent() {
-//      return javaFilter;
-//    }
-//  }
 }
