@@ -1,0 +1,78 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: envs/run/Dockerfile
+      cache_from:
+        - jb2:latest
+
+    container_name: jb2
+    restart: unless-stopped
+
+    environment:
+      # База данных PostgreSQL
+      MAIN_DATASOURCE_URL: jdbc:postgresql://localhost:5437/postgres
+      MAIN_DATASOURCE_USERNAME: root
+      MAIN_DATASOURCE_PASSWORD: root
+
+      # Temporal Workflow Server
+      SPRING_TEMPORAL_CONNECTION_TARGET: localhost:7234
+
+      # OpenAI API
+      SPRING_AI_OPENAI_BASE_URL: http://localhost:4000
+      # SPRING_AI_OPENAI_API_KEY: your-key-here
+
+      # Профиль Spring
+      SPRING_PROFILES_ACTIVE: dev
+
+      # JVM настройки
+      JAVA_OPTS: -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC
+
+      # Логирование
+      LOGGING_LEVEL_ROOT: INFO
+      LOGGING_LEVEL_IO_JMIX: INFO
+      LOGGING_LEVEL_ECLIPSELINK_LOGGING_SQL: info
+
+      # Таймзона
+      TZ: Europe/Moscow
+
+    ports:
+      - "8085:8080"
+
+    # Ограничения ресурсов для Raspberry Pi
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "2.0"
+        reservations:
+          memory: 512M
+          cpus: "1.0"
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+    # Дополнительные хосты (раскомментируйте если pi.local не резолвится)
+    # extra_hosts:
+    #   - "pi.local:192.168.1.100"
+
+    # Логи
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
