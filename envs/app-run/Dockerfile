@@ -8,6 +8,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /workspace
 
+# ВАЖНО: Увеличиваем heap memory для Node.js
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
 # Копирование Gradle wrapper и конфигурации
 COPY gradlew .
 COPY gradle ./gradle
@@ -17,7 +20,7 @@ COPY settings.gradle ./settings.gradle
 # Делаем gradlew исполняемым
 RUN chmod +x ./gradlew
 
-# Загрузка зависимостей с retry логикой (из-за возможных проблем с сетью)
+# Загрузка зависимостей
 RUN set -e; \
     attempts=0; \
     max_attempts=3; \
@@ -26,18 +29,12 @@ RUN set -e; \
         attempts=$((attempts+1)); \
         echo "Dependencies download failed (attempt $attempts/$max_attempts). Retrying in ${delay_seconds}s..."; \
         sleep "$delay_seconds"; \
-    done; \
-    if [ "$attempts" -ge "$max_attempts" ]; then \
-        echo "Failed to download dependencies after $max_attempts attempts"; \
-        exit 1; \
-    fi
+    done
 
 # Копирование исходного кода
 COPY src ./src
 
-# Сборка приложения с Vaadin production mode
-# -Xmx2g важен для Vaadin frontend сборки
-# Для Raspberry Pi с ограниченной памятью можно снизить до -Xmx1g, но сборка может быть медленнее
+# Сборка с увеличенной памятью для Gradle и Node.js
 RUN set -e; \
     attempts=0; \
     max_attempts=3; \
@@ -45,7 +42,7 @@ RUN set -e; \
     until [ "$attempts" -ge "$max_attempts" ] || \
         ./gradlew clean bootJar \
         -Pvaadin.productionMode=true \
-        -Dorg.gradle.jvmargs='-Xmx2g -XX:+UseContainerSupport' \
+        -Dorg.gradle.jvmargs='-Xmx4g -XX:+UseContainerSupport -XX:MaxMetaspaceSize=512m' \
         --no-daemon \
         --stacktrace; do \
         attempts=$((attempts+1)); \
@@ -60,27 +57,21 @@ RUN set -e; \
 # Runtime образ (меньше размер)
 FROM eclipse-temurin:21-jre-jammy
 
-# Создание пользователя для безопасности
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 WORKDIR /app
 
-# Копирование собранного jar
 COPY --from=builder /workspace/build/libs/*.jar app.jar
 
-# Смена владельца файлов
 RUN chown -R appuser:appuser /app
 
-# Переключение на непривилегированного пользователя
 USER appuser
 
 EXPOSE 8080
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8080/actuator/health || exit 1
 
-# JVM оптимизация для контейнера
 ENTRYPOINT ["java", \
     "-XX:+UseContainerSupport", \
     "-XX:MaxRAMPercentage=75.0", \
