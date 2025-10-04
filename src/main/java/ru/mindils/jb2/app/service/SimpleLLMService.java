@@ -9,7 +9,6 @@ import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -19,6 +18,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ru.mindils.jb2.app.dto.LlmAnalysisResponse;
+import ru.mindils.jb2.app.util.JsonExtractor;
 
 import java.util.UUID;
 
@@ -100,12 +100,33 @@ public class SimpleLLMService {
    */
   private LlmAnalysisResponse parseResponseToDto(String rawResponse, Long llmCallId, String llmModel) {
     try {
-      JsonNode jsonNode = objectMapper.readTree(rawResponse);
+      // Логируем исходный ответ для отладки
+      if (JsonExtractor.containsMarkdownBlock(rawResponse)) {
+        log.debug("Response contains markdown block, extracting JSON for call {}", llmCallId);
+      }
+
+      // Извлекаем чистый JSON из ответа
+      String cleanedJson = JsonExtractor.extractJson(rawResponse);
+
+      // Если извлеченный JSON отличается от исходного, логируем это
+      if (!cleanedJson.equals(rawResponse.trim())) {
+        log.debug("JSON extracted from markdown. Original length: {}, Cleaned length: {}",
+            rawResponse.length(), cleanedJson.length());
+      }
+
+      // Парсим очищенный JSON
+      JsonNode jsonNode = objectMapper.readTree(cleanedJson);
       log.debug("Successfully parsed JSON response for call {}", llmCallId);
-      return LlmAnalysisResponse.success(rawResponse, jsonNode, llmCallId, llmModel);
+
+      // Возвращаем успешный ответ с очищенным JSON
+      return LlmAnalysisResponse.success(cleanedJson, jsonNode, llmCallId, llmModel);
+
     } catch (JsonProcessingException e) {
       String parseError = "Failed to parse JSON: " + e.getMessage();
       log.warn("Failed to parse JSON response for call {}: {}", llmCallId, e.getMessage());
+      log.debug("Raw response that failed to parse: {}", rawResponse);
+
+      // Возвращаем ошибку парсинга с исходным ответом
       return LlmAnalysisResponse.withParseError(rawResponse, llmCallId, llmModel, parseError);
     }
   }
