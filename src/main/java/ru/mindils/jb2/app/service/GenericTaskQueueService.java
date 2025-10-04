@@ -1,13 +1,27 @@
 package ru.mindils.jb2.app.service;
 
+import io.jmix.core.DataManager;
+import io.jmix.core.FetchPlans;
+import io.jmix.core.LoadContext;
+import io.jmix.core.SaveContext;
+import io.jmix.core.ValueLoadContext;
+import io.jmix.core.entity.EntityValues;
+import io.jmix.core.entity.KeyValueEntity;
+import io.jmix.flowui.model.CollectionLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.mindils.jb2.app.dto.TaskQueueStats;
+import ru.mindils.jb2.app.entity.GenericTaskQueue;
 import ru.mindils.jb2.app.entity.GenericTaskQueueStatus;
 import ru.mindils.jb2.app.entity.GenericTaskQueueType;
+import ru.mindils.jb2.app.entity.Vacancy;
 import ru.mindils.jb2.app.repository.GenericTaskQueueRepository;
+
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Сервис для работы с очередью задач
@@ -20,12 +34,14 @@ public class GenericTaskQueueService {
 
   private static final Logger log = LoggerFactory.getLogger(GenericTaskQueueService.class);
   private final GenericTaskQueueRepository genericTaskQueueRepository;
+  private final FetchPlans fetchPlans;
+  private final DataManager dataManager;
 
-  public GenericTaskQueueService(GenericTaskQueueRepository genericTaskQueueRepository) {
+  public GenericTaskQueueService(GenericTaskQueueRepository genericTaskQueueRepository, FetchPlans fetchPlans, DataManager dataManager) {
     this.genericTaskQueueRepository = genericTaskQueueRepository;
+    this.fetchPlans = fetchPlans;
+    this.dataManager = dataManager;
   }
-
-  // ============ ПЕРВИЧНЫЙ АНАЛИЗ ============
 
   /**
    * Поставить в очередь все вакансии для первичного анализа
@@ -39,6 +55,121 @@ public class GenericTaskQueueService {
     int count = genericTaskQueueRepository.enqueueForLlmAnalyzed(GenericTaskQueueType.LLM_FIRST, "JAVA_PRIMARY");
     log.info("Enqueued {} vacancies for first LLM analysis", count);
     return count;
+  }
+
+  /**
+   * Добавить вакансии из loader в очередь задач
+   *
+   * @param loader    CollectionLoader с вакансиями
+   * @param taskType  тип задачи
+   * @param batchSize размер батча для обработки
+   * @return количество добавленных задач
+   */
+  @Transactional
+  public int enqueueFromLoader(CollectionLoader<Vacancy> loader, GenericTaskQueueType taskType, int batchSize) {
+    log.info("Starting to enqueue vacancies from loader for task type: {}", taskType);
+
+    LoadContext<Vacancy> baseCtx = loader.createLoadContext();
+    baseCtx.setFetchPlan(fetchPlans.builder(Vacancy.class).add("id").build());
+
+    return enqueueVacancies(baseCtx, taskType, batchSize);
+  }
+
+  /**
+   * Внутренний метод для добавления вакансий в очередь
+   */
+  private int enqueueVacancies(LoadContext<Vacancy> baseCtx, GenericTaskQueueType taskType, int batchSize) {
+    int totalEnqueued = 0;
+    int first = 0;
+    final String entityName = "jb2_Vacancy";
+
+    while (true) {
+      // Копируем контекст для текущей страницы
+      @SuppressWarnings("unchecked")
+      LoadContext<Vacancy> pageCtx = (LoadContext<Vacancy>) baseCtx.copy();
+      pageCtx.getQuery().setFirstResult(first).setMaxResults(batchSize);
+
+      List<Vacancy> page = dataManager.loadList(pageCtx);
+      if (page.isEmpty()) {
+        break;
+      }
+
+      log.debug("Processing batch starting from {}, size: {}", first, page.size());
+
+      // Собираем ID вакансий с явным приведением типа
+      List<String> vacancyIds = page.stream()
+          .map(v -> (String) EntityValues.getId(v))
+          .collect(Collectors.toList());
+
+      // Находим уже существующие записи в очереди
+      Set<String> existingIds = findExistingTaskQueueIds(vacancyIds, taskType);
+
+      // Создаем новые записи
+      SaveContext saveCtx = new SaveContext();
+      for (Vacancy vacancy : page) {
+        String vacancyId = (String) EntityValues.getId(vacancy);
+
+        // Пропускаем, если уже в очереди
+        if (existingIds.contains(vacancyId)) {
+          log.debug("Vacancy {} already in queue for task type {}, skipping", vacancyId, taskType);
+          continue;
+        }
+
+        GenericTaskQueue task = dataManager.create(GenericTaskQueue.class);
+        task.setEntityName(entityName);
+        task.setEntityId(vacancyId);
+        task.setTaskType(taskType.getId());
+        task.setStatus(GenericTaskQueueStatus.NEW);
+        task.setPriority(1);
+
+        saveCtx.saving(task);
+      }
+
+      // Сохраняем батч
+      if (!saveCtx.getEntitiesToSave().isEmpty()) {
+        dataManager.save(saveCtx);
+        int batchEnqueued = saveCtx.getEntitiesToSave().size();
+        totalEnqueued += batchEnqueued;
+        log.debug("Enqueued {} vacancies in current batch", batchEnqueued);
+      }
+
+      first += page.size();
+    }
+
+    log.info("Finished enqueueing vacancies. Total enqueued: {}", totalEnqueued);
+    return totalEnqueued;
+  }
+
+  /**
+   * Найти существующие записи в очереди для указанных вакансий и типа задачи
+   */
+  private Set<String> findExistingTaskQueueIds(List<String> vacancyIds, GenericTaskQueueType taskType) {
+    if (vacancyIds.isEmpty()) {
+      return Set.of();
+    }
+
+    ValueLoadContext vlc = ValueLoadContext.create()
+        .setQuery(new ValueLoadContext.Query(
+            "select q.entityId as vacancyId " +
+                "from jb2_GenericTaskQueue q " +
+                "where q.taskType = :taskType " +
+                "and q.entityName = :entityName " +
+                "and q.entityId in :ids " +
+                "and q.status in :activeStatuses"))
+        .addProperty("vacancyId");
+
+    vlc.getQuery().setParameter("taskType", taskType.getId());
+    vlc.getQuery().setParameter("entityName", "jb2_Vacancy");
+    vlc.getQuery().setParameter("ids", vacancyIds);
+    vlc.getQuery().setParameter("activeStatuses", List.of(
+        GenericTaskQueueStatus.NEW.getId(),
+        GenericTaskQueueStatus.PROCESSING.getId()
+    ));
+
+    List<KeyValueEntity> rows = dataManager.loadValues(vlc);
+    return rows.stream()
+        .map(kv -> kv.<String>getValue("vacancyId"))
+        .collect(Collectors.toSet());
   }
 
   // ============ ПОЛНЫЙ АНАЛИЗ ============
@@ -64,8 +195,8 @@ public class GenericTaskQueueService {
    * Получить количество задач по типу и статусу PROCESSING (для обратной совместимости)
    */
   @Transactional(readOnly = true)
-  public Integer getCountLlmAnalysis(GenericTaskQueueType queueType) {
-    return genericTaskQueueRepository.getCountLlmAnalysis(queueType);
+  public Integer getCountByType(GenericTaskQueueType queueType) {
+    return genericTaskQueueRepository.getCountByType(queueType);
   }
 
   /**

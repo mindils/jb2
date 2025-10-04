@@ -15,7 +15,6 @@
           <property name="vacancy" fetchPlan="_base">
           </property>
         </property>
-        <property name="vacancyAnalysis" fetchPlan="_base"/>
       </fetchPlan>
       <loader id="vacanciesDl" readOnly="true">
         <query>
@@ -30,7 +29,7 @@
       <pagination component="pagination"/>
       <propertyFilter component="idFilter" param="id"/>
       <propertyFilter component="archFilter" param="archived"/>
-<!--      <jpqlFilter component="javaFilter"/>-->
+      <!--      <jpqlFilter component="javaFilter"/>-->
     </urlQueryParameters>
   </facets>
   <actions>
@@ -38,68 +37,71 @@
     <action id="discardAction" type="lookup_discard"/>
   </actions>
   <layout>
-    <hbox id="buttonsPanel" classNames="buttons-panel">
-      <button id="updateFirstAnalysisVacancy" text="Анализ на java"/>
-      <button id="updateAnalysisVacancy" text="msg://updateAnalysisFullVacancy.text"/>
-      <button id="updateAllVacancy" text="msg://updateAllVacancy.text"/>
-      <button id="addPrimaryToQueueBtn" text="msg://analysisVacancyPrimary.text"/>
-      <button id="startPrimaryAnalysisBtn" text="msg://startPrimaryAnalysis.text"/>
-      <button id="addSocialToQueueBtn" text="msg://analysisVacancySocial.text"/>
-      <button id="startSocialAnalysisBtn" text="msg://startSocialAnalysis.text"/>
-      <simplePagination id="pagination" dataLoader="vacanciesDl"/>
-    </hbox>
-    <dropdownButton id="updateVacancyButton" text="Действия">
-      <items>
-        <textItem id="addVacancyBtn" text="В очередь выбранные вакансии"/>
-        <textItem id="addVacancyInFirstLlmQueueBtn" text="В очередь First LLM"/>
-        <textItem id="addVacancyInSocialLlmQueueBtn" text="В очередь Social LLM"/>
-      </items>
-    </dropdownButton>
-    <dropdownButton id="chainAnalysisButton"
-                    text="msg://chainAnalysisButton.text"
-                    icon="CALC">
-      <items>
-        <textItem id="addToFullChainBtn"
-                  text="msg://chainAnalysisButton.addToFullChainBtn.text"/>
-        <textItem id="addToPrimaryChainBtn"
-                  text="msg://chainAnalysisButton.addToPrimaryChainBtn.text"/>
-        <textItem id="addToSocialTechnicalChainBtn"
-                  text="msg://chainAnalysisButton.addToSocialTechnicalChainBtn.text"/>
-      </items>
-    </dropdownButton>
-    <propertyFilter id="idFilter" property="id" operation="EQUAL" dataLoader="vacanciesDl"/>
-    <jpqlFilter id="javaFilter"
-                dataLoader="vacanciesDl"
-                label="Java"
-                labelPosition="ASIDE"
-                parameterClass="java.lang.Boolean"
-                parameterName="javaParam">
-      <condition>
-        <c:jpql>
-          <!-- 1. связываемся с нужной таблицей -->
-          <c:join><![CDATA[
+    <hbox width="100%" spacing="false">
+      <startSlot>
+        <details summaryText="Фильтры" themeNames="small" width="100%">
+          <propertyFilter
+              id="idFilter"
+              label="ИД Вакансии"
+              property="id"
+              operation="EQUAL"
+              dataLoader="vacanciesDl"
+              labelPosition="TOP"
+              css="padding-right: 1em"
+          />
+          <jpqlFilter id="javaFilter"
+                      dataLoader="vacanciesDl"
+                      label="Java Вакансия"
+                      labelPosition="TOP"
+                      css="padding-right: 1em"
+                      parameterClass="java.lang.Boolean"
+                      parameterName="javaParam">
+            <condition>
+              <c:jpql>
+                <c:join><![CDATA[
               join jb2_VacancyLlmAnalysis vla
                    on vla.vacancy = {E}
               ]]>
-          </c:join>
-
-          <!-- 2. фильтр по типу и содержимому JSON -->
-          <c:where><![CDATA[
+                </c:join>
+                <c:where><![CDATA[
               vla.analyzeType = 'JAVA_PRIMARY'
               and cast(function('jsonb_extract_path_text', vla.analyzeData, 'java') boolean) = :javaParam
           ]]>
-          </c:where>
-        </c:jpql>
-      </condition>
-    </jpqlFilter>
-    <propertyFilter id="archFilter" property="archived" operation="EQUAL" dataLoader="vacanciesDl"/>
+                </c:where>
+              </c:jpql>
+            </condition>
+          </jpqlFilter>
+          <propertyFilter
+              id="archFilter"
+              label="Вакансия в архиве"
+              property="archived"
+              operation="EQUAL"
+              dataLoader="vacanciesDl"
+              labelPosition="TOP"
+          />
+        </details>
+      </startSlot>
+
+      <endSlot>
+        <hbox id="buttonsPanel" classNames="buttons-panel" alignSelf="START">
+          <dropdownButton id="vacancyDropdown" text="Добавить в очередь из таблицы на:" icon="CALC">
+            <items>
+              <textItem id="updateVacancyBtn" text="Обновление"/>
+              <textItem id="addVacancyInFirstLlmQueueBtn" text="Первичный анализ llm"/>
+              <textItem id="addVacancyInSocialLlmQueueBtn" text="Полный анализ llm"/>
+            </items>
+          </dropdownButton>
+          <simplePagination id="pagination" dataLoader="vacanciesDl" alignSelf="START"/>
+        </hbox>
+      </endSlot>
+    </hbox>
     <dataGrid id="vacanciesDataGrid"
               width="100%"
               minHeight="20em"
               dataContainer="vacanciesDc"
               columnReorderingAllowed="true">
       <actions>
-        <action id="readAction" type="list_read">
+        <action id="readAction" type="list_read" text="Открыть">
           <properties>
             <property name="openMode" value="DIALOG"/>
           </properties>

@@ -1,5 +1,6 @@
 package ru.mindils.jb2.app.temporal.workflow;
 
+import io.temporal.workflow.SignalMethod;
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
 
@@ -10,4 +11,7 @@ import java.util.Map;
 public interface VacancySyncWorkflow {
   @WorkflowMethod
   void run(List<Map<String, String>> requestParams);
+
+  @SignalMethod
+  void stop();
 }

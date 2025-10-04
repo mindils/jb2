@@ -75,7 +75,7 @@ public class GenericTaskQueueRepository {
    * Получает количество задач по типу (для обратной совместимости)
    * Теперь считает задачи в статусе PROCESSING
    */
-  public Integer getCountLlmAnalysis(GenericTaskQueueType queueType) {
+  public Integer getCountByType(GenericTaskQueueType queueType) {
     return dataManager.loadValue("""
                 select count(e) from jb2_GenericTaskQueue e
                 where e.taskType = :taskType and e.status = :status

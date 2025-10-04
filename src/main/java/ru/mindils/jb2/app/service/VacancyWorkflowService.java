@@ -1,15 +1,15 @@
 package ru.mindils.jb2.app.service;
 
+import io.temporal.api.common.v1.WorkflowExecution;
+import io.temporal.api.enums.v1.WorkflowExecutionStatus;
+import io.temporal.api.workflowservice.v1.DescribeWorkflowExecutionRequest;
+import io.temporal.api.workflowservice.v1.DescribeWorkflowExecutionResponse;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
+import io.temporal.serviceclient.WorkflowServiceStubs;
 import org.springframework.stereotype.Service;
-import ru.mindils.jb2.app.entity.AnalysisType;
-import ru.mindils.jb2.app.temporal.VacancyAnalysisConstants;
 import ru.mindils.jb2.app.temporal.VacancySyncConstants;
-import ru.mindils.jb2.app.temporal.VacancyUpdateConstants;
-import ru.mindils.jb2.app.temporal.workflow.VacancyAnalysisWorkflow;
 import ru.mindils.jb2.app.temporal.workflow.VacancySyncWorkflow;
-import ru.mindils.jb2.app.temporal.workflow.VacancyUpdateWorkflow;
 
 import java.util.List;
 import java.util.Map;
@@ -17,9 +17,11 @@ import java.util.Map;
 @Service
 public class VacancyWorkflowService {
   private final WorkflowClient workflowClient;
+  private final WorkflowServiceStubs service;
 
-  public VacancyWorkflowService(WorkflowClient workflowClient) {
+  public VacancyWorkflowService(WorkflowClient workflowClient, WorkflowServiceStubs service) {
     this.workflowClient = workflowClient;
+    this.service = service;
   }
 
   // Оригинальный метод без параметров (для обратной совместимости)
@@ -40,27 +42,52 @@ public class VacancyWorkflowService {
     WorkflowClient.start(() -> workflow.run(requestParams));
   }
 
-  public void updateFromQueue() {
-    VacancyUpdateWorkflow workflow = workflowClient.newWorkflowStub(
-        VacancyUpdateWorkflow.class,
-        WorkflowOptions.newBuilder()
-            .setTaskQueue(VacancyUpdateConstants.QUEUE)
-            .setWorkflowId(VacancyUpdateConstants.WORKFLOW_ID)
-            .build()
-    );
+  /**
+   * Останавливает выполнение workflow через сигнал
+   * @return true если сигнал был отправлен, false если workflow не запущен
+   */
+  public boolean stopSync() {
+    try {
+      // Проверяем, запущен ли workflow
+      if (!isWorkflowRunning()) {
+        return false;
+      }
 
-    WorkflowClient.start(workflow::run);
+      // Получаем существующий workflow stub
+      VacancySyncWorkflow workflow = workflowClient.newWorkflowStub(
+          VacancySyncWorkflow.class,
+          VacancySyncConstants.WORKFLOW_ID
+      );
+
+      // Отправляем сигнал остановки
+      workflow.stop();
+      return true;
+    } catch (Exception e) {
+      return false;
+    }
   }
 
-  public void analyze(AnalysisType type) {
-    VacancyAnalysisWorkflow workflow = workflowClient.newWorkflowStub(
-        VacancyAnalysisWorkflow.class,
-        WorkflowOptions.newBuilder()
-            .setTaskQueue(VacancyAnalysisConstants.QUEUE)
-            .setWorkflowId(VacancyAnalysisConstants.WORKFLOW_ID + "_" + type.getId())
-            .build()
-    );
+  /**
+   * Проверяет, запущен ли workflow
+   * @return true если workflow выполняется
+   */
+  public boolean isWorkflowRunning() {
+    try {
+      DescribeWorkflowExecutionRequest request = DescribeWorkflowExecutionRequest.newBuilder()
+          .setNamespace(workflowClient.getOptions().getNamespace())
+          .setExecution(WorkflowExecution.newBuilder()
+              .setWorkflowId(VacancySyncConstants.WORKFLOW_ID)
+              .build())
+          .build();
 
-    WorkflowClient.start(() -> workflow.run(type));
+      DescribeWorkflowExecutionResponse response = service.blockingStub()
+          .describeWorkflowExecution(request);
+
+      WorkflowExecutionStatus status = response.getWorkflowExecutionInfo().getStatus();
+
+      return status == WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_RUNNING;
+    } catch (Exception e) {
+      return false;
+    }
   }
 }

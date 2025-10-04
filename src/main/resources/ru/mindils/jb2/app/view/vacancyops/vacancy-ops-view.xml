@@ -5,7 +5,6 @@
 
   <data>
     <collection id="workflowInfosDc" class="ru.mindils.jb2.app.dto.WorkflowInfo">
-      <!-- FIX #1: id лоадера -->
       <loader id="workflowInfosDl" readOnly="true"/>
       <fetchPlan extends="_base"/>
     </collection>
@@ -14,7 +13,6 @@
   <layout>
     <vbox spacing="true" padding="true" width="100%">
 
-      <!-- ===== TOP: Stats tiles ===== -->
       <h3 text="Операции с вакансиями"/>
       <hbox width="100%" classNames="gap-m" wrap="true">
 

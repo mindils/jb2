@@ -8,6 +8,7 @@ import org.springframework.lang.Nullable;
  */
 public enum GenericTaskQueueType implements EnumClass<String> {
 
+  VACANCY_UPDATE("VACANCY_UPDATE"),
   LLM_FIRST("LLM_FIRST"),
   LLM_FULL("LLM_FULL");
 

@@ -21,6 +21,4 @@ public interface VacancySyncActivities {
    * @param vacancyId ID вакансии
    */
   void saveVacancy(String vacancyId);
-
-  void saveVacancyState();
 }

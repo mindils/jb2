@@ -18,6 +18,9 @@ import java.util.Map;
 public class VacancySyncWorkflowImpl implements VacancySyncWorkflow {
   private static final Logger log = Workflow.getLogger(VacancySyncWorkflowImpl.class);
 
+  // Флаг для остановки процесса
+  private boolean shouldStop = false;
+
   private final VacancySyncActivities activities = Workflow.newActivityStub(VacancySyncActivities.class,
       ActivityOptions.newBuilder()
           .setRetryOptions(
@@ -27,6 +30,12 @@ public class VacancySyncWorkflowImpl implements VacancySyncWorkflow {
           )
           .setStartToCloseTimeout(Duration.ofMinutes(2))
           .build());
+
+  @Override
+  public void stop() {
+    log.info("Received stop signal for vacancy synchronization workflow");
+    this.shouldStop = true;
+  }
 
   @Override
   public void run(List<Map<String, String>> requestParams) {
@@ -39,6 +48,13 @@ public class VacancySyncWorkflowImpl implements VacancySyncWorkflow {
 
     try {
       do {
+        // Проверяем флаг остановки
+        if (shouldStop) {
+          log.warn("Vacancy synchronization stopped by user signal at page {}/{}. Processed {} vacancies",
+              currentPage, totalPages, totalProcessed);
+          return;
+        }
+
         log.info("Processing page: {}", currentPage);
 
         VacancySearchResponseDto response = activities.searchVacancies(currentPage, requestParams);
@@ -55,6 +71,13 @@ public class VacancySyncWorkflowImpl implements VacancySyncWorkflow {
         }
 
         for (VacancyShortDto vacancy : response.getItems()) {
+          // Проверяем флаг остановки перед обработкой каждой вакансии
+          if (shouldStop) {
+            log.warn("Vacancy synchronization stopped by user signal at vacancy {}/{}. Total processed: {}",
+                totalProcessed, totalVacancies, totalProcessed);
+            return;
+          }
+
           try {
             log.debug("Processing vacancy: {} - {}", vacancy.getId(), vacancy.getName());
             activities.saveVacancy(vacancy.getId());
@@ -77,7 +100,6 @@ public class VacancySyncWorkflowImpl implements VacancySyncWorkflow {
 
       log.info("Vacancy synchronization completed successfully. " +
           "Total pages processed: {}, total vacancies processed: {}", currentPage, totalProcessed);
-      activities.saveVacancyState();
     } catch (Exception e) {
       log.error("Vacancy synchronization failed: {}", e.getMessage(), e);
       throw e;

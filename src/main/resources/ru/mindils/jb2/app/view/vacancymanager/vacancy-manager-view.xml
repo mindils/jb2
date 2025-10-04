@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <view xmlns="http://jmix.io/schema/flowui/view"
+      xmlns:layout="http://jmix.io/schema/flowui/layout"
       title="msg://vacancyManagerView.title">
   <layout>
     <h3 text="LLM анализ"/>
@@ -28,6 +29,26 @@
       <vbox classNames="stat-card" themeNames="spacing" width="16rem">
         <h4 text="Рейтинг вакансий"/>
         <button id="calculateScoreBtn" icon="lumo:play" text="Пересчитать рейтинг"/>
+      </vbox>
+    </hbox>
+
+    <h3 text="Операции с вакансиями"/>
+    <hbox width="100%" classNames="gap-m" wrap="true">
+      <vbox classNames="stat-card" themeNames="spacing" width="16rem">
+        <h4 text="Очередь обновления"/>
+        <p id="updateQueueCountText" classNames="stat-number"/>
+        <button id="updateFromQueueBtn" text="Обновить из очереди"/>
+      </vbox>
+
+      <vbox classNames="stat-card" themeNames="spacing" width="24rem">
+        <h4 text="Последняя обновленная вакансия"/>
+        <p id="lastSyncText"/>
+
+        <button id="syncAllBtn" text="Полная синхронизация вакансий" themeNames="primary small"/>
+        <button id="stopSyncBtn" text="Остановить" themeNames="primary small"/>
+
+        <textField id="daysField" label="Дней (1..30, пусто = авто(последнее обновление))" clearButtonVisible="true" width="14rem"/>
+        <button id="syncRecentBtn" text="Синхронизация за период" themeName="small"/>
       </vbox>
     </hbox>
   </layout>
