@@ -25,13 +25,21 @@
       <column name="DOMAINS" type="VARCHAR(255)"/>
       <column name="socially_significant" type="VARCHAR(255)"/>
       <column name="work_mode" type="VARCHAR(255)"/>
-
-      <column name="created_date"
-              type="${offsetDateTime.type}"/>
-      <column name="last_modified_date"
-              type="${offsetDateTime.type}"/>
-      <column name="EXTRA" type="jsonb"/>
+      <column name="created_date" type="${offsetDateTime.type}"/>
+      <column name="last_modified_date" type="${offsetDateTime.type}"/>
+      <column name="extra" type="jsonb"/>
     </createTable>
+  </changeSet>
+
+  <changeSet id="2" author="jb2" runOnChange="true">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <columnExists tableName="jb2_vacancy_analysis" columnName="extra" />
+      </not>
+    </preConditions>
+    <addColumn tableName="jb2_vacancy_analysis">
+      <column name="extra" type="jsonb"/>
+    </addColumn>
   </changeSet>
 
 </databaseChangeLog>
