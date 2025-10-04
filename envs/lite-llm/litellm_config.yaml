@@ -37,6 +37,64 @@ model_list:
       max_requests_per_minute: 20
       max_requests_per_day: 50
 
+  # Модель 3: Gemini Flash Lite
+  - model_name: gemini-flash-lite
+    litellm_params:
+      model: gemini/gemini-flash-lite-latest
+      api_key: os.environ/GEMINI_API_KEY
+      temperature: 0.1
+      max_tokens: 8000
+      timeout: 30
+      rpm: 15
+      tpm: 1000000
+    model_info:
+      id: gemini-flash-lite
+      mode: chat
+      supports_function_calling: true
+      supports_vision: true
+      max_requests_per_minute: 15
+      max_tokens_per_minute: 1000000
+      max_requests_per_day: 1500
+
+  # Модель 4: Gemini Flash
+  - model_name: gemini-flash
+    litellm_params:
+      model: gemini/gemini-flash-latest
+      api_key: os.environ/GEMINI_API_KEY
+      temperature: 0.1
+      max_tokens: 8000
+      timeout: 30
+      rpm: 15
+      tpm: 1000000
+    model_info:
+      id: gemini-flash
+      mode: chat
+      supports_function_calling: true
+      supports_vision: true
+      max_requests_per_minute: 15
+      max_tokens_per_minute: 1000000
+      max_requests_per_day: 1500
+
+  # Модель 5: Gemini 2.5 Pro
+  - model_name: gemini-2.5-pro
+    litellm_params:
+      model: gemini/gemini-2.5-pro
+      api_key: os.environ/GEMINI_API_KEY
+      temperature: 0.1
+      max_tokens: 8000
+      timeout: 30
+      rpm: 10
+      tpm: 4000000
+    model_info:
+      id: gemini-2.5-pro
+      mode: chat
+      supports_function_calling: true
+      supports_vision: true
+      max_requests_per_minute: 10
+      max_tokens_per_minute: 4000000
+      max_requests_per_day: 1500
+
+  # Группа моделей для распределения нагрузки
   - model_name: chat-models
     litellm_params:
       model: groq/openai/gpt-oss-120b
@@ -56,6 +114,29 @@ model_list:
       rpm: 20
     model_info:
       id: chat-models-openrouter
+      mode: chat
+
+  - model_name: chat-models
+    litellm_params:
+      model: gemini/gemini-flash-lite-latest
+      api_key: os.environ/GEMINI_API_KEY
+      rpm: 15
+      tpm: 1000000
+    model_info:
+      id: chat-models-gemini
+      mode: chat
+
+  - model_name: chat-models
+    litellm_params:
+      model: gemini/gemini-flash-lite-latest
+      api_key: os.environ/GEMINI_API_KEY
+      temperature: 0.1
+      max_tokens: 8000
+      timeout: 30
+      rpm: 15
+      tpm: 1000000
+    model_info:
+      id: gemini-flash-lite
       mode: chat
 
 # Общие настройки
@@ -95,4 +176,4 @@ litellm_settings:
   stream_response: true
 
   # Fallback между моделями
-  fallbacks: [{"chat-models": ["gpt-oss-120b", "deepseek-chat"]}]
+  fallbacks: [{"chat-models": ["gpt-oss-120b", "deepseek-chat", "gemini-flash"]}]
