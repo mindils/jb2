@@ -19,7 +19,27 @@ model_list:
       max_tokens_per_minute: 6000
       max_requests_per_day: 1000
 
-  # Модель 2: Deepseek через OpenRouter
+  # Модель 2: Kimi K2 Instruct через Groq
+  - model_name: kimi-k2-instruct
+    litellm_params:
+      model: groq/moonshotai/kimi-k2-instruct-0905
+      api_base: https://api.groq.com/openai/v1
+      api_key: os.environ/GROQ_API_KEY
+      temperature: 0.1
+      max_tokens: 10000
+      timeout: 30
+      rpm: 30
+      tpm: 6000
+    model_info:
+      id: kimi-k2-instruct
+      mode: chat
+      supports_function_calling: true
+      supports_vision: false
+      max_requests_per_minute: 30
+      max_tokens_per_minute: 6000
+      max_requests_per_day: 1000
+
+  # Модель 3: Deepseek через OpenRouter (только по явному запросу)
   - model_name: deepseek-chat
     litellm_params:
       model: openrouter/deepseek/deepseek-chat-v3.1:free
@@ -37,7 +57,7 @@ model_list:
       max_requests_per_minute: 20
       max_requests_per_day: 50
 
-  # Модель 3: Gemini Flash Lite
+  # Модель 4: Gemini Flash Lite
   - model_name: gemini-flash-lite
     litellm_params:
       model: gemini/gemini-flash-lite-latest
@@ -56,7 +76,7 @@ model_list:
       max_tokens_per_minute: 1000000
       max_requests_per_day: 1500
 
-  # Модель 4: Gemini Flash
+  # Модель 5: Gemini Flash
   - model_name: gemini-flash
     litellm_params:
       model: gemini/gemini-flash-latest
@@ -75,7 +95,7 @@ model_list:
       max_tokens_per_minute: 1000000
       max_requests_per_day: 1500
 
-  # Модель 5: Gemini 2.5 Pro
+  # Модель 6: Gemini 2.5 Pro
   - model_name: gemini-2.5-pro
     litellm_params:
       model: gemini/gemini-2.5-pro
@@ -94,7 +114,7 @@ model_list:
       max_tokens_per_minute: 4000000
       max_requests_per_day: 1500
 
-  # Группа моделей для распределения нагрузки
+  # Группа моделей для распределения нагрузки (только Groq и Gemini)
   - model_name: chat-models
     litellm_params:
       model: groq/openai/gpt-oss-120b
@@ -103,17 +123,18 @@ model_list:
       rpm: 30
       tpm: 6000
     model_info:
-      id: chat-models-groq
+      id: chat-models-groq-gpt
       mode: chat
 
   - model_name: chat-models
     litellm_params:
-      model: openrouter/deepseek/deepseek-chat-v3.1:free
-      api_base: https://openrouter.ai/api/v1
-      api_key: os.environ/OPENROUTER_API_KEY
-      rpm: 20
+      model: groq/moonshotai/kimi-k2-instruct-0905
+      api_base: https://api.groq.com/openai/v1
+      api_key: os.environ/GROQ_API_KEY
+      rpm: 30
+      tpm: 6000
     model_info:
-      id: chat-models-openrouter
+      id: chat-models-groq-kimi
       mode: chat
 
   - model_name: chat-models
@@ -123,20 +144,17 @@ model_list:
       rpm: 15
       tpm: 1000000
     model_info:
-      id: chat-models-gemini
+      id: chat-models-gemini-lite
       mode: chat
 
   - model_name: chat-models
     litellm_params:
-      model: gemini/gemini-flash-lite-latest
+      model: gemini/gemini-flash-latest
       api_key: os.environ/GEMINI_API_KEY
-      temperature: 0.1
-      max_tokens: 8000
-      timeout: 30
       rpm: 15
       tpm: 1000000
     model_info:
-      id: gemini-flash-lite
+      id: chat-models-gemini-flash
       mode: chat
 
 # Общие настройки
@@ -176,4 +194,4 @@ litellm_settings:
   stream_response: true
 
   # Fallback между моделями
-  fallbacks: [{"chat-models": ["gpt-oss-120b", "deepseek-chat", "gemini-flash"]}]
+  fallbacks: [{"chat-models": ["gpt-oss-120b", "kimi-k2-instruct", "gemini-flash"]}]
