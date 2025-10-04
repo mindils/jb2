@@ -4,12 +4,13 @@ services:
   app:
     build:
       context: ../..
-      dockerfile: envs/run/Dockerfile
+      dockerfile: envs/app-run/Dockerfile
       cache_from:
         - jb2:latest
 
     container_name: jb2
     restart: unless-stopped
+    network_mode: host
 
     environment:
       # База данных PostgreSQL
@@ -42,37 +43,37 @@ services:
       - "8085:8080"
 
     # Ограничения ресурсов для Raspberry Pi
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: "2.0"
-        reservations:
-          memory: 512M
-          cpus: "1.0"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 1G
+    #       cpus: "2.0"
+    #     reservations:
+    #       memory: 512M
+    #       cpus: "1.0"
 
     # Health check
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 120s
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 5
+    #   start_period: 120s
 
     # Дополнительные хосты (раскомментируйте если pi.local не резолвится)
     # extra_hosts:
     #   - "pi.local:192.168.1.100"
 
     # Логи
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    # logging:
+    #   driver: "json-file"
+    #   options:
+    #     max-size: "10m"
+    #     max-file: "3"
 
-    networks:
-      - app-network
+    # networks:
+    #   - app-network
 
-networks:
-  app-network:
-    driver: bridge
+# networks:
+#   app-network:
+#     driver: bridge
