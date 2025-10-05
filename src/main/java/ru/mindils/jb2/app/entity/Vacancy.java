@@ -51,6 +51,9 @@ public class Vacancy {
   @Lob
   private String description;
 
+  @OneToOne(mappedBy = "vacancy", fetch = FetchType.LAZY)
+  private VacancyScore vacancyScore;
+
   @Column(name = "branded_description", columnDefinition = "TEXT")
   @Lob
   private String brandedDescription;

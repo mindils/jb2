@@ -4,44 +4,47 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import ru.mindils.jb2.app.entity.VacancyRating;
+import ru.mindils.jb2.app.entity.VacancyLlmAnalysis;
+import ru.mindils.jb2.app.entity.VacancyLlmAnalysisType;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
- * Калькулятор скора вакансии с гибкой системой весов
- * Оценка может быть любой - чем больше, тем лучше вакансия
+ * Калькулятор оценки вакансии на основе результатов LLM анализа
+ * Использует гибкую систему весов для каждого параметра
  */
 @Component
 public class VacancyScorer {
 
   private static final Logger log = LoggerFactory.getLogger(VacancyScorer.class);
 
-  // ============ ВЕСА ДЛЯ ПАРАМЕТРОВ (легко менять) ============
+  // ============ ВЕСА ДЛЯ ПАРАМЕТРОВ ============
 
   // Primary (основные требования)
-  private static final int JAVA_SCORE = 100;           // Обязательно Java
-  private static final int JMIX_SCORE = 50;            // Jmix платформа
-  private static final int AI_ALLOWED_SCORE = 30;      // Разрешено использовать AI в разработке
-  private static final int AI_PROJECT_OPTIONAL = 40;   // Проект с AI (опционально)
-  private static final int AI_PROJECT_REQUIRED = -50;  // Обязательный AI проект (минус, т.к. сложно)
+  private static final int JAVA_SCORE = 100;
+  private static final int JMIX_SCORE = 50;
+  private static final int AI_ALLOWED_SCORE = 30;
+  private static final int AI_PROJECT_OPTIONAL = 40;
+  private static final int AI_PROJECT_REQUIRED = -50;
 
   // Social (формат работы)
   private static final int REMOTE_SCORE = 100;
   private static final int FLEXIBLE_SCORE = 90;
   private static final int HYBRID_FLEXIBLE_SCORE = 80;
   private static final int HYBRID_SCORE = 50;
-  private static final int HYBRID_2_3_SCORE = 60;      // 2 офис / 3 дом
-  private static final int HYBRID_3_2_SCORE = 40;      // 3 офис / 2 дом
-  private static final int HYBRID_4_1_SCORE = 20;      // 4 офис / 1 дом
-  private static final int OFFICE_SCORE = -100;        // Только офис - минус
-
-  // Social (социальная значимость)
+  private static final int HYBRID_2_3_SCORE = 60;
+  private static final int HYBRID_3_2_SCORE = 40;
+  private static final int HYBRID_4_1_SCORE = 20;
+  private static final int OFFICE_SCORE = -100;
   private static final int SOCIALLY_SIGNIFICANT_SCORE = 50;
 
   // Technical (роль и уровень)
   private static final int BACKEND_SCORE = 50;
   private static final int FRONTEND_BACKEND_SCORE = 40;
   private static final int DEVOPS_WITH_DEV_SCORE = 30;
-  private static final int OTHER_ROLE_SCORE = -100;    // QA, аналитики и т.д.
+  private static final int OTHER_ROLE_SCORE = -100;
 
   private static final int ARCHITECT_SCORE = 80;
   private static final int PRINCIPAL_SCORE = 70;
@@ -56,21 +59,20 @@ public class VacancyScorer {
   private static final int DATABASE_STACK_SCORE = 15;
   private static final int PYTHON_STACK_SCORE = 10;
   private static final int DEVOPS_STACK_SCORE = 10;
-  private static final int FRONTEND_STACK_SCORE = -10;  // Минус если много фронта
+  private static final int FRONTEND_STACK_SCORE = -10;
 
   // Compensation (зарплата)
-  private static final int SALARY_NOT_SPECIFIED = 0;    // Не указана - ничего не добавляем
-  private static final int SALARY_HIGH_400_BASE = 100;  // 400k+ базовая
-  private static final int SALARY_350_400_BASE = 50;    // 350-400k базовая
-  private static final int SALARY_350_400_WITH_BONUS = 60; // 350-400k с бонусами
-  private static final int SALARY_300_350_BASE = -50;   // 300-350k базовая (минус без бонусов)
-  private static final int SALARY_300_350_WITH_BONUS = 20; // 300-350k с бонусами (небольшой плюс)
-  private static final int SALARY_250_300 = -100;       // 250-300k (минус)
-  private static final int SALARY_BELOW_250 = -200;     // <250k (большой минус)
-
-  private static final int WHITE_SALARY_SCORE = 50;     // Белая зарплата
-  private static final int GRAY_SALARY_SCORE = -200;    // Серая зарплата
-  private static final int EQUITY_SCORE = 30;           // Опционы/акции
+  private static final int SALARY_NOT_SPECIFIED = 0;
+  private static final int SALARY_HIGH_400_BASE = 100;
+  private static final int SALARY_350_400_BASE = 50;
+  private static final int SALARY_350_400_WITH_BONUS = 60;
+  private static final int SALARY_300_350_BASE = -50;
+  private static final int SALARY_300_350_WITH_BONUS = 20;
+  private static final int SALARY_250_300 = -100;
+  private static final int SALARY_BELOW_250 = -200;
+  private static final int WHITE_SALARY_SCORE = 50;
+  private static final int GRAY_SALARY_SCORE = -200;
+  private static final int EQUITY_SCORE = 30;
 
   // Benefits (льготы) - за каждую льготу
   private static final int HEALTH_INSURANCE_SCORE = 30;
@@ -92,10 +94,10 @@ public class VacancyScorer {
   private static final int PERIPHERALS_SCORE = 15;
 
   // Industry (отрасль)
-  private static final int POSITIVE_COMPANY_SCORE = 80;   // Медицина, образование, экология
-  private static final int NEUTRAL_COMPANY_SCORE = 0;      // B2B SaaS, госуслуги
-  private static final int PROBLEMATIC_COMPANY_SCORE = -50; // Финансы, страхование
-  private static final int TOXIC_COMPANY_SCORE = -150;     // Игры, реклама, микрозаймы
+  private static final int POSITIVE_COMPANY_SCORE = 80;
+  private static final int NEUTRAL_COMPANY_SCORE = 0;
+  private static final int PROBLEMATIC_COMPANY_SCORE = -50;
+  private static final int TOXIC_COMPANY_SCORE = -150;
 
   // Work Conditions (условия работы)
   private static final int REMOTE_GLOBAL_SCORE = 50;
@@ -103,371 +105,302 @@ public class VacancyScorer {
   private static final int RELOCATION_REQUIRED_SCORE = -100;
   private static final int RELOCATION_ASSISTED_SCORE = -30;
 
-  // Stop Factors (стоп-факторы) - критические минусы
+  // Stop Factors (стоп-факторы)
   private static final int TOXIC_CULTURE_SCORE = -300;
   private static final int BANNED_DOMAIN_SCORE = -500;
 
   /**
-   * Рассчитать скор вакансии на основе результатов анализа
+   * Рассчитывает общую оценку вакансии на основе результатов LLM анализа
+   *
+   * @param analyses список результатов анализа вакансии
+   * @return итоговая оценка (может быть отрицательной)
    */
-//  public VacancyScore calculateScore(VacancyAnalysis analysis) {
-//    if (analysis == null || analysis.getStepResults() == null) {
-//      log.warn("No analysis data for scoring");
-//      return new VacancyScore(0, VacancyRating.VERY_POOR);
-//    }
-//
-//    JsonNode stepResults = analysis.getStepResults();
-//    log.info("Calculating score for vacancy: {}", analysis.getId());
-//
-//    int totalScore = 0;
-//
-//    // 1. Primary анализ
-//    totalScore += calculatePrimaryScore(stepResults.get("primary"));
-//
-//    // 2. Social анализ (формат работы и социальная значимость)
-//    totalScore += calculateSocialScore(stepResults.get("social"));
-//
-//    // 3. Technical анализ (роль, уровень, стек)
-//    totalScore += calculateTechnicalScore(stepResults.get("technical"));
-//
-//    // 4. Compensation анализ (зарплата и компенсация)
-//    totalScore += calculateCompensationScore(stepResults.get("compensation"));
-//
-//    // 5. Benefits анализ (льготы)
-//    totalScore += calculateBenefitsScore(stepResults.get("benefits"));
-//
-//    // 6. Equipment анализ (оборудование)
-//    totalScore += calculateEquipmentScore(stepResults.get("equipment"));
-//
-//    // 7. Industry анализ (отрасль)
-//    totalScore += calculateIndustryScore(stepResults.get("industry"));
-//
-//    // 8. Work Conditions анализ (условия работы)
-//    totalScore += calculateWorkConditionsScore(stepResults.get("workConditions"));
-//
-//    // 9. Stop Factors анализ (стоп-факторы)
-//    totalScore += calculateStopFactorsScore(stepResults.get("stopFactors"));
-//
-//    VacancyRating rating = determineRating(totalScore);
-//
-//    log.info("Calculated score for vacancy {}: {} points ({})",
-//        analysis.getId(), totalScore, rating);
-//
-//    return new VacancyScore(totalScore, rating);
-//  }
-//
-//  private int calculatePrimaryScore(JsonNode primary) {
-//    if (primary == null) return 0;
-//
-//    int score = 0;
-//    if (getBooleanValue(primary, "java")) score += JAVA_SCORE;
-//    if (getBooleanValue(primary, "jmix")) score += JMIX_SCORE;
-//
-//    return score;
-//  }
-//
-//  private int calculateSocialScore(JsonNode social) {
-//    if (social == null) return 0;
-//
-//    int score = 0;
-//
-//    // Формат работы
-//    String workMode = getStringValue(social, "work_mode");
-//    score += switch (workMode) {
-//      case "remote" -> REMOTE_SCORE;
-//      case "flexible" -> FLEXIBLE_SCORE;
-//      case "hybrid_flexible" -> HYBRID_FLEXIBLE_SCORE;
-//      case "hybrid" -> HYBRID_SCORE;
-//      case "hybrid_2_3" -> HYBRID_2_3_SCORE;
-//      case "hybrid_3_2" -> HYBRID_3_2_SCORE;
-//      case "hybrid_4_1" -> HYBRID_4_1_SCORE;
-//      case "office" -> OFFICE_SCORE;
-//      default -> 0;
-//    };
-//
-//    // Социальная значимость
-//    if (getBooleanValue(social, "socially_significant")) {
-//      score += SOCIALLY_SIGNIFICANT_SCORE;
-//    }
-//
-//    return score;
-//  }
-//
-//  private int calculateTechnicalScore(JsonNode technical) {
-//    if (technical == null) return 0;
-//
-//    int score = 0;
-//
-//    // Тип роли
-//    String roleType = getStringValue(technical, "role_type");
-//    score += switch (roleType) {
-//      case "backend" -> BACKEND_SCORE;
-//      case "frontend_plus_backend" -> FRONTEND_BACKEND_SCORE;
-//      case "devops_with_dev" -> DEVOPS_WITH_DEV_SCORE;
-//      case "other" -> OTHER_ROLE_SCORE;
-//      default -> 0;
-//    };
-//
-//    // Уровень позиции
-//    String positionLevel = getStringValue(technical, "position_level");
-//    score += switch (positionLevel) {
-//      case "architect" -> ARCHITECT_SCORE;
-//      case "principal" -> PRINCIPAL_SCORE;
-//      case "senior" -> SENIOR_SCORE;
-//      case "lead" -> LEAD_SCORE;
-//      case "middle" -> MIDDLE_SCORE;
-//      case "junior" -> JUNIOR_SCORE;
-//      default -> 0;
-//    };
-//
-//    // Технологический стек
-//    String stack = getStringValue(technical, "stack");
-//    if (stack != null && !stack.isEmpty()) {
-//      String[] techs = stack.toLowerCase().split("\\|");
-//      for (String tech : techs) {
-//        score += switch (tech.trim()) {
-//          case "spring" -> SPRING_STACK_SCORE;
-//          case "microservices" -> MICROSERVICES_STACK_SCORE;
-//          case "database" -> DATABASE_STACK_SCORE;
-//          case "python" -> PYTHON_STACK_SCORE;
-//          case "devops" -> DEVOPS_STACK_SCORE;
-//          case "frontend" -> FRONTEND_STACK_SCORE;
-//          default -> 0;
-//        };
-//      }
-//    }
-//
-//    // AI присутствие
-//    String aiPresence = getStringValue(technical, "ai_presence");
-//    if (aiPresence != null && !aiPresence.isEmpty()) {
-//      String[] aiTypes = aiPresence.split("\\|");
-//      for (String aiType : aiTypes) {
-//        score += switch (aiType.trim()) {
-//          case "allowed_for_dev" -> AI_ALLOWED_SCORE;
-//          case "llm_project_optional" -> AI_PROJECT_OPTIONAL;
-//          case "llm_project_required" -> AI_PROJECT_REQUIRED;
-//          default -> 0;
-//        };
-//      }
-//    }
-//
-//    // Jmix
-//    if (getBooleanValue(technical, "jmix")) {
-//      score += JMIX_SCORE;
-//    }
-//
-//    return score;
-//  }
-//
-//  private int calculateCompensationScore(JsonNode compensation) {
-//    if (compensation == null) return 0;
-//
-//    int score = 0;
-//
-//    // Проверка указана ли зарплата
-//    boolean salarySpecified = getBooleanValue(compensation, "salarySpecified");
-//    if (!salarySpecified) {
-//      return SALARY_NOT_SPECIFIED; // Не указана - ничего не добавляем
-//    }
-//
-//    // Диапазон зарплаты
-//    String salaryRange = getStringValue(compensation, "salaryRange");
-//    boolean hasBonuses = getBooleanValue(compensation, "bonusesAvailable");
-//
-//    score += switch (salaryRange) {
-//      case "high_400plus" -> SALARY_HIGH_400_BASE;
-//      case "upper_350_400" -> hasBonuses ? SALARY_350_400_WITH_BONUS : SALARY_350_400_BASE;
-//      case "middle_300_350" -> hasBonuses ? SALARY_300_350_WITH_BONUS : SALARY_300_350_BASE;
-//      case "lower_250_300" -> SALARY_250_300;
-//      case "below_250" -> SALARY_BELOW_250;
-//      default -> 0;
-//    };
-//
-//    // Белая/серая зарплата
-//    boolean isWhite = getBooleanValue(compensation, "salaryWhite");
-//    score += isWhite ? WHITE_SALARY_SCORE : GRAY_SALARY_SCORE;
-//
-//    // Акции/опционы
-//    if (getBooleanValue(compensation, "equityOffered")) {
-//      score += EQUITY_SCORE;
-//    }
-//
-//    return score;
-//  }
-//
-//  private int calculateBenefitsScore(JsonNode benefits) {
-//    if (benefits == null) return 0;
-//
-//    int score = 0;
-//
-//    if (getBooleanValue(benefits, "healthInsurance")) score += HEALTH_INSURANCE_SCORE;
-//    if (getBooleanValue(benefits, "extendedVacation")) score += EXTENDED_VACATION_SCORE;
-//    if (getBooleanValue(benefits, "wellnessCompensation")) score += WELLNESS_COMPENSATION_SCORE;
-//    if (getBooleanValue(benefits, "coworkingCompensation")) score += COWORKING_COMPENSATION_SCORE;
-//    if (getBooleanValue(benefits, "educationCompensation")) score += EDUCATION_COMPENSATION_SCORE;
-//    if (getBooleanValue(benefits, "conferencesBudget")) score += CONFERENCES_BUDGET_SCORE;
-//    if (getBooleanValue(benefits, "internalTraining")) score += INTERNAL_TRAINING_SCORE;
-//    if (getBooleanValue(benefits, "paidSickLeave")) score += PAID_SICK_LEAVE_SCORE;
-//
-//    return score;
-//  }
-//
-//  private int calculateEquipmentScore(JsonNode equipment) {
-//    if (equipment == null) return 0;
-//
-//    int score = 0;
-//
-//    // Тип оборудования
-//    String equipmentType = getStringValue(equipment, "equipmentType");
-//    score += switch (equipmentType) {
-//      case "macbook_pro" -> MACBOOK_PRO_SCORE;
-//      case "windows_laptop" -> WINDOWS_LAPTOP_SCORE;
-//      case "byod" -> {
-//        // BYOD - проверяем компенсацию
-//        String compensation = getStringValue(equipment, "byodCompensation");
-//        yield switch (compensation) {
-//          case "full" -> BYOD_FULL_COMPENSATION;
-//          case "partial" -> BYOD_PARTIAL_COMPENSATION;
-//          case "none" -> BYOD_NO_COMPENSATION;
-//          default -> 0;
-//        };
-//      }
-//      default -> 0;
-//    };
-//
-//    // Дополнительное оборудование
-//    String additional = getStringValue(equipment, "additionalEquipment");
-//    if (additional != null && !additional.equals("none")) {
-//      if (additional.contains("monitors")) score += MONITORS_SCORE;
-//      if (additional.contains("peripherals")) score += PERIPHERALS_SCORE;
-//    }
-//
-//    return score;
-//  }
-//
-//  private int calculateIndustryScore(JsonNode industry) {
-//    if (industry == null) return 0;
-//
-//    int score = 0;
-//
-//    // Категория компании
-//    String companyCategory = getStringValue(industry, "company_category");
-//    score += switch (companyCategory) {
-//      case "positive" -> POSITIVE_COMPANY_SCORE;
-//      case "neutral" -> NEUTRAL_COMPANY_SCORE;
-//      case "problematic" -> PROBLEMATIC_COMPANY_SCORE;
-//      case "toxic" -> TOXIC_COMPANY_SCORE;
-//      default -> 0;
-//    };
-//
-//    // Категория проекта (если отличается от компании)
-//    String projectCategory = getStringValue(industry, "project_category");
-//    if (!projectCategory.equals(companyCategory) && !projectCategory.isEmpty()) {
-//      score += switch (projectCategory) {
-//        case "positive" -> POSITIVE_COMPANY_SCORE / 2; // Половина веса для проекта
-//        case "neutral" -> 0;
-//        case "problematic" -> PROBLEMATIC_COMPANY_SCORE / 2;
-//        case "toxic" -> TOXIC_COMPANY_SCORE / 2;
-//        default -> 0;
-//      };
-//    }
-//
-//    return score;
-//  }
-//
-//  private int calculateWorkConditionsScore(JsonNode workConditions) {
-//    if (workConditions == null) return 0;
-//
-//    int score = 0;
-//
-//    // Формат работы
-//    String workFormat = getStringValue(workConditions, "workFormat");
-//    score += switch (workFormat) {
-//      case "remote_global" -> REMOTE_GLOBAL_SCORE;
-//      case "remote_restricted" -> REMOTE_RESTRICTED_SCORE;
-//      case "hybrid_flexible" -> 0; // Уже учтено в social
-//      case "hybrid_regular" -> 0;
-//      case "hybrid_frequent" -> -20;
-//      case "office_only" -> 0; // Уже учтено в social
-//      default -> 0;
-//    };
-//
-//    // Требования к релокации
-//    String relocation = getStringValue(workConditions, "relocationRequired");
-//    score += switch (relocation) {
-//      case "none" -> 0;
-//      case "assisted" -> RELOCATION_ASSISTED_SCORE;
-//      case "required_no_help" -> RELOCATION_REQUIRED_SCORE;
-//      case "mandatory_specific" -> RELOCATION_REQUIRED_SCORE;
-//      default -> 0;
-//    };
-//
-//    return score;
-//  }
-//
-//  private int calculateStopFactorsScore(JsonNode stopFactors) {
-//    if (stopFactors == null) return 0;
-//
-//    int score = 0;
-//
-//    // Критические стоп-факторы
-//    if (getBooleanValue(stopFactors, "toxicCulture")) score += TOXIC_CULTURE_SCORE;
-//    if (getBooleanValue(stopFactors, "bannedDomain")) score += BANNED_DOMAIN_SCORE;
-//    // graySalary уже учтена в compensation
-//
-//    return score;
-//  }
-//
-//  private VacancyRating determineRating(int totalScore) {
-//    // Рейтинги на основе абсолютных значений очков
-//    if (totalScore >= 500) return VacancyRating.EXCELLENT;
-//    if (totalScore >= 300) return VacancyRating.GOOD;
-//    if (totalScore >= 100) return VacancyRating.MODERATE;
-//    if (totalScore >= 0) return VacancyRating.POOR;
-//    return VacancyRating.VERY_POOR; // Отрицательный скор
-//  }
-//
-//  // Utility методы для безопасного извлечения данных
-//  private boolean getBooleanValue(JsonNode node, String fieldName) {
-//    if (node == null) return false;
-//    JsonNode field = node.get(fieldName);
-//    return field != null && field.asBoolean(false);
-//  }
-//
-//  private String getStringValue(JsonNode node, String fieldName) {
-//    if (node == null) return "";
-//    JsonNode field = node.get(fieldName);
-//    return field != null ? field.asText("") : "";
-//  }
-//
-//  private int getIntValue(JsonNode node, String fieldName) {
-//    if (node == null) return 0;
-//    JsonNode field = node.get(fieldName);
-//    return field != null ? field.asInt(0) : 0;
-//  }
-//
-//  /**
-//   * Результат скоринга
-//   */
-//  public static record VacancyScore(
-//      int totalScore,
-//      VacancyRating rating
-//  ) {
-//    @com.fasterxml.jackson.annotation.JsonIgnore
-//    public String getDescription() {
-//      return String.format("%s (%d баллов)",
-//          getRatingDescription(), totalScore);
-//    }
-//
-//    @com.fasterxml.jackson.annotation.JsonIgnore
-//    private String getRatingDescription() {
-//      return switch (rating) {
-//        case EXCELLENT -> "Отличная вакансия";
-//        case GOOD -> "Хорошая вакансия";
-//        case MODERATE -> "Средняя вакансия";
-//        case POOR -> "Слабая вакансия";
-//        case VERY_POOR -> "Очень слабая вакансия";
-//      };
-//    }
-//  }
+  public int calculateScore(List<VacancyLlmAnalysis> analyses) {
+    if (analyses == null || analyses.isEmpty()) {
+      log.warn("No analysis data provided for scoring");
+      return 0;
+    }
+
+    log.info("Calculating score based on {} analysis results", analyses.size());
+
+    // Группируем анализы по типу для удобного доступа
+    Map<VacancyLlmAnalysisType, JsonNode> analysisMap = analyses.stream()
+        .filter(a -> a.getAnalyzeData() != null)
+        .collect(Collectors.toMap(
+            a -> VacancyLlmAnalysisType.fromId(a.getAnalyzeType()),
+            VacancyLlmAnalysis::getAnalyzeData,
+            (existing, replacement) -> replacement // При дублях берем последний
+        ));
+
+    int totalScore = 0;
+
+    // Суммируем оценки по каждому типу анализа
+    totalScore += calculatePrimaryScore(analysisMap.get(VacancyLlmAnalysisType.JAVA_PRIMARY));
+    totalScore += calculateSocialScore(analysisMap.get(VacancyLlmAnalysisType.SOCIAL));
+    totalScore += calculateTechnicalScore(analysisMap.get(VacancyLlmAnalysisType.TECHNICAL));
+    totalScore += calculateCompensationScore(analysisMap.get(VacancyLlmAnalysisType.COMPENSATION));
+    totalScore += calculateBenefitsScore(analysisMap.get(VacancyLlmAnalysisType.BENEFITS));
+    totalScore += calculateEquipmentScore(analysisMap.get(VacancyLlmAnalysisType.EQUIPMENT));
+    totalScore += calculateIndustryScore(analysisMap.get(VacancyLlmAnalysisType.INDUSTRY));
+    totalScore += calculateWorkConditionsScore(analysisMap.get(VacancyLlmAnalysisType.WORK_CONDITIONS));
+    totalScore += calculateStopFactorsScore(analysisMap.get(VacancyLlmAnalysisType.STOP_FACTORS));
+
+    log.info("Total calculated score: {} points", totalScore);
+    return totalScore;
+  }
+
+  private int calculatePrimaryScore(JsonNode primary) {
+    if (primary == null) return 0;
+    int score = 0;
+
+    if (getBooleanValue(primary, "java")) score += JAVA_SCORE;
+    if (getBooleanValue(primary, "jmix")) score += JMIX_SCORE;
+
+    log.debug("Primary score: {}", score);
+    return score;
+  }
+
+  private int calculateSocialScore(JsonNode social) {
+    if (social == null) return 0;
+    int score = 0;
+
+    String workMode = getStringValue(social, "work_mode");
+    score += switch (workMode) {
+      case "remote" -> REMOTE_SCORE;
+      case "flexible" -> FLEXIBLE_SCORE;
+      case "hybrid_flexible" -> HYBRID_FLEXIBLE_SCORE;
+      case "hybrid" -> HYBRID_SCORE;
+      case "hybrid_2_3" -> HYBRID_2_3_SCORE;
+      case "hybrid_3_2" -> HYBRID_3_2_SCORE;
+      case "hybrid_4_1" -> HYBRID_4_1_SCORE;
+      case "office" -> OFFICE_SCORE;
+      default -> 0;
+    };
+
+    if (getBooleanValue(social, "socially_significant")) {
+      score += SOCIALLY_SIGNIFICANT_SCORE;
+    }
+
+    log.debug("Social score: {}", score);
+    return score;
+  }
+
+  private int calculateTechnicalScore(JsonNode technical) {
+    if (technical == null) return 0;
+    int score = 0;
+
+    String roleType = getStringValue(technical, "role_type");
+    score += switch (roleType) {
+      case "backend" -> BACKEND_SCORE;
+      case "frontend_plus_backend" -> FRONTEND_BACKEND_SCORE;
+      case "devops_with_dev" -> DEVOPS_WITH_DEV_SCORE;
+      case "other" -> OTHER_ROLE_SCORE;
+      default -> 0;
+    };
+
+    String positionLevel = getStringValue(technical, "position_level");
+    score += switch (positionLevel) {
+      case "architect" -> ARCHITECT_SCORE;
+      case "principal" -> PRINCIPAL_SCORE;
+      case "senior" -> SENIOR_SCORE;
+      case "lead" -> LEAD_SCORE;
+      case "middle" -> MIDDLE_SCORE;
+      case "junior" -> JUNIOR_SCORE;
+      default -> 0;
+    };
+
+    String stack = getStringValue(technical, "stack");
+    if (stack != null && !stack.isEmpty()) {
+      for (String tech : stack.toLowerCase().split("\\|")) {
+        score += switch (tech.trim()) {
+          case "spring" -> SPRING_STACK_SCORE;
+          case "microservices" -> MICROSERVICES_STACK_SCORE;
+          case "database" -> DATABASE_STACK_SCORE;
+          case "python" -> PYTHON_STACK_SCORE;
+          case "devops" -> DEVOPS_STACK_SCORE;
+          case "frontend" -> FRONTEND_STACK_SCORE;
+          default -> 0;
+        };
+      }
+    }
+
+    String aiPresence = getStringValue(technical, "ai_presence");
+    if (aiPresence != null && !aiPresence.isEmpty()) {
+      for (String aiType : aiPresence.split("\\|")) {
+        score += switch (aiType.trim()) {
+          case "allowed_for_dev" -> AI_ALLOWED_SCORE;
+          case "llm_project_optional" -> AI_PROJECT_OPTIONAL;
+          case "llm_project_required" -> AI_PROJECT_REQUIRED;
+          default -> 0;
+        };
+      }
+    }
+
+    if (getBooleanValue(technical, "jmix")) {
+      score += JMIX_SCORE;
+    }
+
+    log.debug("Technical score: {}", score);
+    return score;
+  }
+
+  private int calculateCompensationScore(JsonNode compensation) {
+    if (compensation == null) return 0;
+    int score = 0;
+
+    boolean salarySpecified = getBooleanValue(compensation, "salarySpecified");
+    if (!salarySpecified) {
+      return SALARY_NOT_SPECIFIED;
+    }
+
+    String salaryRange = getStringValue(compensation, "salaryRange");
+    boolean hasBonuses = getBooleanValue(compensation, "bonusesAvailable");
+
+    score += switch (salaryRange) {
+      case "high_400plus" -> SALARY_HIGH_400_BASE;
+      case "upper_350_400" -> hasBonuses ? SALARY_350_400_WITH_BONUS : SALARY_350_400_BASE;
+      case "middle_300_350" -> hasBonuses ? SALARY_300_350_WITH_BONUS : SALARY_300_350_BASE;
+      case "lower_250_300" -> SALARY_250_300;
+      case "below_250" -> SALARY_BELOW_250;
+      default -> 0;
+    };
+
+    boolean isWhite = getBooleanValue(compensation, "salaryWhite");
+    score += isWhite ? WHITE_SALARY_SCORE : GRAY_SALARY_SCORE;
+
+    if (getBooleanValue(compensation, "equityOffered")) {
+      score += EQUITY_SCORE;
+    }
+
+    log.debug("Compensation score: {}", score);
+    return score;
+  }
+
+  private int calculateBenefitsScore(JsonNode benefits) {
+    if (benefits == null) return 0;
+    int score = 0;
+
+    if (getBooleanValue(benefits, "healthInsurance")) score += HEALTH_INSURANCE_SCORE;
+    if (getBooleanValue(benefits, "extendedVacation")) score += EXTENDED_VACATION_SCORE;
+    if (getBooleanValue(benefits, "wellnessCompensation")) score += WELLNESS_COMPENSATION_SCORE;
+    if (getBooleanValue(benefits, "coworkingCompensation")) score += COWORKING_COMPENSATION_SCORE;
+    if (getBooleanValue(benefits, "educationCompensation")) score += EDUCATION_COMPENSATION_SCORE;
+    if (getBooleanValue(benefits, "conferencesBudget")) score += CONFERENCES_BUDGET_SCORE;
+    if (getBooleanValue(benefits, "internalTraining")) score += INTERNAL_TRAINING_SCORE;
+    if (getBooleanValue(benefits, "paidSickLeave")) score += PAID_SICK_LEAVE_SCORE;
+
+    log.debug("Benefits score: {}", score);
+    return score;
+  }
+
+  private int calculateEquipmentScore(JsonNode equipment) {
+    if (equipment == null) return 0;
+    int score = 0;
+
+    String equipmentType = getStringValue(equipment, "equipmentType");
+    score += switch (equipmentType) {
+      case "macbook_pro" -> MACBOOK_PRO_SCORE;
+      case "windows_laptop" -> WINDOWS_LAPTOP_SCORE;
+      case "byod" -> {
+        String compensation = getStringValue(equipment, "byodCompensation");
+        yield switch (compensation) {
+          case "full" -> BYOD_FULL_COMPENSATION;
+          case "partial" -> BYOD_PARTIAL_COMPENSATION;
+          case "none" -> BYOD_NO_COMPENSATION;
+          default -> 0;
+        };
+      }
+      default -> 0;
+    };
+
+    String additional = getStringValue(equipment, "additionalEquipment");
+    if (additional != null && !additional.equals("none")) {
+      if (additional.contains("monitors")) score += MONITORS_SCORE;
+      if (additional.contains("peripherals")) score += PERIPHERALS_SCORE;
+    }
+
+    log.debug("Equipment score: {}", score);
+    return score;
+  }
+
+  private int calculateIndustryScore(JsonNode industry) {
+    if (industry == null) return 0;
+    int score = 0;
+
+    String companyCategory = getStringValue(industry, "company_category");
+    score += switch (companyCategory) {
+      case "positive" -> POSITIVE_COMPANY_SCORE;
+      case "neutral" -> NEUTRAL_COMPANY_SCORE;
+      case "problematic" -> PROBLEMATIC_COMPANY_SCORE;
+      case "toxic" -> TOXIC_COMPANY_SCORE;
+      default -> 0;
+    };
+
+    String projectCategory = getStringValue(industry, "project_category");
+    if (!projectCategory.equals(companyCategory) && !projectCategory.isEmpty()) {
+      score += switch (projectCategory) {
+        case "positive" -> POSITIVE_COMPANY_SCORE / 2;
+        case "neutral" -> 0;
+        case "problematic" -> PROBLEMATIC_COMPANY_SCORE / 2;
+        case "toxic" -> TOXIC_COMPANY_SCORE / 2;
+        default -> 0;
+      };
+    }
+
+    log.debug("Industry score: {}", score);
+    return score;
+  }
+
+  private int calculateWorkConditionsScore(JsonNode workConditions) {
+    if (workConditions == null) return 0;
+    int score = 0;
+
+    String workFormat = getStringValue(workConditions, "workFormat");
+    score += switch (workFormat) {
+      case "remote_global" -> REMOTE_GLOBAL_SCORE;
+      case "remote_restricted" -> REMOTE_RESTRICTED_SCORE;
+      case "hybrid_flexible" -> 0;
+      case "hybrid_regular" -> 0;
+      case "hybrid_frequent" -> -20;
+      case "office_only" -> 0;
+      default -> 0;
+    };
+
+    String relocation = getStringValue(workConditions, "relocationRequired");
+    score += switch (relocation) {
+      case "none" -> 0;
+      case "assisted" -> RELOCATION_ASSISTED_SCORE;
+      case "required_no_help" -> RELOCATION_REQUIRED_SCORE;
+      case "mandatory_specific" -> RELOCATION_REQUIRED_SCORE;
+      default -> 0;
+    };
+
+    log.debug("Work conditions score: {}", score);
+    return score;
+  }
+
+  private int calculateStopFactorsScore(JsonNode stopFactors) {
+    if (stopFactors == null) return 0;
+    int score = 0;
+
+    if (getBooleanValue(stopFactors, "toxicCulture")) score += TOXIC_CULTURE_SCORE;
+    if (getBooleanValue(stopFactors, "bannedDomain")) score += BANNED_DOMAIN_SCORE;
+
+    log.debug("Stop factors score: {}", score);
+    return score;
+  }
+
+  // ============ UTILITY МЕТОДЫ ============
+
+  private boolean getBooleanValue(JsonNode node, String fieldName) {
+    if (node == null) return false;
+    JsonNode field = node.get(fieldName);
+    return field != null && field.asBoolean(false);
+  }
+
+  private String getStringValue(JsonNode node, String fieldName) {
+    if (node == null) return "";
+    JsonNode field = node.get(fieldName);
+    return field != null ? field.asText("") : "";
+  }
 }

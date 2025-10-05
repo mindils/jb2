@@ -15,6 +15,10 @@
           <property name="vacancy" fetchPlan="_base">
           </property>
         </property>
+        <property name="vacancyScore" fetchPlan="_base">
+          <property name="totalScore"/>
+          <property name="rating"/>
+        </property>
       </fetchPlan>
       <loader id="vacanciesDl" readOnly="true">
         <query>
@@ -51,6 +55,7 @@
           />
           <jpqlFilter id="javaFilter"
                       dataLoader="vacanciesDl"
+                      defaultValue="true"
                       label="Java Вакансия"
                       labelPosition="TOP"
                       css="padding-right: 1em"
@@ -78,6 +83,25 @@
               operation="EQUAL"
               dataLoader="vacanciesDl"
               labelPosition="TOP"
+              css="padding-right: 1em"
+              defaultValue="false"
+          />
+          <propertyFilter
+              property="vacancyScore.rating"
+              operation="IN_LIST"
+              dataLoader="vacanciesDl"
+              label="Рейтинг"
+              labelPosition="TOP"
+              defaultValue="EXCELLENT,GOOD,MODERATE"
+          >
+            <multiSelectComboBox itemsEnum="ru.mindils.jb2.app.entity.VacancyScoreRating"/>
+          </propertyFilter>
+          <propertyFilter
+              label="Оценка"
+              property="vacancyScore.totalScore"
+              operation="GREATER_OR_EQUAL"
+              dataLoader="vacanciesDl"
+              labelPosition="TOP"
           />
         </details>
       </startSlot>
@@ -89,6 +113,7 @@
               <textItem id="updateVacancyBtn" text="Обновление"/>
               <textItem id="addVacancyInFirstLlmQueueBtn" text="В очередь первичный анализ llm"/>
               <textItem id="addVacancyInSocialLlmQueueBtn" text="В очередь полный анализ llm"/>
+              <textItem id="calculateVacancyScoresBtn" text="Рассчитать оценки"/>
             </items>
           </dropdownButton>
           <simplePagination id="pagination" dataLoader="vacanciesDl" alignSelf="START"/>
@@ -112,6 +137,8 @@
         <column property="name" autoWidth="true"/>
         <column property="employer.name" autoWidth="true"/>
         <column property="keySkillsStr" width="20em"/>
+        <column property="vacancyScore.totalScore"/>
+        <column property="vacancyScore.rating"/>
         <column property="description"/>
         <column property="city" autoWidth="true"/>
         <column property="salary" autoWidth="true"/>
@@ -130,6 +157,7 @@
         <item id="updateVacancyMenu" text="Обновить вакансию"/>
         <item id="firstLlmAnalyseMenu" text="Первичный анализ выбранной вакансии"/>
         <item id="fullLlmAnalyseMenu" text="Полный анализ выбранной вакансии"/>
+        <item id="vacancyScoreCalculateMenu" text="Посчитать оценку вакансии"/>
       </contextMenu>
     </dataGrid>
     <hbox id="lookupActions" visible="false">

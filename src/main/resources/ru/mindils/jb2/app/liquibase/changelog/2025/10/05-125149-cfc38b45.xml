@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+    objectQuotingStrategy="QUOTE_ONLY_RESERVED_WORDS">
+  <changeSet id="1" author="jb2">
+    <addColumn tableName="jb2_vacancy_score">
+      <column name="rating" type="VARCHAR(50)"/>
+    </addColumn>
+
+    <addNotNullConstraint columnName="rating" tableName="jb2_vacancy_score"/>
+  </changeSet>
+  <changeSet id="2" author="jb2">
+    <addColumn tableName="jb2_vacancy_score">
+      <column name="total_score" type="INT"/>
+    </addColumn>
+
+    <addNotNullConstraint columnName="total_score" defaultNullValue="0" tableName="jb2_vacancy_score"/>
+  </changeSet>
+  <changeSet id="3" author="jb2">
+    <addColumn tableName="jb2_vacancy_score">
+      <column name="uid" type="UUID"/>
+      <column name="version" type="INT"/>
+    </addColumn>
+  </changeSet>
+  <changeSet id="4" author="jb2">
+    <createIndex indexName="idx_vacancy_score_rating" tableName="jb2_vacancy_score">
+      <column name="rating"/>
+    </createIndex>
+  </changeSet>
+  <changeSet id="5" author="jb2">
+    <createIndex indexName="idx_vacancy_score_vacancy" tableName="jb2_vacancy_score">
+      <column name="vacancy_id"/>
+    </createIndex>
+
+    <addForeignKeyConstraint baseColumnNames="vacancy_id" baseTableName="jb2_vacancy_score"
+                             constraintName="FK_JB2_VACANCY_SCORE_ON_VACANCY" referencedColumnNames="id"
+                             referencedTableName="JB2_VACANCY"/>
+  </changeSet>
+  <changeSet id="6" author="jb2">
+    <dropIndex indexName="idx_jb2_vacancy_score_vacancy" tableName="jb2_vacancy_score"/>
+  </changeSet>
+  <changeSet id="7" author="jb2">
+    <dropColumn columnName="id" tableName="jb2_vacancy_score"/>
+
+    <dropColumn columnName="score" tableName="jb2_vacancy_score"/>
+
+    <dropColumn columnName="status" tableName="jb2_vacancy_score"/>
+  </changeSet>
+  <changeSet id="8" author="jb2">
+    <addNotNullConstraint columnDataType="VARCHAR(255)" columnName="vacancy_id" tableName="jb2_vacancy_score"
+                          validate="true"/>
+  </changeSet>
+  <changeSet id="9" author="jb2">
+    <addPrimaryKey columnNames="uid" constraintName="PK_JB2_VACANCY_SCORE" tableName="jb2_vacancy_score"/>
+  </changeSet>
+</databaseChangeLog>

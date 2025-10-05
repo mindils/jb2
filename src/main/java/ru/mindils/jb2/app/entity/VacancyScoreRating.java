@@ -3,7 +3,7 @@ package ru.mindils.jb2.app.entity;
 import io.jmix.core.metamodel.datatype.EnumClass;
 import org.springframework.lang.Nullable;
 
-public enum VacancyRating implements EnumClass<String> {
+public enum VacancyScoreRating implements EnumClass<String> {
   EXCELLENT("EXCELLENT"),
   GOOD("GOOD"),
   MODERATE("MODERATE"),
@@ -12,7 +12,7 @@ public enum VacancyRating implements EnumClass<String> {
 
   private final String id;
 
-  VacancyRating(String id) {
+  VacancyScoreRating(String id) {
     this.id = id;
   }
 
@@ -22,8 +22,8 @@ public enum VacancyRating implements EnumClass<String> {
   }
 
   @Nullable
-  public static VacancyRating fromId(String id) {
-    for (VacancyRating rating : VacancyRating.values()) {
+  public static VacancyScoreRating fromId(String id) {
+    for (VacancyScoreRating rating : VacancyScoreRating.values()) {
       if (rating.getId().equals(id)) {
         return rating;
       }
