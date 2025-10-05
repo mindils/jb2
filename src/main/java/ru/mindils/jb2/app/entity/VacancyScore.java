@@ -34,6 +34,14 @@ public class VacancyScore {
   @Column(name = "rating", nullable = false, length = 50)
   private String rating;
 
+  @Lob
+  @Column(name = "positive_description", columnDefinition = "text")
+  private String positiveDescription;
+
+  @Lob
+  @Column(name = "negative_description", columnDefinition = "text")
+  private String negativeDescription;
+
   @Column(name = "version")
   private Integer version = 1; // Версия алгоритма расчета
 

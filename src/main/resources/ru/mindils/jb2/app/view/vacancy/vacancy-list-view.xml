@@ -139,6 +139,8 @@
         <column property="keySkillsStr" width="20em"/>
         <column property="vacancyScore.totalScore"/>
         <column property="vacancyScore.rating"/>
+        <column property="vacancyScore.negativeDescription"/>
+        <column property="vacancyScore.positiveDescription"/>
         <column property="description"/>
         <column property="city" autoWidth="true"/>
         <column property="salary" autoWidth="true"/>

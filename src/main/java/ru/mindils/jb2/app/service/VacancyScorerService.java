@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.mindils.jb2.app.dto.VacancyScoringResult;
 import ru.mindils.jb2.app.entity.*;
 import ru.mindils.jb2.app.service.analysis.VacancyScorer;
 import ru.mindils.jb2.app.util.UuidGenerator;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 public class VacancyScorerService {
 
   private static final Logger log = LoggerFactory.getLogger(VacancyScorerService.class);
+  private static final String FACTOR_DELIMITER = " | ";
 
   private final VacancyScorer vacancyScorer;
   private final DataManager dataManager;
@@ -220,12 +222,12 @@ public class VacancyScorerService {
   private VacancyScore calculateScoreForVacancy(Vacancy vacancy, List<VacancyLlmAnalysis> analyses) {
     String vacancyId = (String) EntityValues.getId(vacancy);
 
-    // Рассчитываем оценку
-    int totalScore = vacancyScorer.calculateScore(analyses);
-    log.debug("Calculated score: {} for vacancy {}", totalScore, vacancyId);
+    // Рассчитываем оценку с описаниями
+    VacancyScoringResult scoringResult = vacancyScorer.calculateScore(analyses);
+    log.debug("Calculated score: {} for vacancy {}", scoringResult.getTotalScore(), vacancyId);
 
     // Определяем рейтинг
-    VacancyScoreRating rating = determineRating(totalScore);
+    VacancyScoreRating rating = determineRating(scoringResult.getTotalScore());
 
     // Генерируем детерминированный UUID
     UUID scoreId = uuidGenerator.generateUuid(vacancyId, "vacancy_score");
@@ -247,9 +249,13 @@ public class VacancyScorerService {
     }
 
     // Устанавливаем значения
-    vacancyScore.setTotalScore(totalScore);
+    vacancyScore.setTotalScore(scoringResult.getTotalScore());
     vacancyScore.setRating(rating);
     vacancyScore.setVersion(1); // Версия алгоритма
+
+    // Конвертируем списки факторов в строки
+    vacancyScore.setPositiveDescription(factorsToString(scoringResult.getPositiveFactors()));
+    vacancyScore.setNegativeDescription(factorsToString(scoringResult.getNegativeFactors()));
 
     return vacancyScore;
   }
@@ -294,8 +300,12 @@ public class VacancyScorerService {
       // Сохраняем в базу данных
       VacancyScore saved = dataManager.save(vacancyScore);
 
-      log.info("Successfully saved score for vacancy {}: {} points ({})",
-          vacancyId, saved.getTotalScore(), saved.getRating());
+      log.info("Successfully saved score for vacancy {}: {} points ({}), positive: {}, negative: {}",
+          vacancyId,
+          saved.getTotalScore(),
+          saved.getRating(),
+          saved.getPositiveDescription() != null ? saved.getPositiveDescription().length() : 0,
+          saved.getNegativeDescription() != null ? saved.getNegativeDescription().length() : 0);
 
       return saved;
 
@@ -345,4 +355,19 @@ public class VacancyScorerService {
     if (totalScore >= 0) return VacancyScoreRating.POOR;
     return VacancyScoreRating.VERY_POOR;
   }
+
+  /**
+   * Конвертирует список факторов в строку для сохранения в БД
+   * Использует разделитель " | " между факторами
+   *
+   * @param factors список факторов
+   * @return строка с факторами или null если список пустой
+   */
+  private String factorsToString(List<String> factors) {
+    if (factors == null || factors.isEmpty()) {
+      return null;
+    }
+    return String.join(FACTOR_DELIMITER, factors);
+  }
+
 }
