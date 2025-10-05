@@ -46,6 +46,33 @@ public class VacancyQueueProcessorWorkflowService {
   }
 
   /**
+   * Останавливает обработку очереди для указанного типа через сигнал
+   * @return true если сигнал был отправлен, false если workflow не запущен
+   */
+  public boolean stopQueueProcessing(GenericTaskQueueType queueType) {
+    try {
+      String workflowId = VacancyQueueProcessorConstants.WORKFLOW_ID + "_" + queueType.getId();
+
+      // Проверяем, запущен ли workflow
+      if (!temporalStatusService.isWorkflowRunning(workflowId)) {
+        return false;
+      }
+
+      // Получаем существующий workflow stub
+      VacancyQueueProcessorWorkflow workflow = workflowClient.newWorkflowStub(
+          VacancyQueueProcessorWorkflow.class,
+          workflowId
+      );
+
+      // Отправляем сигнал остановки
+      workflow.stop();
+      return true;
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  /**
    * Запускает обработку очереди для первичного анализа
    */
   public void startFirstAnalysisQueueProcessing() {
@@ -60,11 +87,31 @@ public class VacancyQueueProcessorWorkflowService {
   }
 
   /**
-   * Запускает обработку всех типов очередей
+   * Запускает обработку очереди для обновления вакансий
    */
-  public void startAllQueueProcessing() {
-    startFirstAnalysisQueueProcessing();
-    startFullAnalysisQueueProcessing();
+  public void startVacancyUpdateQueueProcessing() {
+    startQueueProcessing(GenericTaskQueueType.VACANCY_UPDATE);
+  }
+
+  /**
+   * Останавливает обработку очереди для первичного анализа
+   */
+  public boolean stopFirstAnalysisQueueProcessing() {
+    return stopQueueProcessing(GenericTaskQueueType.LLM_FIRST);
+  }
+
+  /**
+   * Останавливает обработку очереди для полного анализа
+   */
+  public boolean stopFullAnalysisQueueProcessing() {
+    return stopQueueProcessing(GenericTaskQueueType.LLM_FULL);
+  }
+
+  /**
+   * Останавливает обработку очереди для обновления вакансий
+   */
+  public boolean stopVacancyUpdateQueueProcessing() {
+    return stopQueueProcessing(GenericTaskQueueType.VACANCY_UPDATE);
   }
 
   /**
@@ -89,13 +136,13 @@ public class VacancyQueueProcessorWorkflowService {
     return isQueueProcessorRunning(GenericTaskQueueType.LLM_FULL);
   }
 
-  // Deprecated method для обратной совместимости
-//  @Deprecated
-//  public void startQueueProcessing() {
-//    startFirstAnalysisQueueProcessing();
-//  }
+  /**
+   * Проверяет, запущен ли workflow обработки очереди обновления вакансий
+   */
+  public boolean isVacancyUpdateQueueProcessorRunning() {
+    return isQueueProcessorRunning(GenericTaskQueueType.VACANCY_UPDATE);
+  }
 
-  // Deprecated method для обратной совместимости
   @Deprecated
   public boolean isQueueProcessorRunning() {
     return isFirstAnalysisQueueProcessorRunning();

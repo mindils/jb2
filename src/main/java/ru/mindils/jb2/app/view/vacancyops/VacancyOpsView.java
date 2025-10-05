@@ -2,7 +2,6 @@ package ru.mindils.jb2.app.view.vacancyops;
 
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.html.H3;
-import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
 import io.jmix.flowui.Notifications;
@@ -13,12 +12,10 @@ import io.jmix.flowui.view.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.mindils.jb2.app.dto.WorkflowInfo;
 import ru.mindils.jb2.app.service.TemporalStatusService;
-import ru.mindils.jb2.app.service.VacancyOpsService;
 import ru.mindils.jb2.app.service.VacancyWorkflowService;
 import ru.mindils.jb2.app.view.main.MainView;
 
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Route(value = "vacancy-ops-view", layout = MainView.class)
@@ -34,14 +31,7 @@ public class VacancyOpsView extends StandardView {
   private TemporalStatusService temporalStatusService;
 
   @Autowired
-  private VacancyOpsService vacancyOpsService;
-
-  @Autowired
   private Notifications notifications;
-
-
-  @ViewComponent private Paragraph updateQueueCountText;
-  @ViewComponent private Paragraph lastSyncText;
 
   @ViewComponent private TextField daysField;
 
@@ -91,14 +81,6 @@ public class VacancyOpsView extends StandardView {
   }
 
   private void refreshStats() {
-    // Очереди
-    updateQueueCountText.setText(String.valueOf(vacancyOpsService.getUpdateQueueCount()));
-
-    // Последний sync
-    LocalDateTime last = vacancyOpsService.getLastSyncTime();
-    lastSyncText.setText(last == null
-        ? "Нет данных"
-        : last.toString());
   }
 
   private void updateWorkflowsHeader() {
@@ -118,7 +100,7 @@ public class VacancyOpsView extends StandardView {
         return d;
       }
     } catch (Exception ignored) { }
-    return vacancyOpsService.calcDaysSinceLastSyncClamped();
+    return 1;
   }
 
 }

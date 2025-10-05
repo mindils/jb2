@@ -147,9 +147,6 @@ public class VacancyLlmAnalysisService {
         }
       }
 
-      // Сохраняем ID вызова LLM для трейсабилити (если есть такое поле)
-      // analysis.setLlmCallId(llmResponse.getLlmCallId());
-
       // Сохраняем в базу данных
       VacancyLlmAnalysis saved = dataManager.save(analysis);
 
@@ -215,11 +212,6 @@ public class VacancyLlmAnalysisService {
       // Устанавливаем переданный статус, остальные поля оставляем пустыми
       analysis.setStatus(status);
       analysis.setMessage(message);
-
-      // Очищаем данные анализа (если это обновление существующей записи)
-//      analysis.setAnalyzeDataString(null);
-//      analysis.setAnalyzeData(null);
-
 
       // Сохраняем в базу данных
       VacancyLlmAnalysis saved = dataManager.save(analysis);
@@ -324,16 +316,44 @@ public class VacancyLlmAnalysisService {
 
   /**
    * Настройки LLM в зависимости от типа анализа
+   * Лимиты токенов основаны на сложности промпта и ожидаемой длине JSON-ответа
    */
   private OpenAiChatOptions getOptionsForAnalysisType(VacancyLlmAnalysisType analysisType) {
     return switch (analysisType) {
+      // Простые короткие ответы (1 boolean) - 2000 токенов
       case JAVA_PRIMARY -> OpenAiChatOptions.builder()
           .temperature(0.0)
-          .maxTokens(300)
+          .maxTokens(2000)
           .build();
+
+      // Простые ответы (3-5 полей) - 3000 токенов
+      case COMPENSATION, STOP_FACTORS -> OpenAiChatOptions.builder()
+          .temperature(0.0)
+          .maxTokens(3000)
+          .build();
+
+      // Средние ответы (5-8 полей, умеренная сложность) - 4000 токенов
+      case BENEFITS, SOCIAL, TECHNICAL -> OpenAiChatOptions.builder()
+          .temperature(0.0)
+          .maxTokens(4000)
+          .build();
+
+      // Сложные ответы (детальный анализ, длинные правила) - 5000 токенов
+      case WORK_CONDITIONS -> OpenAiChatOptions.builder()
+          .temperature(0.0)
+          .maxTokens(5000)
+          .build();
+
+      // Самые сложные ответы (огромные промпты, множественные направления) - 6000 токенов
+      case EQUIPMENT, INDUSTRY -> OpenAiChatOptions.builder()
+          .temperature(0.0)
+          .maxTokens(6000)
+          .build();
+
+      // По умолчанию - 4000 токенов (безопасное значение)
       default -> OpenAiChatOptions.builder()
           .temperature(0.0)
-          .maxTokens(300)
+          .maxTokens(4000)
           .build();
     };
   }

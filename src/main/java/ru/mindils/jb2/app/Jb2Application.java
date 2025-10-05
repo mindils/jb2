@@ -20,7 +20,7 @@ import org.springframework.core.env.Environment;
 import javax.sql.DataSource;
 
 @Push
-@Theme(value = "jb2")
+@Theme(value = "jb2", variant = "dark")
 @SpringBootApplication
 public class Jb2Application implements AppShellConfigurator {
 

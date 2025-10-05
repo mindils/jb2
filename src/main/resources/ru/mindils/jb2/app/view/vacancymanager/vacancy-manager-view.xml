@@ -37,7 +37,10 @@
       <vbox classNames="stat-card" themeNames="spacing" width="16rem">
         <h4 text="Очередь обновления"/>
         <p id="updateQueueCountText" classNames="stat-number"/>
-        <button id="updateFromQueueBtn" text="Обновить из очереди"/>
+        <hbox>
+          <button id="updateFromQueueBtn" icon="vaadin:play"/>
+          <button id="stopUpdateQueueBtn" icon="vaadin:stop"/>
+        </hbox>
       </vbox>
 
       <vbox classNames="stat-card" themeNames="spacing" width="24rem">
@@ -51,5 +54,6 @@
         <button id="syncRecentBtn" text="Синхронизация за период" themeName="small"/>
       </vbox>
     </hbox>
+    <button id="refreshStatsBtn" text="Обновить" icon="vaadin:rotate-right"/>
   </layout>
 </view>

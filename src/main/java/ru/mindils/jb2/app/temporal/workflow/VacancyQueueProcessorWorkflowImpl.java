@@ -19,6 +19,9 @@ public class VacancyQueueProcessorWorkflowImpl implements VacancyQueueProcessorW
 
   private static final Logger log = Workflow.getLogger(VacancyQueueProcessorWorkflowImpl.class);
 
+  // Флаг для остановки процесса
+  private boolean shouldStop = false;
+
   private final VacancyQueueProcessorActivities activities = Workflow.newActivityStub(
       VacancyQueueProcessorActivities.class,
       ActivityOptions.newBuilder()
@@ -30,9 +33,15 @@ public class VacancyQueueProcessorWorkflowImpl implements VacancyQueueProcessorW
                   .setBackoffCoefficient(2.0)
                   .build()
           )
-          .setStartToCloseTimeout(Duration.ofMinutes(15)) // Увеличиваем для full анализа
+          .setStartToCloseTimeout(Duration.ofMinutes(15))
           .build()
   );
+
+  @Override
+  public void stop() {
+    log.info("Received stop signal for queue processor workflow");
+    this.shouldStop = true;
+  }
 
   @Override
   public void processQueue(GenericTaskQueueType queueType) {
@@ -48,6 +57,13 @@ public class VacancyQueueProcessorWorkflowImpl implements VacancyQueueProcessorW
 
     try {
       while (true) {
+        // Проверяем флаг остановки
+        if (shouldStop) {
+          log.warn("Queue processor stopped by user signal for type {}. Processed: {}, Success: {}, Failed: {}",
+              queueType, processedCount, successCount, failedCount);
+          return;
+        }
+
         // 1. Получаем следующую задачу из очереди для указанного типа
         Optional<GenericTaskQueueDto> nextTask = activities.getNextTask(queueType);
 
@@ -75,7 +91,6 @@ public class VacancyQueueProcessorWorkflowImpl implements VacancyQueueProcessorW
         } catch (Exception e) {
           log.error("Error processing {} task {}: {}", queueType, task.getId(), e.getMessage());
 
-          // Помечаем задачу как завершенную с ошибкой
           String errorMessage = "Workflow error: " + e.getMessage();
           if (errorMessage.length() > 1000) {
             errorMessage = errorMessage.substring(0, 1000) + "...";
@@ -91,10 +106,12 @@ public class VacancyQueueProcessorWorkflowImpl implements VacancyQueueProcessorW
 
         processedCount++;
 
-        // Пауза между задачами (больше для full анализа)
-//        Duration sleepDuration = queueType == GenericTaskQueueType.LLM_FULL ?
-//            Duration.ofSeconds(1) : Duration.ofSeconds(1);
-//        Workflow.sleep(sleepDuration);
+        // Проверяем флаг остановки перед следующей итерацией
+        if (shouldStop) {
+          log.warn("Queue processor stopped by user signal for type {}. Processed: {}, Success: {}, Failed: {}",
+              queueType, processedCount, successCount, failedCount);
+          return;
+        }
       }
 
       log.info("{} queue processing completed. Total: {}, Success: {}, Failed: {}",
@@ -119,6 +136,11 @@ public class VacancyQueueProcessorWorkflowImpl implements VacancyQueueProcessorW
       case LLM_FULL:
         log.info("Executing FULL analysis workflow for vacancy: {}", vacancyId);
         activities.executeVacancyFullAnalysisWorkflow(vacancyId);
+        break;
+
+      case VACANCY_UPDATE:
+        log.info("Executing VACANCY UPDATE workflow for vacancy: {}", vacancyId);
+        activities.executeVacancyUpdateWorkflow(vacancyId);
         break;
 
       default:

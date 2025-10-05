@@ -162,4 +162,35 @@ public class VacancyManagerView extends StandardView {
     return 1;
   }
 
+  @Subscribe(id = "updateFromQueueBtn", subject = "clickListener")
+  public void onUpdateFromQueueBtnClick(final ClickEvent<JmixButton> event) {
+    vacancyQueueProcessorWorkflowService.startVacancyUpdateQueueProcessing();
+
+    notifications.create("Обработка очереди обновления вакансий запущена")
+        .withType(Notifications.Type.SUCCESS)
+        .show();
+  }
+
+  @Subscribe(id = "stopUpdateQueueBtn", subject = "clickListener")
+  public void onStopUpdateQueueBtnClick(final ClickEvent<JmixButton> event) {
+    boolean stopped = vacancyQueueProcessorWorkflowService.stopVacancyUpdateQueueProcessing();
+
+    if (stopped) {
+      notifications.create("Запрос на остановку обработки очереди обновления отправлен")
+          .withType(Notifications.Type.SUCCESS)
+          .show();
+    } else {
+      notifications.create("Не удалось остановить: обработка очереди не запущена")
+          .withType(Notifications.Type.WARNING)
+          .show();
+    }
+
+    refreshStats();
+  }
+
+  @Subscribe(id = "refreshStatsBtn", subject = "clickListener")
+  public void onRefreshStatsBtnClick(final ClickEvent<JmixButton> event) {
+    refreshStats();
+  }
+
 }

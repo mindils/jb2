@@ -87,8 +87,8 @@
           <dropdownButton id="vacancyDropdown" text="Добавить в очередь из таблицы на:" icon="CALC">
             <items>
               <textItem id="updateVacancyBtn" text="Обновление"/>
-              <textItem id="addVacancyInFirstLlmQueueBtn" text="Первичный анализ llm"/>
-              <textItem id="addVacancyInSocialLlmQueueBtn" text="Полный анализ llm"/>
+              <textItem id="addVacancyInFirstLlmQueueBtn" text="В очередь первичный анализ llm"/>
+              <textItem id="addVacancyInSocialLlmQueueBtn" text="В очередь полный анализ llm"/>
             </items>
           </dropdownButton>
           <simplePagination id="pagination" dataLoader="vacanciesDl" alignSelf="START"/>
@@ -101,7 +101,7 @@
               dataContainer="vacanciesDc"
               columnReorderingAllowed="true">
       <actions>
-        <action id="readAction" type="list_read" text="Открыть">
+        <action id="readAction" type="list_read" text="Посмотреть">
           <properties>
             <property name="openMode" value="DIALOG"/>
           </properties>
@@ -127,7 +127,9 @@
         <column property="updatedAt" autoWidth="true"/>
       </columns>
       <contextMenu>
+        <item id="updateVacancyMenu" text="Обновить вакансию"/>
         <item id="firstLlmAnalyseMenu" text="Первичный анализ выбранной вакансии"/>
+        <item id="fullLlmAnalyseMenu" text="Полный анализ выбранной вакансии"/>
       </contextMenu>
     </dataGrid>
     <hbox id="lookupActions" visible="false">

@@ -157,24 +157,62 @@ public class SimpleLLMService {
           .chatResponse();
 
       // Проверяем наличие ответа
-      if (response == null ||
-          response.getResult() == null ||
-          response.getResult().getOutput() == null) {
-        throw new RuntimeException("Empty response from LLM");
+      if (response == null) {
+        log.error("LLM returned null response");
+        throw new RuntimeException("Null response from LLM");
+      }
+
+      if (response.getResult() == null) {
+        log.error("LLM response has null result. Metadata: {}",
+            response.getMetadata() != null ? response.getMetadata() : "no metadata");
+        throw new RuntimeException("Empty result in LLM response");
+      }
+
+      if (response.getResult().getOutput() == null) {
+        log.error("LLM response has null output. FinishReason: {}",
+            response.getResult().getMetadata() != null ?
+                response.getResult().getMetadata().getFinishReason() : "unknown");
+        throw new RuntimeException("Empty output in LLM response");
       }
 
       // Получаем текстовый контент из AssistantMessage
       String content = response.getResult().getOutput().getText();
 
-      if (content == null || content.isEmpty()) {
-        throw new RuntimeException("Empty content in LLM response");
+      if (content == null || content.trim().isEmpty()) {
+        // УЛУЧШЕНО: детальное логирование перед выбросом ошибки
+        log.error("Empty content in LLM response!");
+        log.error("Response metadata: {}", response.getMetadata());
+        log.error("Result metadata: {}", response.getResult().getMetadata());
+        log.error("Finish reason: {}",
+            response.getResult().getMetadata() != null ?
+                response.getResult().getMetadata().getFinishReason() : "unknown");
+
+        // Логируем usage если доступен
+        if (response.getMetadata() != null && response.getMetadata().getUsage() != null) {
+          Usage usage = response.getMetadata().getUsage();
+          log.error("Token usage - prompt: {}, completion: {}, total: {}",
+              usage.getPromptTokens(),
+              usage.getCompletionTokens(),
+              usage.getTotalTokens());
+        }
+
+        // Логируем модель
+        if (response.getMetadata() != null) {
+          log.error("Model used: {}", response.getMetadata().getModel());
+        }
+
+        throw new RuntimeException("Empty content in LLM response. " +
+            "FinishReason: " + (response.getResult().getMetadata() != null ?
+            response.getResult().getMetadata().getFinishReason() : "unknown"));
       }
 
       return response;
 
     } catch (HttpClientErrorException | HttpServerErrorException e) {
+      log.error("HTTP error from LLM API: {} - {}", e.getStatusCode(), e.getResponseBodyAsString());
       throw new RuntimeException("HTTP " + e.getStatusCode().value() + ": " + e.getMessage(), e);
     } catch (ResourceAccessException e) {
+      log.error("Network error calling LLM API: {}", e.getMessage());
       throw new RuntimeException("Network error: " + e.getMessage(), e);
     }
   }
@@ -185,6 +223,9 @@ public class SimpleLLMService {
   private String classifyError(Exception e) {
     String message = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
 
+    if (message.contains("empty content")) {
+      return "EMPTY_CONTENT";
+    }
     if (message.contains("rate limit") || message.contains("429") ||
         message.contains("too many requests")) {
       return "RATE_LIMIT";
@@ -244,7 +285,6 @@ public class SimpleLLMService {
 
   /**
    * Логирование успешного вызова с метаданными от litellm
-   * ОБНОВЛЕНО: использует getCompletionTokens() вместо getGenerationTokens()
    */
   private void logSuccessfulCall(LlmCallLog callLog, String response,
                                  long duration, ChatResponseMetadata metadata) {
@@ -261,11 +301,9 @@ public class SimpleLLMService {
       // Информация об использовании токенов
       Usage usage = metadata.getUsage();
       if (usage != null) {
-        // В Spring AI M6+ методы возвращают Integer, а не Long
         if (usage.getPromptTokens() != null) {
           callLog.setPromptTokens(usage.getPromptTokens().intValue());
         }
-        // ОБНОВЛЕНО: используем getCompletionTokens() вместо getGenerationTokens()
         if (usage.getCompletionTokens() != null) {
           callLog.setCompletionTokens(usage.getCompletionTokens().intValue());
         }

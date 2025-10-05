@@ -23,4 +23,6 @@ public interface VacancyQueueProcessorActivities {
   @ActivityMethod
   void executeVacancyFullAnalysisWorkflow(String vacancyId);
 
+  void executeVacancyUpdateWorkflow(String vacancyId);
+
 }

@@ -15,6 +15,7 @@ import ru.mindils.jb2.app.entity.GenericTaskQueueStatus;
 import ru.mindils.jb2.app.entity.GenericTaskQueueType;
 import ru.mindils.jb2.app.mapper.GenericTaskQueueMapper;
 import ru.mindils.jb2.app.service.TemporalStatusService;
+import ru.mindils.jb2.app.service.VacancyUpdateWorkflowService;
 import ru.mindils.jb2.app.temporal.VacancyLlmAnalysisConstants;
 import ru.mindils.jb2.app.temporal.workflow.VacancyLlmFirstAnalysisWorkflow;
 import ru.mindils.jb2.app.temporal.workflow.VacancyLlmFullAnalysisWorkflow;
@@ -32,17 +33,20 @@ public class VacancyQueueProcessorActivitiesImpl implements VacancyQueueProcesso
   private final TemporalStatusService temporalStatusService;
   private final SystemAuthenticator authenticator;
   private final GenericTaskQueueMapper taskQueueMapper;
+  private final VacancyUpdateWorkflowService vacancyUpdateWorkflowService;
 
   public VacancyQueueProcessorActivitiesImpl(DataManager dataManager,
                                              WorkflowClient workflowClient,
                                              SystemAuthenticator authenticator,
                                              GenericTaskQueueMapper taskQueueMapper,
-                                             TemporalStatusService temporalStatusService) {
+                                             TemporalStatusService temporalStatusService,
+                                             VacancyUpdateWorkflowService vacancyUpdateWorkflowService) {
     this.dataManager = dataManager;
     this.workflowClient = workflowClient;
     this.temporalStatusService = temporalStatusService;
     this.authenticator = authenticator;
     this.taskQueueMapper = taskQueueMapper;
+    this.vacancyUpdateWorkflowService = vacancyUpdateWorkflowService;
   }
 
   @Override
@@ -141,5 +145,11 @@ public class VacancyQueueProcessorActivitiesImpl implements VacancyQueueProcesso
           vacancyId, e.getMessage(), e);
       throw new RuntimeException("Full analysis workflow failed: " + e.getMessage(), e);
     }
+  }
+
+  @Override
+  public void executeVacancyUpdateWorkflow(String vacancyId) {
+    // Используем общий сервис вместо дублирования кода
+    vacancyUpdateWorkflowService.startUpdateWorkflow(vacancyId);
   }
 }
