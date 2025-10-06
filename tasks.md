@@ -2,6 +2,7 @@
 
 125777059 - тут вакансия неверно определен офис
 125816566 - тут почему-то Frontend разработка | Проблемная компания  в неготивное разобраться
+125732922 - тут вакансия вроде node js но также нужна java разработчик (думаю что надо попробовать чтобы такие вакансии определялись как true)
 
 126000875 тут тоже неверно компенсация техники есть 
 INSERT INTO public.jb2_vacancy_llm_analysis (vacancy_id, analyze_type, analyze_data, created_date, last_modified_date, analyze_data_string, uid, status, llm_model, llm_call_log_id, message) VALUES ('126000875', 'BENEFITS', '{"paidSickLeave": false, "healthInsurance": true, "extendedVacation": false, "internalTraining": true, "conferencesBudget": true, "wellnessCompensation": true, "coworkingCompensation": false, "educationCompensation": true}', '2025-10-05 08:10:39.933000 +00:00', '2025-10-05 08:10:39.933000 +00:00', '{"healthInsurance":true,"extendedVacation":false,"wellnessCompensation":true,"coworkingCompensation":false,"educationCompensation":true,"conferencesBudget":true,"internalTraining":true,"paidSickLeave":false}', '8129a3ab-ed3a-5988-b646-4787fe4d82a6', 'DONE', 'moonshotai/kimi-k2-instruct-0905', 1286, null);
