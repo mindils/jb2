@@ -126,16 +126,16 @@ model_list:
       id: chat-models-groq-gpt
       mode: chat
 
-  - model_name: chat-models
-    litellm_params:
-      model: groq/moonshotai/kimi-k2-instruct-0905
-      api_base: https://api.groq.com/openai/v1
-      api_key: os.environ/GROQ_API_KEY
-      rpm: 30
-      tpm: 6000
-    model_info:
-      id: chat-models-groq-kimi
-      mode: chat
+#  - model_name: chat-models
+#    litellm_params:
+#      model: groq/moonshotai/kimi-k2-instruct-0905
+#      api_base: https://api.groq.com/openai/v1
+#      api_key: os.environ/GROQ_API_KEY
+#      rpm: 30
+#      tpm: 6000
+#    model_info:
+#      id: chat-models-groq-kimi
+#      mode: chat
 
   - model_name: chat-models
     litellm_params:
