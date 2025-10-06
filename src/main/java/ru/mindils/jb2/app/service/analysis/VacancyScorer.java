@@ -50,7 +50,6 @@ public class VacancyScorer {
 
     // Суммируем оценки и собираем описания
     calculatePrimaryScore(analysisMap.get(VacancyLlmAnalysisType.JAVA_PRIMARY), result);
-    calculateSocialScore(analysisMap.get(VacancyLlmAnalysisType.SOCIAL), result);
     calculateTechnicalScore(analysisMap.get(VacancyLlmAnalysisType.TECHNICAL), result);
     calculateCompensationScore(analysisMap.get(VacancyLlmAnalysisType.COMPENSATION), result);
     calculateBenefitsScore(analysisMap.get(VacancyLlmAnalysisType.BENEFITS), result);
@@ -69,30 +68,10 @@ public class VacancyScorer {
     if (primary == null) return;
 
     if (getBooleanValue(primary, "java")) {
-      applyRule(JAVA, result);
+      applyRule(JAVA_PRIMARY_JAVA, result);
     }
     if (getBooleanValue(primary, "jmix")) {
-      applyRule(JMIX, result);
-    }
-  }
-
-  private void calculateSocialScore(JsonNode social, VacancyScoringResult result) {
-    if (social == null) return;
-
-    String workMode = getStringValue(social, "work_mode");
-    switch (workMode) {
-      case "remote" -> applyRule(REMOTE, result);
-      case "flexible" -> applyRule(FLEXIBLE, result);
-      case "hybrid_flexible" -> applyRule(HYBRID_FLEXIBLE, result);
-      case "hybrid" -> applyRule(HYBRID, result);
-      case "hybrid_2_3" -> applyRule(HYBRID_2_3, result);
-      case "hybrid_3_2" -> applyRule(HYBRID_3_2, result);
-      case "hybrid_4_1" -> applyRule(HYBRID_4_1, result);
-      case "office" -> applyRule(OFFICE, result);
-    }
-
-    if (getBooleanValue(social, "socially_significant")) {
-      applyRule(SOCIALLY_SIGNIFICANT, result);
+      applyRule(JAVA_PRIMARY_JMIX, result);
     }
   }
 
@@ -102,143 +81,167 @@ public class VacancyScorer {
     // Тип роли
     String roleType = getStringValue(technical, "role_type");
     switch (roleType) {
-      case "backend" -> applyRule(BACKEND, result);
-      case "frontend_plus_backend" -> applyRule(FRONTEND_BACKEND, result);
-      case "devops_with_dev" -> applyRule(DEVOPS_WITH_DEV, result);
-      case "other" -> applyRule(OTHER_ROLE, result);
+      case "backend" -> applyRule(TECHNICAL_ROLE_BACKEND, result);
+      case "fullstack" -> applyRule(TECHNICAL_ROLE_FULLSTACK, result);
+      case "devops" -> applyRule(TECHNICAL_ROLE_DEVOPS, result);
+      case "other" -> applyRule(TECHNICAL_ROLE_OTHER, result);
+      case "none" -> applyRule(TECHNICAL_ROLE_NONE, result);
     }
 
     // Уровень позиции
     String positionLevel = getStringValue(technical, "position_level");
     switch (positionLevel) {
-      case "architect" -> applyRule(ARCHITECT, result);
-      case "principal" -> applyRule(PRINCIPAL, result);
-      case "senior" -> applyRule(SENIOR, result);
-      case "lead" -> applyRule(LEAD, result);
-      case "middle" -> applyRule(MIDDLE, result);
-      case "junior" -> applyRule(JUNIOR, result);
+      case "architect" -> applyRule(TECHNICAL_LEVEL_ARCHITECT, result);
+      case "principal" -> applyRule(TECHNICAL_LEVEL_PRINCIPAL, result);
+      case "senior" -> applyRule(TECHNICAL_LEVEL_SENIOR, result);
+      case "lead" -> applyRule(TECHNICAL_LEVEL_LEAD, result);
+      case "middle" -> applyRule(TECHNICAL_LEVEL_MIDDLE, result);
+      case "junior" -> applyRule(TECHNICAL_LEVEL_JUNIOR, result);
+      case "none" -> applyRule(TECHNICAL_LEVEL_NONE, result);
     }
 
     // Стек технологий
     String stack = getStringValue(technical, "stack");
-    if (!stack.isEmpty()) {
+    if (!stack.isEmpty() && !stack.equals("none")) {
       for (String tech : stack.toLowerCase().split("\\|")) {
         switch (tech.trim()) {
-          case "spring" -> applyRule(SPRING_STACK, result);
-          case "microservices" -> applyRule(MICROSERVICES, result);
-          case "database" -> applyRule(DATABASE, result);
-          case "python" -> applyRule(PYTHON, result);
-          case "devops" -> applyRule(DEVOPS_STACK, result);
-          case "frontend" -> applyRule(FRONTEND_STACK, result);
+          case "spring" -> applyRule(TECHNICAL_STACK_SPRING, result);
+          case "microservices" -> applyRule(TECHNICAL_STACK_MICROSERVICES, result);
+          case "database" -> applyRule(TECHNICAL_STACK_DATABASE, result);
+          case "python" -> applyRule(TECHNICAL_STACK_PYTHON, result);
+          case "devops" -> applyRule(TECHNICAL_STACK_DEVOPS, result);
+          case "frontend" -> applyRule(TECHNICAL_STACK_FRONTEND, result);
         }
       }
+    } else if (stack.equals("none")) {
+      applyRule(TECHNICAL_STACK_NONE, result);
     }
 
     // AI присутствие
     String aiPresence = getStringValue(technical, "ai_presence");
-    if (!aiPresence.isEmpty()) {
-      for (String aiType : aiPresence.split("\\|")) {
-        switch (aiType.trim()) {
-          case "allowed_for_dev" -> applyRule(AI_ALLOWED, result);
-          case "llm_project_optional" -> applyRule(AI_PROJECT_OPTIONAL, result);
-          case "llm_project_required" -> applyRule(AI_PROJECT_REQUIRED, result);
-        }
-      }
+    switch (aiPresence) {
+      case "allowed" -> applyRule(TECHNICAL_AI_ALLOWED, result);
+      case "project_optional" -> applyRule(TECHNICAL_AI_PROJECT_OPTIONAL, result);
+      case "project_required" -> applyRule(TECHNICAL_AI_PROJECT_REQUIRED, result);
+      case "none" -> applyRule(TECHNICAL_AI_NONE, result);
     }
 
+    // Jmix платформа
     if (getBooleanValue(technical, "jmix")) {
-      applyRule(JMIX, result);
+      applyRule(JAVA_PRIMARY_JMIX, result);
     }
   }
 
   private void calculateCompensationScore(JsonNode compensation, VacancyScoringResult result) {
     if (compensation == null) return;
 
-    boolean salarySpecified = getBooleanValue(compensation, "salarySpecified");
-    if (!salarySpecified) {
-      applyRule(SALARY_NOT_SPECIFIED, result);
-      return;
-    }
-
     String salaryRange = getStringValue(compensation, "salaryRange");
     boolean hasBonuses = getBooleanValue(compensation, "bonusesAvailable");
 
+    // Обрабатываем диапазон зарплаты
     switch (salaryRange) {
-      case "high_400plus" -> applyRule(SALARY_HIGH_400, result);
-      case "upper_350_400" -> applyRule(hasBonuses ? SALARY_350_400_BONUS : SALARY_350_400, result);
-      case "middle_300_350" -> applyRule(hasBonuses ? SALARY_300_350_BONUS : SALARY_300_350, result);
-      case "lower_250_300" -> applyRule(SALARY_250_300, result);
-      case "below_250" -> applyRule(SALARY_BELOW_250, result);
+      case "high_400plus" -> applyRule(COMPENSATION_HIGH_400, result);
+      case "upper_350_400" -> applyRule(hasBonuses ? COMPENSATION_350_400_BONUS : COMPENSATION_350_400, result);
+      case "middle_300_350" -> applyRule(hasBonuses ? COMPENSATION_300_350_BONUS : COMPENSATION_300_350, result);
+      case "lower_250_300" -> applyRule(COMPENSATION_250_300, result);
+      case "below_250" -> applyRule(COMPENSATION_BELOW_250, result);
+      case "none" -> applyRule(COMPENSATION_NONE, result);
     }
 
-    boolean isWhite = getBooleanValue(compensation, "salaryWhite");
-    applyRule(isWhite ? WHITE_SALARY : GRAY_SALARY, result);
+    // Обрабатываем тип зарплаты (белая/серая/не указано)
+    String salaryType = getStringValue(compensation, "salaryType");
+    switch (salaryType) {
+      case "white" -> applyRule(COMPENSATION_TYPE_WHITE, result);
+      case "gray" -> applyRule(COMPENSATION_TYPE_GRAY, result);
+      case "none" -> applyRule(COMPENSATION_TYPE_NONE, result);
+    }
 
+    // Обрабатываем опционы/акции
     if (getBooleanValue(compensation, "equityOffered")) {
-      applyRule(EQUITY, result);
+      applyRule(COMPENSATION_EQUITY, result);
     }
   }
 
   private void calculateBenefitsScore(JsonNode benefits, VacancyScoringResult result) {
     if (benefits == null) return;
 
-    if (getBooleanValue(benefits, "healthInsurance")) applyRule(HEALTH_INSURANCE, result);
-    if (getBooleanValue(benefits, "extendedVacation")) applyRule(EXTENDED_VACATION, result);
-    if (getBooleanValue(benefits, "wellnessCompensation")) applyRule(WELLNESS, result);
-    if (getBooleanValue(benefits, "coworkingCompensation")) applyRule(COWORKING, result);
-    if (getBooleanValue(benefits, "educationCompensation")) applyRule(EDUCATION, result);
-    if (getBooleanValue(benefits, "conferencesBudget")) applyRule(CONFERENCES, result);
-    if (getBooleanValue(benefits, "internalTraining")) applyRule(INTERNAL_TRAINING, result);
-    if (getBooleanValue(benefits, "paidSickLeave")) applyRule(PAID_SICK_LEAVE, result);
+    if (getBooleanValue(benefits, "health_insurance")) applyRule(BENEFITS_HEALTH_INSURANCE, result);
+    if (getBooleanValue(benefits, "extended_vacation")) applyRule(BENEFITS_EXTENDED_VACATION, result);
+    if (getBooleanValue(benefits, "wellness")) applyRule(BENEFITS_WELLNESS, result);
+    if (getBooleanValue(benefits, "remote_compensation")) applyRule(BENEFITS_REMOTE_COMPENSATION, result);
+    if (getBooleanValue(benefits, "education")) applyRule(BENEFITS_EDUCATION, result);
+    if (getBooleanValue(benefits, "conferences")) applyRule(BENEFITS_CONFERENCES, result);
+    if (getBooleanValue(benefits, "internal_training")) applyRule(BENEFITS_INTERNAL_TRAINING, result);
+    if (getBooleanValue(benefits, "paid_sick_leave")) applyRule(BENEFITS_PAID_SICK_LEAVE, result);
   }
 
   private void calculateEquipmentScore(JsonNode equipment, VacancyScoringResult result) {
     if (equipment == null) return;
 
-    String equipmentType = getStringValue(equipment, "equipmentType");
-    switch (equipmentType) {
-      case "macbook_pro" -> applyRule(MACBOOK_PRO, result);
-      case "windows_laptop" -> applyRule(WINDOWS_LAPTOP, result);
-      case "byod" -> {
-        String compensation = getStringValue(equipment, "byodCompensation");
-        switch (compensation) {
-          case "full" -> applyRule(BYOD_FULL, result);
-          case "partial" -> applyRule(BYOD_PARTIAL, result);
-          case "none" -> applyRule(BYOD_NO_COMP, result);
-        }
-      }
+    // BYOD (можно ли со своим ноутбуком)
+    String byodAllowed = getStringValue(equipment, "byod_allowed");
+    switch (byodAllowed) {
+      case "yes" -> applyRule(EQUIPMENT_BYOD_YES, result);
+      case "no" -> applyRule(EQUIPMENT_BYOD_NO, result);
+      case "none" -> applyRule(EQUIPMENT_BYOD_NONE, result);
     }
 
-    String additional = getStringValue(equipment, "additionalEquipment");
-    if (additional != null && !additional.equals("none")) {
-      if (additional.contains("monitors")) applyRule(MONITORS, result);
-      if (additional.contains("peripherals")) applyRule(PERIPHERALS, result);
+    // macOS упоминание
+    String macosMentioned = getStringValue(equipment, "macos_mentioned");
+    switch (macosMentioned) {
+      case "provided" -> applyRule(EQUIPMENT_MACOS_PROVIDED, result);
+      case "allowed" -> applyRule(EQUIPMENT_MACOS_ALLOWED, result);
+      case "both" -> applyRule(EQUIPMENT_MACOS_BOTH, result);
+      case "none" -> applyRule(EQUIPMENT_MACOS_NONE, result);
+    }
+
+    // Компенсация техники
+    String compensation = getStringValue(equipment, "equipment_compensation");
+    switch (compensation) {
+      case "full" -> applyRule(EQUIPMENT_COMPENSATION_FULL, result);
+      case "partial" -> applyRule(EQUIPMENT_COMPENSATION_PARTIAL, result);
+      case "none" -> applyRule(EQUIPMENT_COMPENSATION_NONE, result);
     }
   }
 
   private void calculateIndustryScore(JsonNode industry, VacancyScoringResult result) {
     if (industry == null) return;
 
+    // Обрабатываем категорию компании
     String companyCategory = getStringValue(industry, "company_category");
     switch (companyCategory) {
-      case "positive" -> applyRule(POSITIVE_COMPANY, result);
-      case "neutral" -> applyRule(NEUTRAL_COMPANY, result);
-      case "problematic" -> applyRule(PROBLEMATIC_COMPANY, result);
-      case "toxic" -> applyRule(TOXIC_COMPANY, result);
+      case "safe" -> applyRule(INDUSTRY_COMPANY_SAFE, result);
+      case "neutral" -> applyRule(INDUSTRY_COMPANY_NEUTRAL, result);
+      case "toxic" -> applyRule(INDUSTRY_COMPANY_TOXIC, result);
     }
 
-    // Категория проекта (если отличается от компании)
+    // Обрабатываем категорию проекта (только если отличается от компании)
     String projectCategory = getStringValue(industry, "project_category");
     if (!projectCategory.equals(companyCategory) && !projectCategory.isEmpty()) {
-      Rule projectRule = switch (projectCategory) {
-        case "positive" -> new Rule(40, "Позитивный проект");
-        case "problematic" -> new Rule(-25, "Проблемный проект");
-        case "toxic" -> new Rule(-75, "Токсичный проект");
-        default -> null;
-      };
-      if (projectRule != null) {
-        applyRule(projectRule, result);
+      switch (projectCategory) {
+        case "safe" -> applyRule(INDUSTRY_PROJECT_SAFE, result);
+        case "toxic" -> applyRule(INDUSTRY_PROJECT_TOXIC, result);
+        // neutral не обрабатываем - это нейтрально
       }
+    }
+
+    // Опционально: добавляем бонусы за конкретные направления
+    String companyDirection = getStringValue(industry, "company_direction");
+    String projectDirection = getStringValue(industry, "project_direction");
+
+    // Берем direction проекта, если он отличается, иначе компании
+    String mainDirection = !projectDirection.isEmpty() && !projectDirection.equals(companyDirection)
+        ? projectDirection
+        : companyDirection;
+
+    // Дополнительные баллы за особо значимые направления
+    switch (mainDirection) {
+      case "healthcare" -> applyRule(INDUSTRY_DIRECTION_HEALTHCARE, result);
+      case "education" -> applyRule(INDUSTRY_DIRECTION_EDUCATION, result);
+      case "energy" -> applyRule(INDUSTRY_DIRECTION_ENERGY, result);
+      case "harmful" -> applyRule(INDUSTRY_DIRECTION_HARMFUL, result);
+      // остальные направления (b2b_tech, fintech, consumer, advertising)
+      // уже учтены через категорию, дополнительных баллов не даем
     }
   }
 
@@ -246,27 +249,44 @@ public class VacancyScorer {
     if (workConditions == null) return;
 
     String workFormat = getStringValue(workConditions, "workFormat");
+    String canWorkAbroad = getStringValue(workConditions, "canWorkAbroad");
+
+    // Обрабатываем формат работы
     switch (workFormat) {
-      case "remote_global" -> applyRule(REMOTE_GLOBAL, result);
-      case "remote_restricted" -> applyRule(REMOTE_RESTRICTED, result);
-      case "hybrid_frequent" -> applyRule(HYBRID_FREQUENT, result);
+      case "remote" -> {
+        // Для удаленки смотрим географические ограничения
+        if ("yes".equals(canWorkAbroad)) {
+          applyRule(WORK_CONDITIONS_REMOTE_GLOBAL, result); // 100 баллов - можно из любой страны
+        } else if ("no".equals(canWorkAbroad)) {
+          applyRule(WORK_CONDITIONS_REMOTE_RESTRICTED, result); // 30 баллов - только из РФ
+        } else {
+          applyRule(WORK_CONDITIONS_REMOTE, result); // 20 баллов - не указано
+        }
+      }
+      case "hybrid_flexible" -> applyRule(WORK_CONDITIONS_HYBRID_FLEXIBLE, result); // 20 баллов - до 1 дня в офисе
+      case "hybrid_regular" -> applyRule(WORK_CONDITIONS_HYBRID, result); // 20 баллов - 1-2 дня в офисе
+      case "hybrid_frequent" -> applyRule(WORK_CONDITIONS_HYBRID_FREQUENT, result); // 0 баллов - 3+ дня в офисе
+      case "office_only" -> applyRule(WORK_CONDITIONS_OFFICE, result); // -100 баллов - только офис
+      // "none" - не обрабатываем, нет информации
     }
 
+    // Обрабатываем релокацию
     String relocation = getStringValue(workConditions, "relocationRequired");
     switch (relocation) {
-      case "assisted" -> applyRule(RELOCATION_ASSISTED, result);
-      case "required_no_help", "mandatory_specific" -> applyRule(RELOCATION_REQUIRED, result);
+      case "optional" -> applyRule(WORK_CONDITIONS_RELOCATION_ASSISTED, result); // -100 баллов - опциональная релокация
+      case "required" -> applyRule(WORK_CONDITIONS_RELOCATION_REQUIRED, result); // -100 баллов - обязательная релокация
+      // "none" - не обрабатываем, релокация не требуется
     }
   }
 
   private void calculateStopFactorsScore(JsonNode stopFactors, VacancyScoringResult result) {
     if (stopFactors == null) return;
 
-    if (getBooleanValue(stopFactors, "toxicCulture")) {
-      applyRule(TOXIC_CULTURE, result);
+    if (getBooleanValue(stopFactors, "toxic_culture")) {
+      applyRule(STOP_FACTORS_TOXIC_CULTURE, result);
     }
-    if (getBooleanValue(stopFactors, "bannedDomain")) {
-      applyRule(BANNED_DOMAIN, result);
+    if (getBooleanValue(stopFactors, "banned_domain")) {
+      applyRule(STOP_FACTORS_BANNED_DOMAIN, result);
     }
   }
 

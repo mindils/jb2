@@ -22,66 +22,64 @@ public class CompensationPromptGenerator implements PromptGenerator {
   @Override
   public String generatePrompt(Vacancy vacancy) {
     return """
-        Проанализируй описание IT-вакансии и определи параметры компенсации и зарплаты.
-        Верни результат ТОЛЬКО в формате JSON без дополнительного текста.
+        Проанализируй IT-вакансию. Верни JSON с информацией о зарплате.
         
-        Описание вакансии:
+        ДАННЫЕ:
         Название: {name}
+        Зарплата: {salary}
         Описание: {description}
         Описание(Бренд): {descriptionBranded}
-        Зарплата: {salary}
         
-        КРИТЕРИИ АНАЛИЗА:
+        ПРАВИЛО: Отвечай ТОЛЬКО на основе текста. Если информации НЕТ - пиши "none"
         
-        1. УКАЗАНА ЛИ ЗАРПЛАТА (salarySpecified):
-        ✅ true - если есть конкретные цифры, диапазоны, или четкие указания
-        ✅ false - если зарплата не указана, "по договоренности", "конкурентная"
+        === ЧТО АНАЛИЗИРОВАТЬ ===
         
-        2. ДИАПАЗОН БАЗОВОЙ ЗАРПЛАТЫ (salaryRange):
-        ✅ "high_400plus" - базовая зарплата ≥400к рублей в месяц
-        ✅ "upper_350_400" - базовая зарплата 350-400к рублей в месяц
-        ✅ "middle_300_350" - базовая зарплата 300-350к рублей в месяц
-        ✅ "lower_250_300" - базовая зарплата 250-300к рублей в месяц
-        ✅ "below_250" - базовая зарплата менее 250к рублей в месяц
-        ✅ "not_specified" - зарплата не указана
+        1. salaryRange (диапазон в месяц):
+        • "high_400plus" = от 400к₽ и выше
+        • "upper_350_400" = 350-400к₽
+        • "middle_300_350" = 300-350к₽
+        • "lower_250_300" = 250-300к₽
+        • "below_250" = меньше 250к₽
+        • "none" = зарплата не указана
         
-        3. БЕЛАЯ ЗАРПЛАТА (salaryWhite):
-        ✅ true - официальное трудоустройство, белая зарплата, ТК РФ
-        ✅ false - серая схема, самозанятость без ТК, договор ГПХ
+        2. salaryType (тип оформления):
+        • "white" = ЯВНО написано: "ТК РФ", "официальное трудоустройство", "белая зарплата"
+        • "gray" = ЯВНО написано: "самозанятость", "ИП", "ГПХ", "налоги за ваш счет", "серая схема"
+        • "none" = ничего не написано про тип оформления
         
-        4. ПРЕМИИ И БОНУСЫ (bonusesAvailable):
-        ✅ true - упоминаются премии, бонусы, 13-я зарплата, KPI выплаты
-        ✅ false - только фиксированная зарплата, нет упоминаний бонусов
+        3. bonusesAvailable (есть ли бонусы):
+        • true = ЯВНО написано: "бонусы", "премии", "KPI", "13-я зарплата"
+        • false = ничего не написано про бонусы
         
-        5. АКЦИИ И ОПЦИОНЫ (equityOffered):
-        ✅ true - stock options, RSU, акции компании, equity compensation
-        ✅ false - нет упоминаний акций или опционов
+        4. equityOffered (есть ли опционы/акции):
+        • true = ЯВНО написано: "опционы", "stock options", "RSU", "акции компании"
+        • false = ничего не написано про опционы
         
-        ❌ НЕ УЧИТЫВАТЬ как зарплату:
-        - Социальный пакет и льготы
-        - ДМС и страховки  
-        - Корпоративное обучение
-        - Компенсации за оборудование
-        - Питание и развлечения
+        === ВАЖНО ===
         
-        ❌ НЕ СЧИТАТЬ белой зарплатой:
-        - Работа как ИП или самозанятый
-        - Договоры ГПХ без трудовых гарантий
-        - Упоминание "налоги за ваш счет"
+        ❌ НЕ включай в зарплату:
+        • ДМС, страховки
+        • обучение, конференции
+        • оборудование
+        • питание
         
-        Формат ответа (строгий JSON):
+        ❌ НЕ выдумывай:
+        • Если не написано про ТК РФ → salaryType = "none"
+        • Если не написано про бонусы → bonusesAvailable = false
+        • Если зарплаты нет → salaryRange = "none"
+        
+        === ОТВЕТ (только JSON) ===
         {
-          "salarySpecified": boolean,
-          "salaryRange": "high_400plus|upper_350_400|middle_300_350|lower_250_300|below_250|not_specified",
-          "salaryWhite": boolean,
-          "bonusesAvailable": boolean,
-          "equityOffered": boolean
+          "salaryRange": "high_400plus|upper_350_400|middle_300_350|lower_250_300|below_250|none",
+          "salaryType": "white|gray|none",
+          "bonusesAvailable": true|false,
+          "equityOffered": true|false
         }
         """
         .replace("{name}", valueOrEmpty(vacancy.getName()))
+        .replace("{salary}", valueOrEmpty(vacancy.getSalaryStr()))
         .replace("{description}", htmlConverter.convertToMarkdown(valueOrEmpty(vacancy.getDescription())))
-        .replace("{descriptionBranded}", htmlConverter.convertToMarkdown(valueOrEmpty(vacancy.getBrandedDescription())))
-        .replace("{salary}", valueOrEmpty(vacancy.getSalaryStr()));
+        .replace("{descriptionBranded}", htmlConverter.convertToMarkdown(valueOrEmpty(vacancy.getBrandedDescription())));
   }
 
   private String valueOrEmpty(String value) {

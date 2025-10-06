@@ -19,7 +19,6 @@ import static ru.mindils.jb2.app.entity.VacancyLlmAnalysisType.COMPENSATION;
 import static ru.mindils.jb2.app.entity.VacancyLlmAnalysisType.EQUIPMENT;
 import static ru.mindils.jb2.app.entity.VacancyLlmAnalysisType.INDUSTRY;
 import static ru.mindils.jb2.app.entity.VacancyLlmAnalysisType.JAVA_PRIMARY;
-import static ru.mindils.jb2.app.entity.VacancyLlmAnalysisType.SOCIAL;
 import static ru.mindils.jb2.app.entity.VacancyLlmAnalysisType.STOP_FACTORS;
 import static ru.mindils.jb2.app.entity.VacancyLlmAnalysisType.TECHNICAL;
 import static ru.mindils.jb2.app.entity.VacancyLlmAnalysisType.WORK_CONDITIONS;
@@ -38,7 +37,6 @@ public class VacancyLlmFirstAnalysisWorkflowImpl implements VacancyLlmFirstAnaly
       COMPENSATION,
       EQUIPMENT,
       INDUSTRY,
-      SOCIAL,
       TECHNICAL,
       WORK_CONDITIONS
   );

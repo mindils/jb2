@@ -13,7 +13,6 @@ public enum VacancyLlmAnalysisType implements EnumClass<String> {
     COMPENSATION("COMPENSATION"),
     EQUIPMENT("EQUIPMENT"),
     INDUSTRY("INDUSTRY"),
-    SOCIAL("SOCIAL"),
     TECHNICAL("TECHNICAL"),
     WORK_CONDITIONS("WORK_CONDITIONS");
 

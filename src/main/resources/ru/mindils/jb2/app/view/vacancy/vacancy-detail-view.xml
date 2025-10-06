@@ -7,6 +7,7 @@
               class="ru.mindils.jb2.app.entity.Vacancy">
       <fetchPlan extends="_base">
         <property name="employer" fetchPlan="_base"/>
+        <property name="vacancyScore" fetchPlan="_base"/>
       </fetchPlan>
       <loader id="vacancyDl"/>
     </instance>
@@ -42,7 +43,13 @@
       <textField property="createdAt" colspan="2"/>
       <textField property="updatedAt" colspan="2"/>
 
-      <textArea property="keySkillsStr" colspan="8"/>
+      <vbox colspan="2"  spacing="false">
+        <textField property="vacancyScore.rating" width="100%"/>
+        <textField property="vacancyScore.totalScore" width="100%"/>
+      </vbox>
+      <textArea property="keySkillsStr" colspan="6" label="Скилы"/>
+      <textArea property="vacancyScore.positiveDescription" colspan="4" label="Позитив"/>
+      <textArea property="vacancyScore.negativeDescription" colspan="4" label="Негарив"/>
       <tabSheet id="tabSheet" width="100%" colspan="8">
         <tab id="descriptionDescription" label="msg://descriptionTab.label">
           <html colspan="8" id="description" content="msg://description.emptyHtml"/>

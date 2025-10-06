@@ -6,6 +6,7 @@ import lombok.Getter;
 /**
  * Правила оценки вакансий
  * Каждое правило содержит оценку и описание
+ * Префиксы соответствуют VacancyLlmAnalysisType
  */
 public class ScoringRules {
 
@@ -22,100 +23,111 @@ public class ScoringRules {
     }
   }
 
-  // ============ PRIMARY (основные требования) ============
-  // Java - это базовое требование, не показываем в описании
-  public static final Rule JAVA = new Rule(0);
+  // ============ JAVA_PRIMARY ============
+  public static final Rule JAVA_PRIMARY_JAVA = new Rule(0);
+  public static final Rule JAVA_PRIMARY_JMIX = new Rule(150, "Jmix фреймворк");
 
-  // Jmix - показываем, это важная особенность
-  public static final Rule JMIX = new Rule(150, "Jmix фреймворк");
+  // ============ TECHNICAL ============
+  // Роли
+  public static final Rule TECHNICAL_ROLE_BACKEND = new Rule(50);
+  public static final Rule TECHNICAL_ROLE_FULLSTACK = new Rule(40, "Fullstack разработка");
+  public static final Rule TECHNICAL_ROLE_DEVOPS = new Rule(30, "DevOps с разработкой");
+  public static final Rule TECHNICAL_ROLE_OTHER = new Rule(-100, "Другая роль");
+  public static final Rule TECHNICAL_ROLE_NONE = new Rule(0); // роль не указана
 
-  public static final Rule AI_ALLOWED = new Rule(30, "AI инструменты разрешены");
-  public static final Rule AI_PROJECT_OPTIONAL = new Rule(40, "AI проекты опционально");
-  public static final Rule AI_PROJECT_REQUIRED = new Rule(-50, "AI проекты обязательны");
+  // Уровни
+  public static final Rule TECHNICAL_LEVEL_ARCHITECT = new Rule(20);
+  public static final Rule TECHNICAL_LEVEL_PRINCIPAL = new Rule(20);
+  public static final Rule TECHNICAL_LEVEL_SENIOR = new Rule(20);
+  public static final Rule TECHNICAL_LEVEL_LEAD = new Rule(20);
+  public static final Rule TECHNICAL_LEVEL_MIDDLE = new Rule(20);
+  public static final Rule TECHNICAL_LEVEL_JUNIOR = new Rule(-10);
+  public static final Rule TECHNICAL_LEVEL_NONE = new Rule(0); // уровень не указан
 
-  // ============ SOCIAL (формат работы) ============
-  public static final Rule REMOTE = new Rule(20, "Полностью удаленно");
-  public static final Rule FLEXIBLE = new Rule(20, "Гибкий график");
-  public static final Rule HYBRID_FLEXIBLE = new Rule(20, "Гибрид с гибким графиком");
-  public static final Rule HYBRID = new Rule(20, "Гибридный формат");
-  public static final Rule HYBRID_2_3 = new Rule(20, "Гибрид 2/3");
-  public static final Rule HYBRID_3_2 = new Rule(20, "Гибрид 3/2");
-  public static final Rule HYBRID_4_1 = new Rule(0, "Гибрид 4/1");
-  public static final Rule OFFICE = new Rule(-100, "Только офис");
-  public static final Rule SOCIALLY_SIGNIFICANT = new Rule(50, "Социально значимый проект");
+  // Стек
+  public static final Rule TECHNICAL_STACK_SPRING = new Rule(0);
+  public static final Rule TECHNICAL_STACK_MICROSERVICES = new Rule(0);
+  public static final Rule TECHNICAL_STACK_DATABASE = new Rule(0);
+  public static final Rule TECHNICAL_STACK_PYTHON = new Rule(10, "Python в стеке");
+  public static final Rule TECHNICAL_STACK_DEVOPS = new Rule(30, "DevOps технологии");
+  public static final Rule TECHNICAL_STACK_FRONTEND = new Rule(30, "Frontend разработка");
+  public static final Rule TECHNICAL_STACK_NONE = new Rule(0); // стек не указан
 
-  // ============ TECHNICAL (роль и уровень) ============
-  // Backend - базовое, без описания
-  public static final Rule BACKEND = new Rule(50);
-  public static final Rule FRONTEND_BACKEND = new Rule(40, "Fullstack (Backend+Frontend)");
-  public static final Rule DEVOPS_WITH_DEV = new Rule(30, "DevOps с разработкой");
-  public static final Rule OTHER_ROLE = new Rule(-100, "Другая роль");
+  // AI
+  public static final Rule TECHNICAL_AI_ALLOWED = new Rule(30, "AI инструменты разрешены");
+  public static final Rule TECHNICAL_AI_PROJECT_OPTIONAL = new Rule(40, "AI проекты опционально");
+  public static final Rule TECHNICAL_AI_PROJECT_REQUIRED = new Rule(-50, "AI проекты обязательны");
+  public static final Rule TECHNICAL_AI_NONE = new Rule(0); // AI не упоминается
 
-  // Уровень - тоже базовое, можно не показывать
-  public static final Rule ARCHITECT = new Rule(20);
-  public static final Rule PRINCIPAL = new Rule(20);
-  public static final Rule SENIOR = new Rule(20);
-  public static final Rule LEAD = new Rule(20);
-  public static final Rule MIDDLE = new Rule(20);
-  public static final Rule JUNIOR = new Rule(-10);
+  // ============ COMPENSATION ============
+  public static final Rule COMPENSATION_NONE = new Rule(0); // зарплата не указана
+  public static final Rule COMPENSATION_HIGH_400 = new Rule(100, "Высокая ЗП (400k+)");
+  public static final Rule COMPENSATION_350_400 = new Rule(50, "ЗП 350-400k");
+  public static final Rule COMPENSATION_350_400_BONUS = new Rule(60, "ЗП 350-400k + бонусы");
+  public static final Rule COMPENSATION_300_350 = new Rule(0, "ЗП 300-350k");
+  public static final Rule COMPENSATION_300_350_BONUS = new Rule(20, "ЗП 300-350k + бонусы");
+  public static final Rule COMPENSATION_250_300 = new Rule(-100, "ЗП 250-300k");
+  public static final Rule COMPENSATION_BELOW_250 = new Rule(-200, "ЗП ниже 250k");
+  public static final Rule COMPENSATION_TYPE_WHITE = new Rule(0, "Белая ЗП");
+  public static final Rule COMPENSATION_TYPE_GRAY = new Rule(-200, "Серая ЗП");
+  public static final Rule COMPENSATION_TYPE_NONE = new Rule(0); // тип не указан - не показываем
+  public static final Rule COMPENSATION_EQUITY = new Rule(100, "Опционы/акции");
 
-  // ============ TECHNICAL (стек) ============
-  // Базовый стек - не показываем
-  public static final Rule SPRING_STACK = new Rule(0);
-  public static final Rule MICROSERVICES = new Rule(0);
-  public static final Rule DATABASE = new Rule(0);
+  // ============ BENEFITS ============
+  public static final Rule BENEFITS_HEALTH_INSURANCE = new Rule(30, "ДМС");
+  public static final Rule BENEFITS_EXTENDED_VACATION = new Rule(40, "Расширенный отпуск");
+  public static final Rule BENEFITS_WELLNESS = new Rule(25, "Компенсация спорта/здоровья");
+  public static final Rule BENEFITS_REMOTE_COMPENSATION = new Rule(35, "Компенсация удаленки");
+  public static final Rule BENEFITS_EDUCATION = new Rule(50, "Компенсация обучения");
+  public static final Rule BENEFITS_CONFERENCES = new Rule(40, "Бюджет на конференции");
+  public static final Rule BENEFITS_INTERNAL_TRAINING = new Rule(20, "Внутреннее обучение");
+  public static final Rule BENEFITS_PAID_SICK_LEAVE = new Rule(25, "Оплачиваемый больничный");
 
-  // Интересные добавки - показываем
-  public static final Rule PYTHON = new Rule(10, "Python в стеке");
-  public static final Rule DEVOPS_STACK = new Rule(30, "DevOps технологии");
-  public static final Rule FRONTEND_STACK = new Rule(30, "Frontend разработка");
+  // ============ EQUIPMENT ============
+  // BYOD
+  public static final Rule EQUIPMENT_BYOD_YES = new Rule(20, "Можно работать на своём ноутбуке");
+  public static final Rule EQUIPMENT_BYOD_NO = new Rule(0); // не показываем
+  public static final Rule EQUIPMENT_BYOD_NONE = new Rule(0); // не показываем
 
-  // ============ COMPENSATION (зарплата) ============
-  public static final Rule SALARY_NOT_SPECIFIED = new Rule(0); // Зарплата не указана
-  public static final Rule SALARY_HIGH_400 = new Rule(100, "Высокая ЗП (400k+)");
-  public static final Rule SALARY_350_400 = new Rule(50, "ЗП 350-400k");
-  public static final Rule SALARY_350_400_BONUS = new Rule(60, "ЗП 350-400k + бонусы");
-  public static final Rule SALARY_300_350 = new Rule(0, "ЗП 300-350k");
-  public static final Rule SALARY_300_350_BONUS = new Rule(20, "ЗП 300-350k + бонусы");
-  public static final Rule SALARY_250_300 = new Rule(-100, "ЗП 250-300k");
-  public static final Rule SALARY_BELOW_250 = new Rule(-200, "ЗП ниже 250k");
-  public static final Rule WHITE_SALARY = new Rule(0, "Белая ЗП");
-  public static final Rule GRAY_SALARY = new Rule(-200, "Серая ЗП");
-  public static final Rule EQUITY = new Rule(100, "Опционы/акции");
+  // macOS
+  public static final Rule EQUIPMENT_MACOS_PROVIDED = new Rule(30, "Выдают MacBook");
+  public static final Rule EQUIPMENT_MACOS_ALLOWED = new Rule(20, "Можно работать на Mac");
+  public static final Rule EQUIPMENT_MACOS_BOTH = new Rule(40, "Выдают MacBook или можно свой Mac");
+  public static final Rule EQUIPMENT_MACOS_NONE = new Rule(0); // не показываем
 
-  // ============ BENEFITS (льготы) ============
-  public static final Rule HEALTH_INSURANCE = new Rule(30, "ДМС");
-  public static final Rule EXTENDED_VACATION = new Rule(40, "Расширенный отпуск");
-  public static final Rule WELLNESS = new Rule(25, "Компенсация спорта");
-  public static final Rule COWORKING = new Rule(35, "Компенсация коворкинга");
-  public static final Rule EDUCATION = new Rule(50, "Компенсация обучения");
-  public static final Rule CONFERENCES = new Rule(40, "Бюджет на конференции");
-  public static final Rule INTERNAL_TRAINING = new Rule(20, "Внутреннее обучение");
-  public static final Rule PAID_SICK_LEAVE = new Rule(25, "Оплачиваемый больничный");
+  // Компенсация
+  public static final Rule EQUIPMENT_COMPENSATION_FULL = new Rule(60, "Полная компенсация техники");
+  public static final Rule EQUIPMENT_COMPENSATION_PARTIAL = new Rule(40, "Частичная компенсация техники");
+  public static final Rule EQUIPMENT_COMPENSATION_NONE = new Rule(0); // не показываем
 
-  // ============ EQUIPMENT (оборудование) ============
-  public static final Rule MACBOOK_PRO = new Rule(10, "MacBook Pro");
-  public static final Rule WINDOWS_LAPTOP = new Rule(10, "Windows ноутбук");
-  public static final Rule BYOD_NO_COMP = new Rule(10, "Свой ноут без компенсации");
-  public static final Rule BYOD_PARTIAL = new Rule(50, "Свой ноут, частичная компенсация");
-  public static final Rule BYOD_FULL = new Rule(50, "Свой ноут, полная компенсация");
-  public static final Rule MONITORS = new Rule(0); // Мониторы
-  public static final Rule PERIPHERALS = new Rule(0); // Периферия
+  // ============ INDUSTRY ============
+  // Компании
+  public static final Rule INDUSTRY_COMPANY_SAFE = new Rule(80, "Полезная компания");
+  public static final Rule INDUSTRY_COMPANY_NEUTRAL = new Rule(0);
+  public static final Rule INDUSTRY_COMPANY_TOXIC = new Rule(-150, "Токсичная компания");
 
-  // ============ INDUSTRY (отрасль) ============
-  public static final Rule POSITIVE_COMPANY = new Rule(80, "Позитивная компания");
-  public static final Rule NEUTRAL_COMPANY = new Rule(0, "Нейтральная компания");
-  public static final Rule PROBLEMATIC_COMPANY = new Rule(-50, "Проблемная компания");
-  public static final Rule TOXIC_COMPANY = new Rule(-150, "Токсичная компания");
+  // Проекты
+  public static final Rule INDUSTRY_PROJECT_SAFE = new Rule(60, "Полезный проект");
+  public static final Rule INDUSTRY_PROJECT_TOXIC = new Rule(-100, "Токсичный проект");
 
-  // ============ WORK CONDITIONS (условия) ============
-  public static final Rule REMOTE_GLOBAL = new Rule(100, "Удаленка из любой страны");
-  public static final Rule REMOTE_RESTRICTED = new Rule(30, "Удаленка с ограничениями");
-  public static final Rule RELOCATION_REQUIRED = new Rule(-100, "Обязательный релокейт");
-  public static final Rule RELOCATION_ASSISTED = new Rule(-100, "Релокейт с поддержкой");
-  public static final Rule HYBRID_FREQUENT = new Rule(0, "Частые визиты в офис");
+  // Направления
+  public static final Rule INDUSTRY_DIRECTION_HEALTHCARE = new Rule(20, "Медицина");
+  public static final Rule INDUSTRY_DIRECTION_EDUCATION = new Rule(20, "Образование");
+  public static final Rule INDUSTRY_DIRECTION_ENERGY = new Rule(30, "Энергетика/ВИЭ");
+  public static final Rule INDUSTRY_DIRECTION_HARMFUL = new Rule(-50, "Вредная индустрия");
 
-  // ============ STOP FACTORS (стоп-факторы) ============
-  public static final Rule TOXIC_CULTURE = new Rule(-300, "Токсичная культура");
-  public static final Rule BANNED_DOMAIN = new Rule(-500, "Запрещенная сфера");
+  // ============ WORK_CONDITIONS ============
+  public static final Rule WORK_CONDITIONS_REMOTE = new Rule(20, "Полностью удаленно");
+  public static final Rule WORK_CONDITIONS_REMOTE_GLOBAL = new Rule(100, "Удаленка из любой страны");
+  public static final Rule WORK_CONDITIONS_REMOTE_RESTRICTED = new Rule(30, "Удаленка с ограничениями");
+  public static final Rule WORK_CONDITIONS_HYBRID_FLEXIBLE = new Rule(20, "Гибрид с гибким графиком");
+  public static final Rule WORK_CONDITIONS_HYBRID = new Rule(20, "Гибридный формат");
+  public static final Rule WORK_CONDITIONS_HYBRID_FREQUENT = new Rule(0, "Частые визиты в офис");
+  public static final Rule WORK_CONDITIONS_OFFICE = new Rule(-100, "Только офис");
+  public static final Rule WORK_CONDITIONS_RELOCATION_REQUIRED = new Rule(-100, "Обязательный релокейт");
+  public static final Rule WORK_CONDITIONS_RELOCATION_ASSISTED = new Rule(-100, "Релокейт с поддержкой");
+
+  // ============ STOP_FACTORS ============
+  public static final Rule STOP_FACTORS_TOXIC_CULTURE = new Rule(-300, "Токсичная культура");
+  public static final Rule STOP_FACTORS_BANNED_DOMAIN = new Rule(-500, "Запрещенная сфера");
 }

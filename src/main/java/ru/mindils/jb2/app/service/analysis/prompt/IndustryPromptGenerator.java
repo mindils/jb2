@@ -7,7 +7,6 @@ import ru.mindils.jb2.app.util.HtmlToMarkdownConverter;
 
 @Component
 public class IndustryPromptGenerator implements PromptGenerator {
-
   private final HtmlToMarkdownConverter htmlConverter;
 
   public IndustryPromptGenerator(HtmlToMarkdownConverter htmlConverter) {
@@ -17,105 +16,96 @@ public class IndustryPromptGenerator implements PromptGenerator {
   @Override
   public VacancyLlmAnalysisType getSupportedType() {
     return VacancyLlmAnalysisType.INDUSTRY;
-  }
+    }
 
   @Override
   public String generatePrompt(Vacancy vacancy) {
     return """
-        Проанализируй описание IT-вакансии на РУССКОМ языке и ОПРЕДЕЛИ ОТРАСЛЬ КОМПАНИИ и ПРОЕКТА.
-        Основной язык входных текстов — РУССКИЙ. Приоритизируй русскоязычные сигналы и синонимы (учитывай склонения, род/число/падеж, дефисы и альтернативные написания: «маркетплейс/маркет-плейс», «эдтех/edtech», «финтех/fintech»). Английские термины учитывай как вторичные, только если они явно присутствуют.
+        Определи ОТРАСЛЬ компании и проекта по описанию IT-вакансии.
         
-        Верни результат ТОЛЬКО в формате JSON по схеме (строгий JSON, без лишнего текста):
+        ФОРМАТ ОТВЕТА (только JSON, без текста):
         {
-          "company_category": "positive|neutral|problematic|toxic",
-          "project_category": "positive|neutral|problematic|toxic",
-          "company_direction": "healthcare|education|ecology|science|space|social_impact|accessibility|agriculture|b2b_saas|govtech|logistics|manufacturing|ai_infrastructure|deeptech|fintech|insurtech|proptech|legaltech|martech|ecommerce|gaming|entertainment|adtech|dating|microcredit|tobacco_alcohol|weapons",
-          "project_direction": "healthcare|education|ecology|science|space|social_impact|accessibility|agriculture|b2b_saas|govtech|logistics|manufacturing|ai_infrastructure|deeptech|fintech|insurtech|proptech|legaltech|martech|ecommerce|gaming|entertainment|adtech|dating|microcredit|tobacco_alcohol|weapons|"
+          "company_category": "safe|neutral|toxic",
+          "project_category": "safe|neutral|toxic",
+          "company_direction": "healthcare|education|energy|b2b_tech|fintech|consumer|advertising|harmful|none",
+          "project_direction": "healthcare|education|energy|b2b_tech|fintech|consumer|advertising|harmful|none"
         }
-        ТРЕБОВАНИЯ:
-        - Все значения — в нижнем регистре.
-        - company_direction и project_direction — строки с направлениями через "|" БЕЗ пробелов и дубликатов (пример: "fintech|b2b_saas"). Если уверенных сигналов нет — пустая строка "".
-        - Если проект не отличается от компании — project_direction="", project_category = company_category.
         
-        ПОРЯДОК ДОВЕРИЯ ИСТОЧНИКОВ (русский приоритет):
-        1) employerIndustries (русские наименования отраслей/ОКВЭД, если есть).
-        2) employerBranded и employer (описания компании на русском).
-        3) name, descriptionBranded, description (текст вакансии/проекта на русском).
-        4) skills — только отраслевые индикаторы (регуляции/термины). Технологические стеки (Java, React и т.п.) НЕ влияют.
+        КАТЕГОРИИ:
+        - safe: полезная/социально значимая (healthcare, education, energy)
+        - neutral: нейтральная/коммерческая (b2b_tech, fintech, consumer)
+        - toxic: вредная/опасная (advertising, harmful)
         
-        МАППИНГ НАПРАВЛЕНИЙ В КАТЕГОРИИ:
-        - positive: healthcare, education, ecology, science, space, social_impact, accessibility, agriculture
-        - neutral: b2b_saas, govtech, logistics, manufacturing, ai_infrastructure, deeptech
-        - problematic: fintech, insurtech, proptech, legaltech, martech
-        - toxic: ecommerce, gaming, entertainment, adtech, dating, microcredit, tobacco_alcohol, weapons
+        НАПРАВЛЕНИЯ И СИГНАЛЫ:
         
-        ЕСЛИ НЕСКОЛЬКО НАПРАВЛЕНИЙ:
-        - Категория определяется по приоритету риска: toxic > problematic > neutral > positive (для компании и отдельно для проекта).
+        1. healthcare → safe
+        СИГНАЛЫ: медицина, здравоохранение, клиника, больница, телемедицина, МИС, ЕГИСЗ, медтех
         
-        КАК ОТДЕЛИТЬ ПРОЕКТ ОТ КОМПАНИИ:
-        - Признаки проекта: «проект/продукт/направление/команда/сервис/приложение», отдельное имя продукта, отдельная аудитория/рынок.
-        - Если по тексту проект относится к другой отрасли, чем компания, укажи его направления в project_direction; иначе project_direction="".
+        2. education → safe
+        СИГНАЛЫ: образование, школа, вуз, университет, курсы, обучение, эдтех, платформа обучения
         
-        СЛОВАРЬ РУССКИХ СИГНАЛОВ (англ. варианты учитывай вторично):
-        - healthcare: медицина, медтех, здравоохранение, клиник*, госпитал*, телемедицина, МИС, ЕГИСЗ, ЕМИАС, НМИЦ
-        - education: образование, школа, вуз, колледж, курсы, платформа обучения, ДПО, электронное обучение, лмс, эдтех
-        - ecology: экология, экологич*, устойчивое развитие, ESG, «углеродный след», «зелёная энергетика»
-        - science: наука, НИОКР, исследовател*, лаборатори*, публикации, рецензируемые журналы
-        - space: космическ*, спутник*, орбита, аэрокосмос
-        - social_impact: социальный эффект, НКО, благотворительн*, инклюзия, волонтёрство
-        - accessibility: доступность, a11y, WCAG, «экранный диктор», ассистивные технологии
-        - agriculture: агро*, сельское хозяйство, агротех, фермер*, агроном*, агроскаутинг
-        - b2b_saas: SaaS для бизнеса, CRM, ERP, BPM, helpdesk, HRM/HRIS, биллинг B2B, мультиарендность, подписка
-        - govtech: госуслуги, МФЦ, ведомств*, госсектор, госинформсистем*, ЕПГУ, ФНС, казначейств*
-        - logistics: логистик*, WMS, TMS, склад, «последняя миля», доставка, фулфилмент, флот/транспорт, трекинг
-        - manufacturing: производство, завод, цех, MES, PLM, SCADA, ОТК, промышленн*, IIoT
-        - ai_infrastructure: mlops, платформа LLM, инференс, векторная БД, фиче-хранилище, дата-платформа, разметка данных
-        - deeptech: робототех*, компьютерное зрение (core R&D), AR/VR core, квант*, фотоник*, новые материалы
-        - fintech: банк, финтех, платежи, эквайринг, денежные переводы, брокер, трейдинг, форекс, крипто, KYC/KYB, AML, PCI DSS, открытое банкинг/«open banking»
-        - insurtech: страхован*, полис*, андеррайтинг, актуар*, урегулирование убытков/claims
-        - proptech: недвижимост*, аренда, листинг, оценка объектов, MLS
-        - legaltech: юр* услуги, договор*, e-sign, электронная подпись, суд, судебн*, e-discovery
-        - martech: маркетинг-платформа, CDP, атрибуция, сегментация, кампании, коммуникации: email/push/SMS, ретеншн
-        - ecommerce: e-commerce, маркетплейс/маркет-плейс, корзина, checkout, мерчант, фулфилмент, интернет-магазин
-        - gaming: игра, геймдев, игровая студия, внутриигров*, free-to-play
-        - entertainment: медиа, кино, музыка, контент, стриминг, OTT
-        - adtech: реклама, рекламная платформа, DSP, SSP, ad exchange, программатик, торги/bid*
-        - dating: знакомства, дейтинг, сервис знакомств, матч*, свайп*
-        - microcredit: микрофинанс*, микрозайм*, payday, МФО, ПДЛ
-        - tobacco_alcohol: табак, сигарет*, алкоголь, вино, пиво, спиртные напитки
-        - weapons: оружи*, оборонн* контрактор, ВПК, вооружен*
+        3. energy → safe
+        СИГНАЛЫ: энергетика, возобновляемая энергия, чистая энергия, солнечная энергия, ветровая энергия, зеленая энергия, ВИЭ, электростанция, энергосети, умные сети, smart grid
         
-        ПРАВИЛА РАЗРЕШЕНИЯ КОНФЛИКТОВ:
-        - Конкретика сильнее общих фраз (напр., «страховые полисы» > «финансовые решения»).
-        - Если employerIndustries противоречит описанию проекта: для company_direction используй employerIndustries, а project_direction определи по тексту проекта.
-        - Обобщённые термины мапь по смыслу: «маркетплейс/интернет-торговля» → ecommerce; «доставка/флот/курьеры» → logistics.
-        - Технологические термины (React, Kubernetes) игнорируй при классификации.
+        4. b2b_tech → neutral
+        СИГНАЛЫ: SaaS, CRM, ERP, B2B, для бизнеса, логистика, склад, производство, завод, govtech, госуслуги, mlops
         
-        ЕСЛИ СИГНАЛОВ НЕТ:
-        - company_direction = ""
-        - project_direction = ""
-        - company_category = "neutral"
-        - project_category = "neutral" (или = company_category, если project_direction="")
+        5. fintech → neutral
+        СИГНАЛЫ: банк, финтех, платежи, эквайринг, страхование, недвижимость, юридические услуги, KYC, брокер, трейдинг
+        ВАЖНО: НЕ путай с микрозаймами - они toxic!
         
-        ДАННЫЕ ДЛЯ АНАЛИЗА:
-        Название: {name}
+        6. consumer → neutral
+        СИГНАЛЫ: маркетплейс, e-commerce, интернет-магазин, игры, геймдев, стриминг, развлечения, музыка, кино
+        
+        7. advertising → toxic
+        СИГНАЛЫ: реклама, рекламная платформа, adtech, DSP, SSP, программатик, маркетинг-платформа, CDP, таргетинг, рекламные сети
+        
+        8. harmful → toxic (ТОКСИЧНЫЕ ИНДУСТРИИ)
+        СИГНАЛЫ:
+        - МИКРОФИНАНСИРОВАНИЕ (ТОКСИЧНО): МФО, микрофинансовая организация, микрозайм, микрокредит, займ до зарплаты, payday loan, быстрый займ, онлайн займ, краткосрочный кредит
+        - ЗНАКОМСТВА: дейтинг, сервис знакомств, приложение для знакомств, dating
+        - ВРЕДНЫЕ ВЕЩЕСТВА: табак, табачная продукция, сигареты, вейп, алкоголь, алкогольная продукция, спиртные напитки
+        - ОРУЖИЕ: оружие, оборонная промышленность, ВПК, военно-промышленный комплекс
+        
+        ГДЕ ИСКАТЬ СИГНАЛЫ (порядок важности):
+        1. "Индустрия" (employerIndustries) - самый надежный источник
+        2. "Компания" (employer) - описание бизнеса компании
+        3. "Вакансия" (name) - название позиции может указывать на отрасль
+        4. "Описание" (description) - детали проекта и задач
+        
+        ПРАВИЛА:
+        1. Сначала определи компанию по полям: Индустрия → Компания
+        2. Потом проект по полям: Вакансия → Описание
+        3. Если проект не отличается от компании: project_direction = company_direction, project_category = company_category
+        4. Если сигналов нет: direction = "none", category = "neutral"
+        5. Игнорируй технологии: Java, Python, React, Kubernetes и т.д.
+        6. При нескольких направлениях: выбери ОДНО основное
+        7. ВАЖНО: МФО и микрозаймы = harmful (toxic), НЕ fintech!
+        
+        ДАННЫЕ:
+        Вакансия: {name}
         Описание: {description}
-        Описание(Бренд): {descriptionBranded}
-        Ключевые навыки: {skills}
         Компания: {employer}
-        Компания (Бренд): {employerBranded}
-        Компания индустрия: {employerIndustries}
+        Индустрия: {employerIndustries}
         """
         .replace("{name}", valueOrEmpty(vacancy.getName()))
-        .replace("{description}", htmlConverter.convertToMarkdown(valueOrEmpty(vacancy.getDescription())))
-        .replace("{descriptionBranded}", htmlConverter.convertToMarkdown(valueOrEmpty(vacancy.getBrandedDescription())))
-        .replace("{skills}", valueOrEmpty(vacancy.getKeySkillsStr()))
-        .replace("{employer}", htmlConverter.convertToMarkdown(vacancy.getEmployer().getDescription()))
-        .replace("{employerBranded}", htmlConverter.convertToMarkdown(vacancy.getEmployer().getBrandedDescription()))
+        .replace("{description}", htmlConverter.convertToMarkdown(
+            valueOrEmpty(vacancy.getDescription()) + " " +
+                valueOrEmpty(vacancy.getBrandedDescription())))
+        .replace("{employer}", htmlConverter.convertToMarkdown(
+            vacancy.getEmployer().getDescription() + " " +
+                vacancy.getEmployer().getBrandedDescription()))
         .replace("{employerIndustries}", valueOrEmpty(vacancy.getEmployer().getIndustriesStr()));
   }
 
   private String valueOrEmpty(String value) {
     return value != null ? value : "";
+  }
+
+  private String truncate(String text, int maxLength) {
+    if (text == null || text.length() <= maxLength) {
+      return text;
+    }
+    return text.substring(0, maxLength) + "...";
   }
 }

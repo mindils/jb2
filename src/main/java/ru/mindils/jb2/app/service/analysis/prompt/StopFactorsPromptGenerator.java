@@ -22,79 +22,60 @@ public class StopFactorsPromptGenerator implements PromptGenerator {
   @Override
   public String generatePrompt(Vacancy vacancy) {
     return """
-        Проанализируй описание IT-вакансии на наличие критических стоп-факторов.
-        Верни результат ТОЛЬКО в формате JSON без дополнительного текста.
+        Проанализируй IT-вакансию. Верни JSON про стоп-факторы.
         
-        Описание вакансии:
+        ДАННЫЕ:
         Название: {name}
         Описание: {description}
         Описание(Бренд): {descriptionBranded}
-        Ключевые навыки: {skills}
-        Зарплата: {salary}
         Компания: {employer}
-        Компания (Бренд): {employerBranded}
-        Компания индустрия: {employerIndustries}
-        Город: {city}
-        Опыт: {experience}
-        График: {schedule}
-        Занятость: {employment}
-        Формат работы: {workFormat}
+        Компания(Бренд): {employerBranded}
+        Индустрия: {employerIndustries}
         
-        КРИТЕРИИ СТОП-ФАКТОРОВ:
+        ПРАВИЛО: Ставь true ТОЛЬКО если ЯВНО написано. Если не упомянуто - пиши false.
         
-        1. СЕРАЯ/ЧЕРНАЯ ЗАРПЛАТА (graySalary):
-        ✅ ИЩИТЕ ПРИЗНАКИ:
-        - "зарплата в конверте", "часть зарплаты наличными"
-        - "зарплата по договоренности без официального оформления"
-        - "работа без трудового договора", "самозанятость обязательна"
-        - "серая/черная схема", "минимальная официальная зарплата"
+        === ЧТО ИЩЕМ ===
         
-        2. ТОКСИЧНАЯ КУЛЬТУРА (toxicCulture):
-        ✅ ИЩИТЕ ПРИЗНАКИ:
-        - "переработки", "готовность работать сверхурочно"
-        - "высокие требования к стрессоустойчивости"
-        - "жесткие дедлайны", "аврально", "горящие проекты"
-        - "микроменеджмент", "строгий контроль"
-        - "высокая текучка", "быстрая замена сотрудников"
+        1. toxic_culture (токсичная культура):
+        • true = ЯВНО: "переработки обязательны", "работа сверхурочно", "аврал", "горящие проекты постоянно", "микроменеджмент", "строгий контроль каждого действия"
+        • false = не упомянуто или нормальные условия
         
-        3. ЗАПРЕЩЕННЫЕ ДОМЕНЫ (bannedDomain):
-        ✅ ИЩИТЕ ПРИЗНАКИ:
-        - Gambling: "казино", "ставки", "игорный", "букмекер", "азартные игры"
-        - Микрокредитование: "микрозайм", "быстрые кредиты", "займ до зарплаты"
-        - Оружие: "военная промышленность", "оборонка", "оружие"
-        - Adult: "adult", "18+", "эротический", "порно"
-        - Алкоголь/табак: продвижение алкоголя/табака (не общепит)
-        - Мошенничество: "пирамида", "сетевой маркетинг", подозрительные схемы
+        2. banned_domain (запрещенная индустрия):
+        • true = ЯВНО про:
+          - Gambling: "казино", "ставки", "букмекер", "азартные игры", "betting"
+          - Микрозаймы: "МФО", "микрозайм", "займ до зарплаты", "быстрый кредит"
+          - Adult: "adult", "18+", "эротический контент"
+          - Оружие: "оружие", "оборонная промышленность", "ВПК"
+          - Табак/вейп: "табачная продукция", "сигареты", "вейп"
+        • false = не упомянуто
         
-        ❌ НЕ ВКЛЮЧАЙТЕ:
-        - Банки, финтех (кроме микрозаймов)
-        - Рестораны/бары (продажа алкоголя в рамках общепита)
-        - IT-компании с разными клиентами
-        - Общие фразы без конкретики
+        ❌ НЕ считай banned_domain:
+        • Банки, финтех, страхование (кроме МФО)
+        • Рестораны/бары (алкоголь в общепите - нормально)
+        • IT-компании с разными клиентами
         
-        ВАЖНО: Если хотя бы один фактор = true, то stopFactorFound = true
+        ❌ НЕ считай toxic_culture:
+        • "Интересные задачи", "быстрый темп"
+        • "Deadline-ориентированность" (это нормально)
+        • "Требования к качеству кода"
         
-        Формат ответа (строгий JSON):
+        ❌ НЕ выдумывай:
+        • Если не написано про переработки → false
+        • Если не написано про запрещенную сферу → false
+        • Только ЯВНОЕ упоминание → true
+        
+        === ОТВЕТ (только JSON) ===
         {
-          "graySalary": boolean,
-          "toxicCulture": boolean,
-          "bannedDomain": boolean,
-          "stopFactorFound": boolean
+          "toxic_culture": true|false,
+          "banned_domain": true|false
         }
         """
         .replace("{name}", valueOrEmpty(vacancy.getName()))
         .replace("{description}", htmlConverter.convertToMarkdown(valueOrEmpty(vacancy.getDescription())))
         .replace("{descriptionBranded}", htmlConverter.convertToMarkdown(valueOrEmpty(vacancy.getBrandedDescription())))
-        .replace("{skills}", valueOrEmpty(vacancy.getKeySkillsStr()))
-        .replace("{salary}", valueOrEmpty(vacancy.getSalaryStr()))
         .replace("{employer}", htmlConverter.convertToMarkdown(vacancy.getEmployer().getDescription()))
         .replace("{employerBranded}", htmlConverter.convertToMarkdown(vacancy.getEmployer().getBrandedDescription()))
-        .replace("{employerIndustries}", valueOrEmpty(vacancy.getEmployer().getIndustriesStr()))
-        .replace("{city}", valueOrEmpty(vacancy.getCity()))
-        .replace("{experience}", getJsonFieldName(vacancy.getExperience()))
-        .replace("{schedule}", getJsonFieldName(vacancy.getSchedule()))
-        .replace("{employment}", getJsonFieldName(vacancy.getEmployment()))
-        .replace("{workFormat}", valueOrEmpty(vacancy.getWorkFormatStr()));
+        .replace("{employerIndustries}", valueOrEmpty(vacancy.getEmployer().getIndustriesStr()));
   }
 
   private String valueOrEmpty(String value) {

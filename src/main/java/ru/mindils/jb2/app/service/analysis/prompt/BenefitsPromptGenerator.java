@@ -22,92 +22,76 @@ public class BenefitsPromptGenerator implements PromptGenerator {
   @Override
   public String generatePrompt(Vacancy vacancy) {
     return """
-        Проанализируй описание IT-вакансии и определи наличие льгот и дополнительных преимуществ.
-        Верни результат ТОЛЬКО в формате JSON без дополнительного текста.
+        Проанализируй IT-вакансию. Верни JSON про льготы и бенефиты.
         
-        Описание вакансии:
+        ДАННЫЕ:
         Название: {name}
         Описание: {description}
-        Описание (бренд): {brandedDescription}
-        Ключевые навыки: {skills}
-        Описание компании: {employer}
-        Описание компании(бренд): {employerBranded}
+        Описание(Бренд): {brandedDescription}
+        Компания: {employer}
+        Компания(Бренд): {employerBranded}
         
-        Критерии анализа (указывай true только при явном упоминании):
+        ПРАВИЛО: Ставь true ТОЛЬКО если ЯВНО написано. Если не упомянуто - пиши false.
         
-        ✅ healthInsurance - Медицинские льготы:
-        - ДМС (добровольное медицинское страхование)
-        - Медицинское страхование/полис
-        - Стоматология, стоматологическое страхование
-        - Частная медицина, клиники
-        - Страховка для семьи/детей
+        === ЧТО ИЩЕМ ===
         
-        ✅ extendedVacation - Расширенный отпуск:
-        - Отпуск 28+ дней (больше стандартных)
-        - Дополнительные выходные/отгулы
-        - Дни рождения как выходной
-        - Дополнительный отпуск за стаж
+        1. health_insurance (медицина):
+        • true = ЯВНО: "ДМС", "медицинское страхование", "медстраховка", "стоматология"
+        • false = не упомянуто
         
-        ✅ wellnessCompensation - Компенсация здоровья и спорта:
-        - Компенсация фитнеса/спортзала/бассейна
-        - Абонемент в спортклуб
-        - Массаж, SPA процедуры
-        - Психологическая поддержка/терапия
-        - Wellness программы, здоровый образ жизни
+        2. extended_vacation (расширенный отпуск):
+        • true = ЯВНО: "28+ дней отпуска", "30 дней отпуска", "дополнительные выходные", "день рождения выходной"
+        • false = не упомянуто
         
-        ✅ coworkingCompensation - Компенсация рабочего места:
-        - Компенсация коворкинга/аренды офиса
-        - Оплата интернета дома
-        - Компенсация мобильной связи
-        - Доплата за электричество при удаленке
+        3. wellness (спорт/здоровье):
+        • true = ЯВНО: "компенсация фитнеса", "спортзал", "бассейн", "массаж", "SPA", "психолог"
+        • false = не упомянуто
         
-        ✅ educationCompensation - Компенсация внешнего обучения:
-        - Оплата курсов/тренингов/сертификаций
-        - Компенсация книг/подписок на обучающие платформы
-        - Языковые курсы
-        - MBA/дополнительное образование
-        - Udemy, Coursera, Pluralsight и подобные
+        4. remote_compensation (компенсация удаленки):
+        • true = ЯВНО: "компенсация коворкинга", "оплата интернета", "компенсация связи"
+        • false = не упомянуто
         
-        ✅ conferencesBudget - Бюджет на мероприятия:
-        - Оплата конференций/форумов
-        - Командировки на IT-события
-        - Участие в митапах/воркшопах
-        - Бюджет на networking события
+        5. education (внешнее обучение):
+        • true = ЯВНО: "оплата курсов", "компенсация обучения", "сертификации", "Udemy", "Coursera", "книги"
+        • false = не упомянуто
         
-        ✅ internalTraining - Внутреннее обучение:
-        - Корпоративные курсы/тренинги
-        - Менторство/наставничество
-        - Внутренние воркшопы/семинары
-        - Обмен знаниями внутри команды
-        - Tech talks внутри компании
+        6. conferences (конференции):
+        • true = ЯВНО: "оплата конференций", "митапы", "воркшопы", "IT-события"
+        • false = не упомянуто
         
-        ✅ paidSickLeave - Оплачиваемые больничные:
-        - Больничные сверх государственных
-        - 100% оплата больничного
-        - Дополнительные дни при болезни
-        - Оплата больничного с первого дня
+        7. internal_training (внутреннее обучение):
+        • true = ЯВНО: "корпоративные курсы", "менторство", "наставничество", "tech talks"
+        • false = не упомянуто
         
-        ❌ НЕ учитывать:
-        - Общие фразы типа "дружный коллектив"
-        - Стандартные условия без конкретики
-        - Возможности карьерного роста без льгот
+        8. paid_sick_leave (оплачиваемые больничные):
+        • true = ЯВНО: "100% больничный", "оплата с первого дня", "больничные сверх"
+        • false = не упомянуто
         
-        Формат ответа (строгий JSON):
+        ❌ НЕ считай льготами:
+        • "Дружный коллектив", "интересные задачи"
+        • Зарплата, бонусы, опционы
+        • Оборудование
+        
+        ❌ НЕ выдумывай:
+        • Если не написано про ДМС → false
+        • Если не написано про обучение → false
+        • Только ЯВНОЕ упоминание → true
+        
+        === ОТВЕТ (только JSON) ===
         {
-          "healthInsurance": boolean,
-          "extendedVacation": boolean,
-          "wellnessCompensation": boolean,
-          "coworkingCompensation": boolean,
-          "educationCompensation": boolean,
-          "conferencesBudget": boolean,
-          "internalTraining": boolean,
-          "paidSickLeave": boolean
+          "health_insurance": true|false,
+          "extended_vacation": true|false,
+          "wellness": true|false,
+          "remote_compensation": true|false,
+          "education": true|false,
+          "conferences": true|false,
+          "internal_training": true|false,
+          "paid_sick_leave": true|false
         }
         """
         .replace("{name}", valueOrEmpty(vacancy.getName()))
         .replace("{description}", htmlConverter.convertToMarkdown(valueOrEmpty(vacancy.getDescription())))
         .replace("{brandedDescription}", htmlConverter.convertToMarkdown(valueOrEmpty(vacancy.getBrandedDescription())))
-        .replace("{skills}", valueOrEmpty(vacancy.getKeySkillsStr()))
         .replace("{employer}", htmlConverter.convertToMarkdown(vacancy.getEmployer().getDescription()))
         .replace("{employerBranded}", htmlConverter.convertToMarkdown(vacancy.getEmployer().getBrandedDescription()));
   }

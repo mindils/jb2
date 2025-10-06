@@ -32,23 +32,31 @@ public class JavaPrimaryPromptGenerator implements PromptGenerator {
         
         Analysis criteria:
         
-        1. JAVA (java: true) - position requires DIRECT Java development:
-           ✅ INCLUDE only if candidate will write Java code:
-              • Java SE/EE, Spring (Boot/Framework/Data/Security/Cloud)
-              • Hibernate, JPA, JDBC
-              • Maven, Gradle
-              • Backend/microservices in Java
-              • REST API/GraphQL in Java
-              • JUnit, Mockito, TestNG
-              • Java-specific tools: Kafka (Java), RabbitMQ (Java), Elasticsearch (Java client)
+        1. JAVA (java: true/false) - Определите, будет ли Java использоваться в проекте/позиции.
         
-           ❌ EXCLUDE (java: false):
-              • Android development (even if Java is mentioned)
-              • Kotlin for Android
-              • JavaScript/TypeScript/Node.js/CoffeeScript (NOT Java!)
-              • If Java is in company stack but position is for Python/Go/C#/PHP/Ruby developer
-              • If Java mentioned as "будет плюсом" / "желательно" / "nice to have" but main stack is different
-              • DevOps/QA positions without Java development
+        КЛЮЧЕВОЙ ПРИНЦИП: Если Java упоминается в требованиях или технологическом стеке позиции - это значит, что она ИСПОЛЬЗУЕТСЯ в проекте, и разработчик с высокой вероятностью будет с ней работать.
+        
+        ✅ ВКЛЮЧАТЬ (java: true) - Java упоминается как технология проекта:
+           • Java указана в требованиях к кандидату (любой уровень)
+           • "Знание Java" / "Опыт Java" (даже без указания лет)
+           • "Знание Java ИЛИ стремление освоить" - Java в стеке проекта
+           • Java + другие языки (Node.js, Python, Go) - мультиязычный проект
+           • Spring Boot/Framework/Data/Security/Cloud
+           • Hibernate, JPA, JDBC, Maven, Gradle
+           • Backend/микросервисы на Java
+           • REST API/GraphQL на Java
+           • Kafka, RabbitMQ, Elasticsearch в Java-проектах
+           • "Fullstack" с упоминанием Java в стеке
+           • Java в списке Key skills
+        
+        ❌ ИСКЛЮЧАТЬ (java: false) ТОЛЬКО в явных случаях:
+           • "Знание Java будет небольшим плюсом" (явно необязательно)
+           • Android/Kotlin mobile разработка
+           • Позиция ЯВНО не на Java (чистый frontend/DevOps/QA) БЕЗ упоминания Java
+           • JavaScript/TypeScript путаница (НЕ Java!)
+        
+        ПРАВИЛО: Если Java упомянута в требованиях или стеке - она ИСПОЛЬЗУЕТСЯ в проекте → TRUE
+        Исключение только если ЯВНО сказано "необязательно" или это не Java (Android/JavaScript).
         
         Response format (strict JSON):
         {

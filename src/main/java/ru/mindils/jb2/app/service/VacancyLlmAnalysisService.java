@@ -333,7 +333,7 @@ public class VacancyLlmAnalysisService {
           .build();
 
       // Средние ответы (5-8 полей, умеренная сложность) - 4000 токенов
-      case BENEFITS, SOCIAL, TECHNICAL -> OpenAiChatOptions.builder()
+      case BENEFITS, TECHNICAL -> OpenAiChatOptions.builder()
           .temperature(0.0)
           .maxTokens(4000)
           .build();
