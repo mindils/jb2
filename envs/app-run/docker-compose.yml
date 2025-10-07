@@ -40,28 +40,6 @@ services:
       # Таймзона
       TZ: Europe/Moscow
     
-    ports:
-      - "8085:8080"
-    
-    # Жесткие ограничения ресурсов для слабого сервера
-    deploy:
-      resources:
-        limits:
-          memory: 1200M    # Максимум 1.2GB для приложения
-          cpus: "1.5"      # До 1.5 CPU
-        reservations:
-          memory: 512M     # Минимум 512MB
-          cpus: "0.5"      # Минимум 0.5 CPU
-    
-    # Облегченный healthcheck (реже проверяем)
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
-      interval: 45s
-      timeout: 10s
-      retries: 5
-      start_period: 180s  # Даем 3 минуты на запуск
-    
-    # Ротация логов (важно для малого диска)
     logging:
       driver: "json-file"
       options:
