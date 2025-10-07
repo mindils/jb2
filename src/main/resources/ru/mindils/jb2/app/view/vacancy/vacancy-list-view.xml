@@ -11,10 +11,7 @@
           <property name="employerInfo" fetchPlan="_base">
           </property>
         </property>
-        <property name="vacancyInfo" fetchPlan="_base">
-          <property name="vacancy" fetchPlan="_base">
-          </property>
-        </property>
+        <property name="vacancyInfo" fetchPlan="_base"/>
         <property name="vacancyScore" fetchPlan="_base">
           <property name="totalScore"/>
           <property name="rating"/>
@@ -135,6 +132,7 @@
       <columns resizable="true">
         <column property="id" autoWidth="true"/>
         <column property="name" autoWidth="true"/>
+        <column property="vacancyInfo.status" autoWidth="true"/>
         <column property="employer.name" autoWidth="true"/>
         <column property="keySkillsStr" width="20em"/>
         <column property="vacancyScore.totalScore"/>

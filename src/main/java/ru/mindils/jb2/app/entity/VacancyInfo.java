@@ -5,31 +5,43 @@ import io.jmix.data.DdlGeneration;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.annotation.LastModifiedDate;
+
+import java.time.OffsetDateTime;
 
 @JmixEntity
 @Table(name = "JB2_VACANCY_INFO")
-@DdlGeneration(unmappedConstraints = {
-    "FK_JB2_VACANCY_INFO_ON_ID"
-})
+@DdlGeneration(unmappedConstraints = {"FK_JB2_VACANCY_INFO_ON_ID"})
 @Entity(name = "jb2_VacancyInfo")
 @Getter
 @Setter
 public class VacancyInfo {
 
-    @Id
-    @Column(name = "ID", nullable = false)
-    private String id;
+  @Id
+  @Column(name = "ID", nullable = false)
+  private String id;
 
-    @Column(name = "STATUS")
-    private String status;
+  @Column(name = "STATUS")
+  private String status;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ID",
-            foreignKey = @ForeignKey(value = ConstraintMode.NO_CONSTRAINT))
-    @PrimaryKeyJoinColumn
-    private Vacancy vacancy;
+  @OneToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "ID",
+      foreignKey = @ForeignKey(value = ConstraintMode.NO_CONSTRAINT))
+  @PrimaryKeyJoinColumn
+  private Vacancy vacancy;
 
-    public VacancyStatus getStatus() {
+  @CreatedDate
+  @Column(name = "CREATED_DATE")
+  private OffsetDateTime createdDate;
+
+  @LastModifiedDate
+  @Column(name = "LAST_MODIFIED_DATE")
+  private OffsetDateTime lastModifiedDate;
+
+  public VacancyStatus getStatus() {
         return status == null ? null : VacancyStatus.fromId(status);
     }
 
