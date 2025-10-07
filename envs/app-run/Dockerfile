@@ -14,8 +14,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /workspace
 
 # Настройки для слабого сервера
-# Ограничиваем память для Node.js (меньше чем было)
-ENV NODE_OPTIONS="--max-old-space-size=1024"
+# Увеличиваем память для Node.js для сборки Vaadin frontend
+# После сборки это не используется в runtime
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 
 # ============================================
 # Слой 1: Gradle Wrapper (кешируется)
