@@ -28,7 +28,6 @@
       <pagination component="pagination"/>
       <propertyFilter component="idFilter" param="id"/>
       <propertyFilter component="archFilter" param="archived"/>
-      <!--      <jpqlFilter component="javaFilter"/>-->
     </urlQueryParameters>
   </facets>
   <actions>
@@ -36,9 +35,15 @@
     <action id="discardAction" type="lookup_discard"/>
   </actions>
   <layout>
-    <hbox width="100%" spacing="false">
-      <startSlot>
-        <details summaryText="Фильтры" themeNames="small" width="100%">
+    <!-- Адаптивный контейнер - одна линия на десктопе, перенос на мобильных -->
+    <hbox width="100%"
+          css="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-start; margin-bottom: 1rem;">
+
+      <!-- Фильтры -->
+      <details summaryText="Фильтры"
+               themeNames="small"
+               css="flex: 1 1 auto; min-width: 300px;">
+        <hbox css="display: flex; flex-wrap: wrap; gap: 0.5rem;">
           <propertyFilter
               id="idFilter"
               label="ИД Вакансии"
@@ -46,41 +51,43 @@
               operation="EQUAL"
               dataLoader="vacanciesDl"
               labelPosition="TOP"
-              css="padding-right: 1em"
+              css="flex: 1 1 180px; min-width: 120px;"
           />
+
           <jpqlFilter id="javaFilter"
                       dataLoader="vacanciesDl"
                       defaultValue="true"
                       label="Java Вакансия"
                       labelPosition="TOP"
-                      css="padding-right: 1em"
                       parameterClass="java.lang.Boolean"
-                      parameterName="javaParam">
+                      parameterName="javaParam"
+                      css="flex: 1 1 180px; min-width: 120px;">
             <condition>
               <c:jpql>
                 <c:join><![CDATA[
-              join jb2_VacancyLlmAnalysis vla
-                   on vla.vacancy = {E}
-              ]]>
+                  join jb2_VacancyLlmAnalysis vla on vla.vacancy = {E}
+                ]]>
                 </c:join>
                 <c:where><![CDATA[
-              vla.analyzeType = 'JAVA_PRIMARY'
-              and cast(function('jsonb_extract_path_text', vla.analyzeData, 'java') boolean) = :javaParam
-          ]]>
+                  vla.analyzeType = 'JAVA_PRIMARY'
+                  and cast(function('jsonb_extract_path_text', vla.analyzeData, 'java') boolean) = :javaParam
+                ]]>
                 </c:where>
               </c:jpql>
             </condition>
           </jpqlFilter>
+
           <propertyFilter
               id="archFilter"
-              label="Вакансия в архиве"
+              label="Архив"
               property="archived"
               operation="EQUAL"
               dataLoader="vacanciesDl"
               labelPosition="TOP"
-              css="padding-right: 1em"
               defaultValue="false"
+              css="flex: 1 1 180px; min-width: 120px;"
           />
+
           <propertyFilter
               property="vacancyScore.rating"
               operation="IN_LIST"
@@ -88,64 +95,75 @@
               label="Рейтинг"
               labelPosition="TOP"
               defaultValue="EXCELLENT,GOOD,MODERATE"
-          >
+              css="flex: 1 1 180px; min-width: 120px;">
             <multiSelectComboBox itemsEnum="ru.mindils.jb2.app.entity.VacancyScoreRating"/>
           </propertyFilter>
+
           <propertyFilter
               property="vacancyInfo.status"
               operation="IN_LIST"
               dataLoader="vacanciesDl"
               label="Мой статус"
               labelPosition="TOP"
-          >
+              css="flex: 1 1 180px; min-width: 120px;">
             <multiSelectComboBox itemsEnum="ru.mindils.jb2.app.entity.VacancyStatus"/>
           </propertyFilter>
+
           <propertyFilter
-              label="Оценка"
+              label="Оценка ≥"
               property="vacancyScore.totalScore"
               operation="GREATER_OR_EQUAL"
               dataLoader="vacanciesDl"
               labelPosition="TOP"
+              css="flex: 1 1 180px; min-width: 120px;"
           />
+
           <jpqlFilter id="noStatusFilter"
                       dataLoader="vacanciesDl"
                       label="Без статуса"
                       labelPosition="TOP"
-                      css="padding-right: 1em"
                       parameterClass="java.lang.Boolean"
-                      parameterName="noStatus">
+                      parameterName="noStatus"
+                      css="flex: 1 1 180px; min-width: 120px;">
             <condition>
               <c:jpql>
                 <c:where><![CDATA[
-        (:noStatus = false or e.vacancyInfo is null)
-      ]]>
+                  (:noStatus = false or e.vacancyInfo is null)
+                ]]>
                 </c:where>
               </c:jpql>
             </condition>
             <checkbox/>
           </jpqlFilter>
-        </details>
-      </startSlot>
-
-      <endSlot>
-        <hbox id="buttonsPanel" classNames="buttons-panel" alignSelf="START">
-          <dropdownButton id="vacancyDropdown" text="Добавить в очередь из таблицы на:" icon="CALC">
-            <items>
-              <textItem id="updateVacancyBtn" text="Обновление"/>
-              <textItem id="addVacancyInFirstLlmQueueBtn" text="В очередь первичный анализ llm"/>
-              <textItem id="addVacancyInSocialLlmQueueBtn" text="В очередь полный анализ llm"/>
-              <textItem id="calculateVacancyScoresBtn" text="Рассчитать оценки"/>
-            </items>
-          </dropdownButton>
-          <simplePagination id="pagination" dataLoader="vacanciesDl" alignSelf="START"/>
         </hbox>
-      </endSlot>
+      </details>
+
+      <!-- Кнопка добавления в очередь -->
+      <dropdownButton id="vacancyDropdown"
+                      text="Добавить в очередь"
+                      icon="CALC"
+                      css="flex: 0 0 auto; min-width: 200px;">
+        <items>
+          <textItem id="updateVacancyBtn" text="Обновление"/>
+          <textItem id="addVacancyInFirstLlmQueueBtn" text="Первичный анализ llm"/>
+          <textItem id="addVacancyInSocialLlmQueueBtn" text="Полный анализ llm"/>
+          <textItem id="calculateVacancyScoresBtn" text="Рассчитать оценки"/>
+        </items>
+      </dropdownButton>
+
+      <!-- Пагинация -->
+      <simplePagination id="pagination"
+                        dataLoader="vacanciesDl"
+                        css="flex: 0 0 auto;"/>
     </hbox>
+
+    <!-- Таблица -->
     <dataGrid id="vacanciesDataGrid"
               width="100%"
               minHeight="20em"
               dataContainer="vacanciesDc"
-              columnReorderingAllowed="true" themeNames="compact">
+              columnReorderingAllowed="true"
+              themeNames="compact">
       <actions>
         <action id="readAction" type="list_read" text="Посмотреть">
           <properties>
@@ -159,8 +177,8 @@
         <column property="vacancyInfo.status" autoWidth="true"/>
         <column property="employer.name" autoWidth="true"/>
         <column property="keySkillsStr" width="20em"/>
-        <column property="vacancyScore.totalScore"/>
-        <column property="vacancyScore.rating"/>
+        <column property="vacancyScore.totalScore" autoWidth="true"/>
+        <column property="vacancyScore.rating" autoWidth="true"/>
         <column property="vacancyScore.negativeDescription"/>
         <column property="vacancyScore.positiveDescription"/>
         <column property="description"/>
@@ -179,11 +197,12 @@
       </columns>
       <contextMenu>
         <item id="updateVacancyMenu" text="Обновить вакансию"/>
-        <item id="firstLlmAnalyseMenu" text="Первичный анализ выбранной вакансии"/>
-        <item id="fullLlmAnalyseMenu" text="Полный анализ выбранной вакансии"/>
-        <item id="vacancyScoreCalculateMenu" text="Посчитать оценку вакансии"/>
+        <item id="firstLlmAnalyseMenu" text="Первичный анализ"/>
+        <item id="fullLlmAnalyseMenu" text="Полный анализ"/>
+        <item id="vacancyScoreCalculateMenu" text="Посчитать оценку"/>
       </contextMenu>
     </dataGrid>
+
     <hbox id="lookupActions" visible="false">
       <button id="selectButton" action="selectAction"/>
       <button id="discardButton" action="discardAction"/>

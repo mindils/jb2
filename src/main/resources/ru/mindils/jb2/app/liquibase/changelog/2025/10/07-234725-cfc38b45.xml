@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <!-- 1. КРИТИЧНЫЙ: Индекс для jb2_vacancy_score по rating -->
+  <changeSet id="add-index-vacancy-score-rating" author="jb2">
+    <createIndex indexName="idx_vacancy_score_rating_vacancy"
+                 tableName="jb2_vacancy_score">
+      <column name="rating"/>
+      <column name="vacancy_id"/>
+    </createIndex>
+  </changeSet>
+
+  <!-- 2. Составной индекс для jb2_vacancy_llm_analysis -->
+  <changeSet id="add-index-llm-analysis-composite" author="jb2">
+    <createIndex indexName="idx_vacancy_llm_analysis_type_vacancy"
+                 tableName="jb2_vacancy_llm_analysis">
+      <column name="vacancy_id"/>
+      <column name="analyze_type"/>
+    </createIndex>
+  </changeSet>
+
+  <!-- 3. Функциональный индекс для JSONB поля java -->
+  <changeSet id="add-index-llm-analysis-java-jsonb" author="jb2">
+    <sql>
+      CREATE INDEX idx_vacancy_llm_analysis_java_bool
+      ON jb2_vacancy_llm_analysis
+      USING btree (vacancy_id, analyze_type,
+      (CAST(jsonb_extract_path_text(analyze_data, 'java') AS boolean)))
+      WHERE analyze_type = 'JAVA_PRIMARY';
+    </sql>
+  </changeSet>
+
+  <!-- 4. Индекс для jb2_vacancy по archived и published_at -->
+  <changeSet id="add-index-vacancy-archived-published" author="jb2">
+    <createIndex indexName="idx_vacancy_archived_published"
+                 tableName="jb2_vacancy">
+      <column name="archived"/>
+      <column name="published_at" descending="true"/>
+    </createIndex>
+  </changeSet>
+
+</databaseChangeLog>
