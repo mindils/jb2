@@ -107,6 +107,23 @@
               dataLoader="vacanciesDl"
               labelPosition="TOP"
           />
+          <jpqlFilter id="noStatusFilter"
+                      dataLoader="vacanciesDl"
+                      label="Без статуса"
+                      labelPosition="TOP"
+                      css="padding-right: 1em"
+                      parameterClass="java.lang.Boolean"
+                      parameterName="noStatus">
+            <condition>
+              <c:jpql>
+                <c:where><![CDATA[
+        (:noStatus = false or e.vacancyInfo is null)
+      ]]>
+                </c:where>
+              </c:jpql>
+            </condition>
+            <checkbox/>
+          </jpqlFilter>
         </details>
       </startSlot>
 
