@@ -57,3 +57,9 @@ docs/
 .env
 .env.*
 !.env.example
+
+envs/app/data/
+**/data/postgres/
+**/data/temporal/
+*.db
+*.sqlite

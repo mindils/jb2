@@ -74,8 +74,7 @@ RUN set -e; \
         attempts=$((attempts+1)); \
         echo "Сборка не удалась (попытка $attempts/$max_attempts)"; \
         echo "Повтор через 20 секунд..."; \
-        # Небольшая очистка перед повтором
-        rm -rf build/tmp 2>/dev/null || true
+        rm -rf build/tmp 2>/dev/null || true; \
         sleep 20; \
     done; \
     if [ "$attempts" -ge "$max_attempts" ]; then \
