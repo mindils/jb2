@@ -25,15 +25,16 @@ public class IndustryPromptGenerator implements PromptGenerator {
         
         ФОРМАТ ОТВЕТА (только JSON, без текста):
         {
-          "company_category": "safe|neutral|toxic",
-          "project_category": "safe|neutral|toxic",
+          "company_category": "safe|neutral|problematic|toxic",
+          "project_category": "safe|neutral|problematic|toxic",
           "company_direction": "healthcare|education|energy|b2b_tech|fintech|consumer|advertising|harmful|none",
           "project_direction": "healthcare|education|energy|b2b_tech|fintech|consumer|advertising|harmful|none"
         }
         
         КАТЕГОРИИ:
         - safe: полезная/социально значимая (healthcare, education, energy)
-        - neutral: нейтральная/коммерческая (b2b_tech, fintech, consumer)
+        - neutral: нейтральная/коммерческая (b2b_tech, fintech)
+        - problematic: маркетплейс, e-commerce, интернет-магазин, игры, геймдев, стриминг, развлечения, музыка, кино (consumer)
         - toxic: вредная/опасная (advertising, harmful)
         
         НАПРАВЛЕНИЯ И СИГНАЛЫ:
@@ -54,7 +55,7 @@ public class IndustryPromptGenerator implements PromptGenerator {
         СИГНАЛЫ: банк, финтех, платежи, эквайринг, страхование, недвижимость, юридические услуги, KYC, брокер, трейдинг
         ВАЖНО: НЕ путай с микрозаймами - они toxic!
         
-        6. consumer → neutral
+        6. consumer → problematic
         СИГНАЛЫ: маркетплейс, e-commerce, интернет-магазин, игры, геймдев, стриминг, развлечения, музыка, кино
         
         7. advertising → toxic

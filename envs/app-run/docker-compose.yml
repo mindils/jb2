@@ -5,9 +5,10 @@ services:
     build:
       context: ../..
       dockerfile: envs/app-run/Dockerfile
-      cache_from:
-        - jb2:latest
-
+      # Отключаем BuildKit для слабого сервера (меньше overhead)
+      # args:
+      #   BUILDKIT_INLINE_CACHE: 0
+    image: jb2:latest
     container_name: jb2
     restart: unless-stopped
     network_mode: host
@@ -28,52 +29,62 @@ services:
       # Профиль Spring
       SPRING_PROFILES_ACTIVE: dev
 
-      # JVM настройки
-      JAVA_OPTS: -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC
+      # JVM настройки для слабого сервера
+      # Ограничиваем до 1GB максимум (оставляем ~900MB системе и БД)
+      JAVA_OPTS: -Xmx1024m -Xms256m -XX:+UseSerialGC -XX:MaxMetaspaceSize=256m
 
-      # Логирование
-      LOGGING_LEVEL_ROOT: INFO
+      # Логирование (минимальное для экономии ресурсов)
+      LOGGING_LEVEL_ROOT: WARN
       LOGGING_LEVEL_IO_JMIX: INFO
-      LOGGING_LEVEL_ECLIPSELINK_LOGGING_SQL: info
+      LOGGING_LEVEL_ECLIPSELINK_LOGGING_SQL: warn
+
+      # Отключаем лишние фичи Spring для экономии памяти
+      SPRING_JMX_ENABLED: "false"
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info
 
       # Таймзона
       TZ: Europe/Moscow
 
-    ports:
-      - "8085:8080"
+#    ports:
+#      - "8085:8080"
 
-    # Ограничения ресурсов для Raspberry Pi
-    # deploy:
-    #   resources:
-    #     limits:
-    #       memory: 1G
-    #       cpus: "2.0"
-    #     reservations:
-    #       memory: 512M
-    #       cpus: "1.0"
+    # Жесткие ограничения ресурсов для слабого сервера
+    deploy:
+      resources:
+        limits:
+          memory: 1200M    # Максимум 1.2GB для приложения
+          cpus: "1.5"      # До 1.5 CPU
+        reservations:
+          memory: 512M     # Минимум 512MB
+          cpus: "0.5"      # Минимум 0.5 CPU
 
-    # Health check
-    # healthcheck:
-    #   test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 5
-    #   start_period: 120s
+    # Облегченный healthcheck (реже проверяем)
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 45s
+      timeout: 10s
+      retries: 5
+      start_period: 180s  # Даем 3 минуты на запуск
 
-    # Дополнительные хосты (раскомментируйте если pi.local не резолвится)
-    # extra_hosts:
-    #   - "pi.local:192.168.1.100"
+    # Ротация логов (важно для малого диска)
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"    # Максимум 5MB на файл (было 10MB)
+        max-file: "2"     # Только 2 файла (было 3)
+        compress: "true"  # Сжимаем старые логи
 
-    # Логи
-    # logging:
-    #   driver: "json-file"
-    #   options:
-    #     max-size: "10m"
-    #     max-file: "3"
-
-    # networks:
-    #   - app-network
-
-# networks:
-#   app-network:
-#     driver: bridge
+# Для совместимости с Raspberry Pi (если понадобится)
+# Raspberry Pi 3B+: 1GB RAM, 4 cores ARM
+# Raspberry Pi 4: до 8GB RAM, 4 cores ARM
+#
+# Для Pi раскомментируйте и настройте под вашу модель:
+#
+# deploy:
+#   resources:
+#     limits:
+#       memory: 768M
+#       cpus: "2.0"
+#     reservations:
+#       memory: 384M
+#       cpus: "0.5"

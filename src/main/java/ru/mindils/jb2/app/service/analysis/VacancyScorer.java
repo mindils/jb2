@@ -212,6 +212,7 @@ public class VacancyScorer {
     switch (companyCategory) {
       case "safe" -> applyRule(INDUSTRY_COMPANY_SAFE, result);
       case "neutral" -> applyRule(INDUSTRY_COMPANY_NEUTRAL, result);
+      case "problematic" -> applyRule(INDUSTRY_COMPANY_PROBLEMATIC, result);
       case "toxic" -> applyRule(INDUSTRY_COMPANY_TOXIC, result);
     }
 
@@ -220,6 +221,7 @@ public class VacancyScorer {
     if (!projectCategory.equals(companyCategory) && !projectCategory.isEmpty()) {
       switch (projectCategory) {
         case "safe" -> applyRule(INDUSTRY_PROJECT_SAFE, result);
+        case "problematic" -> applyRule(INDUSTRY_PROJECT_PROBLEMATIC, result);
         case "toxic" -> applyRule(INDUSTRY_PROJECT_TOXIC, result);
         // neutral не обрабатываем - это нейтрально
       }

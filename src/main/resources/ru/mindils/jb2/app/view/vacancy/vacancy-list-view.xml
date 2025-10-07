@@ -124,7 +124,7 @@
               width="100%"
               minHeight="20em"
               dataContainer="vacanciesDc"
-              columnReorderingAllowed="true">
+              columnReorderingAllowed="true" themeNames="compact">
       <actions>
         <action id="readAction" type="list_read" text="Посмотреть">
           <properties>

@@ -32,9 +32,10 @@ public class JavaPrimaryPromptGenerator implements PromptGenerator {
         
         Analysis criteria:
         
-        1. JAVA (java: true/false) - Определите, будет ли Java использоваться в проекте/позиции.
+        1. JAVA (java: true) — позиция требует ПРЯМОЙ разработки на Java:
         
-        КЛЮЧЕВОЙ ПРИНЦИП: Если Java упоминается в требованиях или технологическом стеке позиции - это значит, что она ИСПОЛЬЗУЕТСЯ в проекте, и разработчик с высокой вероятностью будет с ней работать.
+        КЛЮЧЕВОЙ ПРИНЦИП: Если Java упоминается в требованиях или технологическом стеке позиции - это значит, что она ИСПОЛЬЗУЕТСЯ в проекте,
+         и разработчик с высокой вероятностью будет с ней работать.
         
         ✅ ВКЛЮЧАТЬ (java: true) - Java упоминается как технология проекта:
            • Java указана в требованиях к кандидату (любой уровень)
@@ -47,16 +48,14 @@ public class JavaPrimaryPromptGenerator implements PromptGenerator {
            • REST API/GraphQL на Java
            • Kafka, RabbitMQ, Elasticsearch в Java-проектах
            • "Fullstack" с упоминанием Java в стеке
+           • Frontend языки + упоминание Java в стеке
            • Java в списке Key skills
         
         ❌ ИСКЛЮЧАТЬ (java: false) ТОЛЬКО в явных случаях:
+           • Разработка на Android (даже если упоминается Java)
            • "Знание Java будет небольшим плюсом" (явно необязательно)
-           • Android/Kotlin mobile разработка
+           • Android/Kotlin mobile разработка или разработка для мобильных устройств 
            • Позиция ЯВНО не на Java (чистый frontend/DevOps/QA) БЕЗ упоминания Java
-           • JavaScript/TypeScript путаница (НЕ Java!)
-        
-        ПРАВИЛО: Если Java упомянута в требованиях или стеке - она ИСПОЛЬЗУЕТСЯ в проекте → TRUE
-        Исключение только если ЯВНО сказано "необязательно" или это не Java (Android/JavaScript).
         
         Response format (strict JSON):
         {
