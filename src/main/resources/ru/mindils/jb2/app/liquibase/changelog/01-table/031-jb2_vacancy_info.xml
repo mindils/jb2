@@ -22,7 +22,9 @@
   </changeSet>
   <changeSet id="2" author="jb2" runOnChange="true">
     <preConditions onFail="MARK_RAN">
-      <columnExists tableName="jb2_vacancy_info" columnName="created_date"/>
+      <not>
+        <columnExists tableName="jb2_vacancy_info" columnName="created_date"/>
+      </not>
     </preConditions>
     <addColumn tableName="jb2_vacancy_info">
       <column name="CREATED_DATE" type="${offsetDateTime.type}"/>

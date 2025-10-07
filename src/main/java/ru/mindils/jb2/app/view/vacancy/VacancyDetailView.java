@@ -1,9 +1,13 @@
 package ru.mindils.jb2.app.view.vacancy;
 
+import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.router.Route;
+import io.jmix.core.DataManager;
 import io.jmix.flowui.DialogWindows;
+import io.jmix.flowui.component.select.JmixSelect;
+import io.jmix.flowui.component.textfield.TypedTextField;
 import io.jmix.flowui.kit.component.button.JmixButton;
 import io.jmix.flowui.view.DialogWindow;
 import io.jmix.flowui.view.EditedEntityContainer;
@@ -13,8 +17,11 @@ import io.jmix.flowui.view.View;
 import io.jmix.flowui.view.ViewComponent;
 import io.jmix.flowui.view.ViewController;
 import io.jmix.flowui.view.ViewDescriptor;
+import org.springframework.beans.factory.annotation.Autowired;
 import ru.mindils.jb2.app.entity.Employer;
 import ru.mindils.jb2.app.entity.Vacancy;
+import ru.mindils.jb2.app.entity.VacancyInfo;
+import ru.mindils.jb2.app.entity.VacancyStatus;
 import ru.mindils.jb2.app.view.main.MainView;
 
 @Route(value = "vacancies/:id", layout = MainView.class)
@@ -30,6 +37,10 @@ public class VacancyDetailView extends StandardDetailView<Vacancy> {
   private Html brandedDescription;
   @ViewComponent
   private JmixButton employerUrl;
+  @Autowired
+  private DataManager dataManager;
+  @ViewComponent
+  private JmixSelect<Object> vacancyInfoSelect;
 
   public VacancyDetailView(DialogWindows dialogWindows) {
     this.dialogWindows = dialogWindows;
@@ -41,6 +52,11 @@ public class VacancyDetailView extends StandardDetailView<Vacancy> {
     brandedDescription.setHtmlContent("<div>%s</div>".formatted(getEditedEntity().getBrandedDescription()));
 
     employerUrl.setText(getEditedEntity().getEmployer().getName());
+
+    VacancyInfo vacancyInfo = getEditedEntity().getVacancyInfo();
+    if (vacancyInfo != null && vacancyInfo.getStatus() != null) {
+      vacancyInfoSelect.setValue(vacancyInfo.getStatus());
+    }
   }
 
   @Subscribe(id = "employerUrl", subject = "clickListener")
@@ -55,5 +71,20 @@ public class VacancyDetailView extends StandardDetailView<Vacancy> {
 
     window.open();
 
+  }
+
+  @Subscribe("vacancyInfoSelect")
+  public void onVacancyInfoSelectComponentValueChange(
+      final AbstractField.ComponentValueChangeEvent<JmixSelect<?>, VacancyStatus> event) {
+    VacancyInfo vacancyInfo = getEditedEntity()
+        .getVacancyInfo();
+
+    if (vacancyInfo == null) {
+      vacancyInfo = dataManager.create(VacancyInfo.class);
+      vacancyInfo.setId(getEditedEntity().getId());
+    }
+
+    vacancyInfo.setStatus(event.getValue() == null ? null : event.getValue());
+    dataManager.save(vacancyInfo);
   }
 }

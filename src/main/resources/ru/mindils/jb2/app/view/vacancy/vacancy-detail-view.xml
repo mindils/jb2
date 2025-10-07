@@ -43,7 +43,7 @@
       <textField property="createdAt" colspan="2"/>
       <textField property="updatedAt" colspan="2"/>
 
-      <vbox colspan="2"  spacing="false">
+      <vbox colspan="2" spacing="false">
         <textField property="vacancyScore.rating" width="100%"/>
         <textField property="vacancyScore.totalScore" width="100%"/>
       </vbox>
@@ -64,6 +64,9 @@
           classNames="sticky-footer">
       <button id="saveAndCloseButton" action="saveAction"/>
       <button id="closeButton" action="closeAction"/>
+      <select
+          id="vacancyInfoSelect" itemsEnum="ru.mindils.jb2.app.entity.VacancyStatus" emptySelectionAllowed="true"
+          emptySelectionCaption="Empty"/>
     </hbox>
 
   </layout>

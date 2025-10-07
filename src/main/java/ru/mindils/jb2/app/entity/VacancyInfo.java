@@ -5,9 +5,7 @@ import io.jmix.data.DdlGeneration;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.OffsetDateTime;
@@ -42,10 +40,17 @@ public class VacancyInfo {
   private OffsetDateTime lastModifiedDate;
 
   public VacancyStatus getStatus() {
-        return status == null ? null : VacancyStatus.fromId(status);
+    if (status == null) {
+      return VacancyStatus.NEW;  // ✅ Возвращаем NOT_SET вместо null
     }
+    return VacancyStatus.fromId(status);
+  }
 
-    public void setStatus(VacancyStatus status) {
-        this.status = status == null ? null : status.getId();
+  public void setStatus(VacancyStatus status) {
+    if (status == VacancyStatus.NEW) {
+      this.status = null;
+    } else {
+      this.status = status == null ? null : status.getId();
     }
+  }
 }

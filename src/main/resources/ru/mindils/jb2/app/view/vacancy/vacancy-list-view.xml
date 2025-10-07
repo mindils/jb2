@@ -11,10 +11,8 @@
           <property name="employerInfo" fetchPlan="_base">
           </property>
         </property>
-        <property name="vacancyInfo" fetchPlan="_base"/>
+        <property name="vacancyInfo" fetchPlan="_base" fetch="JOIN"/>
         <property name="vacancyScore" fetchPlan="_base">
-          <property name="totalScore"/>
-          <property name="rating"/>
         </property>
       </fetchPlan>
       <loader id="vacanciesDl" readOnly="true">
@@ -92,6 +90,15 @@
               defaultValue="EXCELLENT,GOOD,MODERATE"
           >
             <multiSelectComboBox itemsEnum="ru.mindils.jb2.app.entity.VacancyScoreRating"/>
+          </propertyFilter>
+          <propertyFilter
+              property="vacancyInfo.status"
+              operation="IN_LIST"
+              dataLoader="vacanciesDl"
+              label="Мой статус"
+              labelPosition="TOP"
+          >
+            <multiSelectComboBox itemsEnum="ru.mindils.jb2.app.entity.VacancyStatus"/>
           </propertyFilter>
           <propertyFilter
               label="Оценка"
