@@ -1,0 +1,59 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.idea
+.vscode
+*.iml
+*.ipr
+*.iws
+
+# Build outputs (будут созданы в контейнере)
+build/
+target/
+out/
+*.class
+
+# Gradle
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Временные файлы
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Documentation
+README.md
+*.md
+docs/
+
+# Tests
+**/test/
+**/*Test.java
+**/*Tests.java
+
+# Environment
+.env
+.env.*
+!.env.example
