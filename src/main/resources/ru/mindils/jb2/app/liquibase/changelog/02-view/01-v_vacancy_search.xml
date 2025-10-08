@@ -5,7 +5,7 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
     objectQuotingStrategy="QUOTE_ONLY_RESERVED_WORDS">
-  <changeSet id="1" author="app" runOnChange="true">
+  <changeSet id="2" author="app" runOnChange="true">
     <dropView viewName="v_vacancy_search" ifExists="true"/>
     <createView viewName="v_vacancy_search">
       SELECT v.id,
@@ -19,7 +19,7 @@
              vs.total_score AS score,
              vs.positive_description,
              vs.negative_description,
-             vi.status      AS my_status
+             COALESCE(vi.status, 'NEW') AS my_status
       FROM jb2_vacancy v
              LEFT JOIN jb2_employer e ON v.employer_id = e.id
              LEFT JOIN jb2_vacancy_llm_analysis vla

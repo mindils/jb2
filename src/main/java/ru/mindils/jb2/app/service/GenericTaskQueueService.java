@@ -16,6 +16,7 @@ import ru.mindils.jb2.app.dto.TaskQueueStats;
 import ru.mindils.jb2.app.entity.GenericTaskQueue;
 import ru.mindils.jb2.app.entity.GenericTaskQueueStatus;
 import ru.mindils.jb2.app.entity.GenericTaskQueueType;
+import ru.mindils.jb2.app.entity.VVacancySearch;
 import ru.mindils.jb2.app.entity.Vacancy;
 import ru.mindils.jb2.app.repository.GenericTaskQueueRepository;
 
@@ -31,8 +32,8 @@ import java.util.stream.Collectors;
  */
 @Service
 public class GenericTaskQueueService {
-
   private static final Logger log = LoggerFactory.getLogger(GenericTaskQueueService.class);
+
   private final GenericTaskQueueRepository genericTaskQueueRepository;
   private final FetchPlans fetchPlans;
   private final DataManager dataManager;
@@ -68,15 +69,40 @@ public class GenericTaskQueueService {
   @Transactional
   public int enqueueFromLoader(CollectionLoader<Vacancy> loader, GenericTaskQueueType taskType, int batchSize) {
     log.info("Starting to enqueue vacancies from loader for task type: {}", taskType);
-
     LoadContext<Vacancy> baseCtx = loader.createLoadContext();
     baseCtx.setFetchPlan(fetchPlans.builder(Vacancy.class).add("id").build());
-
     return enqueueVacancies(baseCtx, taskType, batchSize);
   }
 
   /**
-   * Внутренний метод для добавления вакансий в очередь
+   * Добавить вакансии из VVacancySearch loader в очередь задач
+   * ВАЖНО: добавляет только вакансии, соответствующие примененным фильтрам
+   *
+   * @param loader    CollectionLoader с VVacancySearch
+   * @param taskType  тип задачи
+   * @param batchSize размер батча для обработки
+   * @return количество добавленных задач
+   */
+  @Transactional
+  public int enqueueFromVViewLoader(CollectionLoader<VVacancySearch> loader, GenericTaskQueueType taskType, int batchSize) {
+    log.info("Starting to enqueue vacancies from VVacancySearch loader for task type: {}", taskType);
+
+    // Создаем базовый контекст с учетом всех фильтров из loader
+    LoadContext<VVacancySearch> baseCtx = loader.createLoadContext();
+
+    // Модифицируем только FetchPlan, сохраняя все условия запроса
+    baseCtx.setFetchPlan(fetchPlans.builder(VVacancySearch.class).add("id").build());
+
+    // Логируем количество записей для обработки
+    LoadContext<VVacancySearch> countCtx = (LoadContext<VVacancySearch>) baseCtx.copy();
+    long totalCount = dataManager.getCount(countCtx);
+    log.info("Total VVacancySearch records matching filters: {}", totalCount);
+
+    return enqueueVacanciesFromView(baseCtx, taskType, batchSize);
+  }
+
+  /**
+   * Внутренний метод для добавления вакансий в очередь из Vacancy
    */
   private int enqueueVacancies(LoadContext<Vacancy> baseCtx, GenericTaskQueueType taskType, int batchSize) {
     int totalEnqueued = 0;
@@ -121,7 +147,6 @@ public class GenericTaskQueueService {
         task.setTaskType(taskType.getId());
         task.setStatus(GenericTaskQueueStatus.NEW);
         task.setPriority(1);
-
         saveCtx.saving(task);
       }
 
@@ -137,6 +162,85 @@ public class GenericTaskQueueService {
     }
 
     log.info("Finished enqueueing vacancies. Total enqueued: {}", totalEnqueued);
+    return totalEnqueued;
+  }
+
+  /**
+   * Внутренний метод для добавления вакансий в очередь из VVacancySearch
+   * Сохраняет все условия фильтрации из loader
+   */
+  private int enqueueVacanciesFromView(LoadContext<VVacancySearch> baseCtx, GenericTaskQueueType taskType, int batchSize) {
+    int totalEnqueued = 0;
+    int first = 0;
+    final String entityName = "jb2_Vacancy";
+
+    // Посчитаем общее количество для обработки
+    LoadContext<VVacancySearch> countCtx = (LoadContext<VVacancySearch>) baseCtx.copy();
+    long totalCount = dataManager.getCount(countCtx);
+
+    while (true) {
+      // Копируем контекст для текущей страницы с СОХРАНЕНИЕМ всех фильтров
+      @SuppressWarnings("unchecked")
+      LoadContext<VVacancySearch> pageCtx = (LoadContext<VVacancySearch>) baseCtx.copy();
+
+      // Применяем пагинацию ПОВЕРХ фильтров
+      pageCtx.getQuery().setFirstResult(first).setMaxResults(batchSize);
+
+      List<VVacancySearch> page = dataManager.loadList(pageCtx);
+      if (page.isEmpty()) {
+        break;
+      }
+
+      log.info("Processing VVacancySearch batch {}-{} of {} for task type: {}",
+          first + 1,
+          Math.min(first + page.size(), totalCount),
+          totalCount,
+          taskType);
+
+      // Собираем ID вакансий
+      List<String> vacancyIds = page.stream()
+          .map(VVacancySearch::getId)
+          .collect(Collectors.toList());
+
+      log.debug("Batch vacancy IDs: {}", vacancyIds);
+
+      // Находим уже существующие записи в очереди
+      Set<String> existingIds = findExistingTaskQueueIds(vacancyIds, taskType);
+
+      // Создаем новые записи
+      SaveContext saveCtx = new SaveContext();
+      for (VVacancySearch vVacancySearch : page) {
+        String vacancyId = vVacancySearch.getId();
+
+        // Пропускаем, если уже в очереди
+        if (existingIds.contains(vacancyId)) {
+          log.debug("Vacancy {} already in queue for task type {}, skipping", vacancyId, taskType);
+          continue;
+        }
+
+        GenericTaskQueue task = dataManager.create(GenericTaskQueue.class);
+        task.setEntityName(entityName);
+        task.setEntityId(vacancyId);
+        task.setTaskType(taskType.getId());
+        task.setStatus(GenericTaskQueueStatus.NEW);
+        task.setPriority(1);
+        saveCtx.saving(task);
+      }
+
+      // Сохраняем батч
+      if (!saveCtx.getEntitiesToSave().isEmpty()) {
+        dataManager.save(saveCtx);
+        int batchEnqueued = saveCtx.getEntitiesToSave().size();
+        totalEnqueued += batchEnqueued;
+        log.info("Enqueued {} vacancies from VVacancySearch in current batch (progress: {}/{})",
+            batchEnqueued, first + page.size(), totalCount);
+      }
+
+      first += page.size();
+    }
+
+    log.info("Finished enqueueing vacancies from VVacancySearch. Total enqueued: {} out of {} filtered",
+        totalEnqueued, totalCount);
     return totalEnqueued;
   }
 

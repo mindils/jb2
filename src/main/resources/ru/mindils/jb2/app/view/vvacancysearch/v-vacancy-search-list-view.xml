@@ -9,7 +9,7 @@
       <fetchPlan extends="_base"/>
       <loader id="vVacancySearchesDl" readOnly="true">
         <query>
-          <![CDATA[select e from jb2_VVacancySearch e]]>
+          <![CDATA[select e from jb2_VVacancySearch e order by e.score desc ]]>
         </query>
       </loader>
     </collection>
@@ -18,6 +18,12 @@
     <dataLoadCoordinator auto="true"/>
     <urlQueryParameters>
       <pagination component="pagination"/>
+      <propertyFilter component="idFilter" param="id"/>
+      <propertyFilter component="archFilter" param="archived"/>
+      <propertyFilter component="isJavaVacancyFilter" param="isJavaVacancy"/>
+      <propertyFilter component="ratingFilter" param="rating"/>
+      <propertyFilter component="myStatusFilter" param="myStatus"/>
+      <propertyFilter component="scoreFilter" param="score"/>
     </urlQueryParameters>
   </facets>
   <actions>
@@ -25,82 +31,119 @@
     <action id="discardAction" type="lookup_discard"/>
   </actions>
   <layout>
-    <hbox id="buttonsPanel" classNames="buttons-panel">
-      <simplePagination id="pagination" dataLoader="vVacancySearchesDl"/>
-      <propertyFilter
-          id="idFilter"
-          label="ИД Вакансии"
-          property="id"
-          operation="EQUAL"
-          dataLoader="vVacancySearchesDl"
-          labelPosition="TOP"
-          css="flex: 1 1 180px; min-width: 120px;"
-      >
-      </propertyFilter>
-
-      <propertyFilter
-          property="isJavaVacancy"
-          operation="EQUAL"
-          label="Java Вакансия"
-          dataLoader="vVacancySearchesDl"
-      />
-
-      <propertyFilter
-          label="Архив"
-          property="archived"
-          operation="EQUAL"
-          dataLoader="vVacancySearchesDl"
-      />
-      <propertyFilter
-          property="rating"
-          operation="IN_LIST"
-          dataLoader="vVacancySearchesDl"
-          label="Рейтинг"
-          labelPosition="TOP"
-          defaultValue="EXCELLENT,GOOD,MODERATE"
-          css="flex: 1 1 180px; min-width: 120px;">
-        <multiSelectComboBox itemsEnum="ru.mindils.jb2.app.entity.VacancyScoreRating"/>
-      </propertyFilter>
-
-      <propertyFilter
-          property="myStatus"
-          operation="IN_LIST"
-          dataLoader="vVacancySearchesDl"
-          label="Мой статус"
-          labelPosition="TOP"
-          css="flex: 1 1 180px; min-width: 120px;">
-        <multiSelectComboBox itemsEnum="ru.mindils.jb2.app.entity.VacancyStatus"/>
-      </propertyFilter>
-
-      <propertyFilter
-          label="Оценка ≥"
-          property="score"
-          operation="GREATER_OR_EQUAL"
-          dataLoader="vVacancySearchesDl"
-          labelPosition="TOP"
-          css="flex: 1 1 180px; min-width: 120px;"
-      />
-
+    <!-- Адаптивный контейнер - одна линия на десктопе, перенос на мобильных -->
+    <hbox width="100%"
+          css="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-start; margin-bottom: 1rem;">
+      <!-- Фильтры -->
+      <details summaryText="Фильтры"
+               themeNames="small"
+               css="flex: 1 1 auto; min-width: 300px;">
+        <hbox css="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+          <propertyFilter
+              id="idFilter"
+              label="ИД Вакансии"
+              property="id"
+              operation="EQUAL"
+              dataLoader="vVacancySearchesDl"
+              labelPosition="TOP"
+              css="flex: 1 1 180px; min-width: 120px;"
+          />
+          <propertyFilter
+              id="isJavaVacancyFilter"
+              property="isJavaVacancy"
+              operation="EQUAL"
+              label="Java Вакансия"
+              defaultValue="true"
+              dataLoader="vVacancySearchesDl"
+              labelPosition="TOP"
+              css="flex: 1 1 180px; min-width: 120px;"
+          />
+          <propertyFilter
+              id="archFilter"
+              label="Архив"
+              property="archived"
+              defaultValue="false"
+              operation="EQUAL"
+              dataLoader="vVacancySearchesDl"
+              labelPosition="TOP"
+              css="flex: 1 1 180px; min-width: 120px;"
+          />
+          <propertyFilter
+              id="ratingFilter"
+              property="rating"
+              operation="IN_LIST"
+              dataLoader="vVacancySearchesDl"
+              label="Рейтинг"
+              labelPosition="TOP"
+              css="flex: 1 1 180px; min-width: 120px;">
+            <multiSelectComboBox itemsEnum="ru.mindils.jb2.app.entity.VacancyScoreRating"/>
+          </propertyFilter>
+          <propertyFilter
+              id="myStatusFilter"
+              property="myStatus"
+              operation="IN_LIST"
+              dataLoader="vVacancySearchesDl"
+              label="Мой статус"
+              labelPosition="TOP"
+              css="flex: 1 1 180px; min-width: 120px;">
+            <multiSelectComboBox itemsEnum="ru.mindils.jb2.app.entity.VacancyStatus"/>
+          </propertyFilter>
+          <propertyFilter
+              id="scoreFilter"
+              label="Оценка ≥"
+              property="score"
+              operation="GREATER_OR_EQUAL"
+              dataLoader="vVacancySearchesDl"
+              labelPosition="TOP"
+              css="flex: 1 1 180px; min-width: 120px;"
+          />
+        </hbox>
+      </details>
+      <!-- Кнопка добавления в очередь -->
+      <dropdownButton id="vacancyDropdown"
+                      text="Добавить в очередь"
+                      icon="CALC"
+                      css="flex: 0 0 auto; min-width: 200px;">
+        <items>
+          <textItem id="updateVacancyBtn" text="Обновление"/>
+          <textItem id="addVacancyInFirstLlmQueueBtn" text="Первичный анализ llm"/>
+          <textItem id="addVacancyInSocialLlmQueueBtn" text="Полный анализ llm"/>
+          <textItem id="calculateVacancyScoresBtn" text="Рассчитать оценки"/>
+        </items>
+      </dropdownButton>
+      <!-- Пагинация -->
+      <simplePagination id="pagination"
+                        dataLoader="vVacancySearchesDl"
+                        css="flex: 0 0 auto;"/>
     </hbox>
+    <!-- Таблица -->
     <dataGrid id="vVacancySearchesDataGrid"
               width="100%"
               minHeight="20em"
               dataContainer="vVacancySearchesDc"
-              columnReorderingAllowed="true">
+              columnReorderingAllowed="true"
+              themeNames="compact">
       <actions>
+        <action id="readAction" type="list_read"/>
       </actions>
       <columns resizable="true">
-        <column property="id"/>
-        <column property="archived"/>
-        <column property="employerName"/>
-        <column property="isJavaVacancy"/>
-        <column property="myStatus"/>
-        <column property="name"/>
+        <column property="id" autoWidth="true"/>
+        <column property="name" autoWidth="true"/>
+        <column property="myStatus" autoWidth="true"/>
+        <column property="employerName" autoWidth="true"/>
+        <column property="score" autoWidth="true"/>
+        <column property="rating" autoWidth="true"/>
         <column property="negativeDescription"/>
         <column property="positiveDescription"/>
-        <column property="rating"/>
-        <column property="score"/>
+        <column property="isJavaVacancy" autoWidth="true"/>
+        <column property="archived" autoWidth="true"/>
       </columns>
+      <contextMenu>
+        <item id="updateVacancyMenu" text="Обновить вакансию"/>
+        <item id="firstLlmAnalyseMenu" text="Первичный анализ"/>
+        <item id="fullLlmAnalyseMenu" text="Полный анализ"/>
+        <item id="vacancyScoreCalculateMenu" text="Посчитать оценку"/>
+      </contextMenu>
     </dataGrid>
     <hbox id="lookupActions" visible="false">
       <button id="selectButton" action="selectAction"/>

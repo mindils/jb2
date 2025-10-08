@@ -20,7 +20,6 @@ import static ru.mindils.jb2.app.service.analysis.ScoringRules.*;
  */
 @Component
 public class VacancyScorer {
-
   private static final Logger log = LoggerFactory.getLogger(VacancyScorer.class);
 
   /**
@@ -30,6 +29,8 @@ public class VacancyScorer {
    * @return результат с оценкой и описанием
    */
   public VacancyScoringResult calculateScore(List<VacancyLlmAnalysis> analyses) {
+    long startTime = System.currentTimeMillis();
+
     VacancyScoringResult result = new VacancyScoringResult();
 
     if (analyses == null || analyses.isEmpty()) {
@@ -37,9 +38,10 @@ public class VacancyScorer {
       return result;
     }
 
-    log.info("Calculating score based on {} analysis results", analyses.size());
+    log.debug("Calculating score based on {} analysis results", analyses.size());
 
     // Группируем анализы по типу
+    long groupStartTime = System.currentTimeMillis();
     Map<VacancyLlmAnalysisType, JsonNode> analysisMap = analyses.stream()
         .filter(a -> a.getAnalyzeData() != null)
         .collect(Collectors.toMap(
@@ -47,8 +49,10 @@ public class VacancyScorer {
             VacancyLlmAnalysis::getAnalyzeData,
             (existing, replacement) -> replacement
         ));
+    log.debug("Grouping analyses took {} ms", System.currentTimeMillis() - groupStartTime);
 
     // Суммируем оценки и собираем описания
+    long calcStartTime = System.currentTimeMillis();
     calculatePrimaryScore(analysisMap.get(VacancyLlmAnalysisType.JAVA_PRIMARY), result);
     calculateTechnicalScore(analysisMap.get(VacancyLlmAnalysisType.TECHNICAL), result);
     calculateCompensationScore(analysisMap.get(VacancyLlmAnalysisType.COMPENSATION), result);
@@ -57,9 +61,11 @@ public class VacancyScorer {
     calculateIndustryScore(analysisMap.get(VacancyLlmAnalysisType.INDUSTRY), result);
     calculateWorkConditionsScore(analysisMap.get(VacancyLlmAnalysisType.WORK_CONDITIONS), result);
     calculateStopFactorsScore(analysisMap.get(VacancyLlmAnalysisType.STOP_FACTORS), result);
+    log.debug("Score calculation took {} ms", System.currentTimeMillis() - calcStartTime);
 
-    log.info("Total calculated score: {} points, positive factors: {}, negative factors: {}",
-        result.getTotalScore(), result.getPositiveFactors().size(), result.getNegativeFactors().size());
+    long totalTime = System.currentTimeMillis() - startTime;
+    log.debug("Total scoring time: {} ms. Score: {} points, positive factors: {}, negative factors: {}",
+        totalTime, result.getTotalScore(), result.getPositiveFactors().size(), result.getNegativeFactors().size());
 
     return result;
   }
@@ -300,7 +306,6 @@ public class VacancyScorer {
    */
   private void applyRule(Rule rule, VacancyScoringResult result) {
     result.addScore(rule.getScore());
-
     // Добавляем описание только если оно задано
     if (rule.getDescription() != null) {
       if (rule.getScore() > 0) {
