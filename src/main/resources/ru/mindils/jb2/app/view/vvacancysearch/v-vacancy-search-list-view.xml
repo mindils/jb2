@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<view xmlns="http://jmix.io/schema/flowui/view"
+      xmlns:c="http://jmix.io/schema/flowui/jpql-condition"
+      title="msg://VVacancySearchListView.title"
+      focusComponent="vVacancySearchesDataGrid">
+  <data>
+    <collection id="vVacancySearchesDc"
+                class="ru.mindils.jb2.app.entity.VVacancySearch">
+      <fetchPlan extends="_base"/>
+      <loader id="vVacancySearchesDl" readOnly="true">
+        <query>
+          <![CDATA[select e from jb2_VVacancySearch e]]>
+        </query>
+      </loader>
+    </collection>
+  </data>
+  <facets>
+    <dataLoadCoordinator auto="true"/>
+    <urlQueryParameters>
+      <pagination component="pagination"/>
+    </urlQueryParameters>
+  </facets>
+  <actions>
+    <action id="selectAction" type="lookup_select"/>
+    <action id="discardAction" type="lookup_discard"/>
+  </actions>
+  <layout>
+    <hbox id="buttonsPanel" classNames="buttons-panel">
+      <simplePagination id="pagination" dataLoader="vVacancySearchesDl"/>
+      <propertyFilter
+          id="idFilter"
+          label="ИД Вакансии"
+          property="id"
+          operation="EQUAL"
+          dataLoader="vVacancySearchesDl"
+          labelPosition="TOP"
+          css="flex: 1 1 180px; min-width: 120px;"
+      >
+      </propertyFilter>
+
+      <propertyFilter
+          property="isJavaVacancy"
+          operation="EQUAL"
+          label="Java Вакансия"
+          dataLoader="vVacancySearchesDl"
+      />
+
+      <propertyFilter
+          label="Архив"
+          property="archived"
+          operation="EQUAL"
+          dataLoader="vVacancySearchesDl"
+      />
+      <propertyFilter
+          property="rating"
+          operation="IN_LIST"
+          dataLoader="vVacancySearchesDl"
+          label="Рейтинг"
+          labelPosition="TOP"
+          defaultValue="EXCELLENT,GOOD,MODERATE"
+          css="flex: 1 1 180px; min-width: 120px;">
+        <multiSelectComboBox itemsEnum="ru.mindils.jb2.app.entity.VacancyScoreRating"/>
+      </propertyFilter>
+
+      <propertyFilter
+          property="myStatus"
+          operation="IN_LIST"
+          dataLoader="vVacancySearchesDl"
+          label="Мой статус"
+          labelPosition="TOP"
+          css="flex: 1 1 180px; min-width: 120px;">
+        <multiSelectComboBox itemsEnum="ru.mindils.jb2.app.entity.VacancyStatus"/>
+      </propertyFilter>
+
+      <propertyFilter
+          label="Оценка ≥"
+          property="score"
+          operation="GREATER_OR_EQUAL"
+          dataLoader="vVacancySearchesDl"
+          labelPosition="TOP"
+          css="flex: 1 1 180px; min-width: 120px;"
+      />
+
+    </hbox>
+    <dataGrid id="vVacancySearchesDataGrid"
+              width="100%"
+              minHeight="20em"
+              dataContainer="vVacancySearchesDc"
+              columnReorderingAllowed="true">
+      <actions>
+      </actions>
+      <columns resizable="true">
+        <column property="id"/>
+        <column property="archived"/>
+        <column property="employerName"/>
+        <column property="isJavaVacancy"/>
+        <column property="myStatus"/>
+        <column property="name"/>
+        <column property="negativeDescription"/>
+        <column property="positiveDescription"/>
+        <column property="rating"/>
+        <column property="score"/>
+      </columns>
+    </dataGrid>
+    <hbox id="lookupActions" visible="false">
+      <button id="selectButton" action="selectAction"/>
+      <button id="discardButton" action="discardAction"/>
+    </hbox>
+  </layout>
+</view>

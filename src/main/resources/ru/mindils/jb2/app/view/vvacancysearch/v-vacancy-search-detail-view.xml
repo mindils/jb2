@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<view xmlns="http://jmix.io/schema/flowui/view"
+      title="msg://VVacancySearchDetailView.title"
+      focusComponent="form">
+  <data>
+    <instance id="vVacancySearchDc"
+              class="ru.mindils.jb2.app.entity.VVacancySearch">
+      <fetchPlan extends="_base"/>
+      <loader id="vVacancySearchDl"/>
+    </instance>
+  </data>
+  <facets>
+    <dataLoadCoordinator auto="true"/>
+  </facets>
+  <actions>
+    <action id="saveAction" type="detail_saveClose"/>
+    <action id="closeAction" type="detail_close"/>
+  </actions>
+  <layout>
+    <formLayout id="form" dataContainer="vVacancySearchDc">
+      <responsiveSteps>
+        <responsiveStep minWidth="0" columns="1"/>
+        <responsiveStep minWidth="40em" columns="2"/>
+      </responsiveSteps>
+      <textField id="idField" property="id"/>
+      <checkbox id="archivedField" property="archived"/>
+      <textField id="employerNameField" property="employerName"/>
+      <checkbox id="isJavaVacancyField" property="isJavaVacancy"/>
+      <textField id="myStatusField" property="myStatus"/>
+      <textField id="nameField" property="name"/>
+      <textArea id="negativeDescriptionField" height="9.5em" property="negativeDescription"/>
+      <textArea id="positiveDescriptionField" height="9.5em" property="positiveDescription"/>
+      <textField id="ratingField" property="rating"/>
+      <textField id="scoreField" property="score"/>
+    </formLayout>
+    <hbox id="detailActions">
+      <button id="saveAndCloseButton" action="saveAction"/>
+      <button id="closeButton" action="closeAction"/>
+    </hbox>
+  </layout>
+</view>

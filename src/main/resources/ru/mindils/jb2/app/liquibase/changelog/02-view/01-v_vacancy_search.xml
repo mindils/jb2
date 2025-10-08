@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+    objectQuotingStrategy="QUOTE_ONLY_RESERVED_WORDS">
+  <changeSet id="1" author="app" runOnChange="true">
+    <dropView viewName="v_vacancy_search" ifExists="true"/>
+    <createView viewName="v_vacancy_search">
+      SELECT v.id,
+             v.name,
+             v.salary,
+             v.professional_roles,
+             v.work_format,
+             e.name         AS employer_name,
+             (vla.analyze_data ->>'java')::boolean AS is_java_vacancy, v.archived,
+             vs.rating,
+             vs.total_score AS score,
+             vs.positive_description,
+             vs.negative_description,
+             vi.status      AS my_status
+      FROM jb2_vacancy v
+             LEFT JOIN jb2_employer e ON v.employer_id = e.id
+             LEFT JOIN jb2_vacancy_llm_analysis vla
+                       ON v.id = vla.vacancy_id
+                         AND vla.analyze_type = 'JAVA_PRIMARY'
+             LEFT JOIN jb2_vacancy_score vs ON v.id = vs.vacancy_id
+             LEFT JOIN jb2_vacancy_info vi ON v.id = vi.id
+    </createView>
+  </changeSet>
+
+</databaseChangeLog>

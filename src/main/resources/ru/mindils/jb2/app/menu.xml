@@ -10,6 +10,8 @@
       <item view="jb2_VacancyOpsView" title="msg://ru.mindils.jb2.app.view.vacancyops/vacancyOpsView.title"/>
       <item view="jb2_VacancyManagerView"
             title="msg://ru.mindils.jb2.app.view.vacancymanager/vacancyManagerView.title"/>
+      <item view="jb2_VVacancySearch.list"
+            title="msg://ru.mindils.jb2.app.view.vvacancysearch/VVacancySearchListView.title"/>
     </menu>
 
 </menu-config>
