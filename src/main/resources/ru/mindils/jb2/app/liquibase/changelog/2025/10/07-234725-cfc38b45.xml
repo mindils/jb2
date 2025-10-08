@@ -5,42 +5,62 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-  <!-- 1. КРИТИЧНЫЙ: Индекс для jb2_vacancy_score по rating -->
-  <changeSet id="add-index-vacancy-score-rating" author="jb2">
-    <createIndex indexName="idx_vacancy_score_rating_vacancy"
+  <!-- 1. КРИТИЧНО: Замените существующий индекс на vacancy_score -->
+  <changeSet id="drop-old-vacancy-score-index" author="jb2">
+    <dropIndex indexName="idx_vacancy_score_rating_vacancy"
+               tableName="jb2_vacancy_score"/>
+  </changeSet>
+
+  <changeSet id="add-optimized-vacancy-score-index" author="jb2">
+    <createIndex indexName="idx_vacancy_score_vacancy_rating"
                  tableName="jb2_vacancy_score">
+      <column name="vacancy_id"/>
       <column name="rating"/>
-      <column name="vacancy_id"/>
     </createIndex>
   </changeSet>
 
-  <!-- 2. Составной индекс для jb2_vacancy_llm_analysis -->
-  <changeSet id="add-index-llm-analysis-composite" author="jb2">
-    <createIndex indexName="idx_vacancy_llm_analysis_type_vacancy"
-                 tableName="jb2_vacancy_llm_analysis">
-      <column name="vacancy_id"/>
-      <column name="analyze_type"/>
-    </createIndex>
-  </changeSet>
-
-  <!-- 3. Функциональный индекс для JSONB поля java -->
-  <changeSet id="add-index-llm-analysis-java-jsonb" author="jb2">
+  <!-- 2. КРИТИЧНО: Частичный индекс для неархивных вакансий -->
+  <changeSet id="add-partial-index-not-archived" author="jb2">
     <sql>
-      CREATE INDEX idx_vacancy_llm_analysis_java_bool
-      ON jb2_vacancy_llm_analysis
-      USING btree (vacancy_id, analyze_type,
-      (CAST(jsonb_extract_path_text(analyze_data, 'java') AS boolean)))
-      WHERE analyze_type = 'JAVA_PRIMARY';
+      CREATE INDEX idx_vacancy_not_archived_published
+        ON jb2_vacancy(published_at DESC, id)
+        WHERE archived = false;
     </sql>
   </changeSet>
 
-  <!-- 4. Индекс для jb2_vacancy по archived и published_at -->
-  <changeSet id="add-index-vacancy-archived-published" author="jb2">
-    <createIndex indexName="idx_vacancy_archived_published"
-                 tableName="jb2_vacancy">
-      <column name="archived"/>
-      <column name="published_at" descending="true"/>
+  <!-- 3. Covering индекс для vacancy_info со статусом -->
+  <changeSet id="add-index-vacancy-info-status" author="jb2">
+    <createIndex indexName="idx_vacancy_info_id_status"
+                 tableName="jb2_vacancy_info">
+      <column name="id"/>
+      <column name="status"/>
     </createIndex>
+  </changeSet>
+
+  <!-- 4. Оптимизация для фильтра по totalScore -->
+  <changeSet id="add-index-vacancy-score-total" author="jb2">
+    <createIndex indexName="idx_vacancy_score_vacancy_total"
+                 tableName="jb2_vacancy_score">
+      <column name="vacancy_id"/>
+      <column name="total_score"/>
+    </createIndex>
+  </changeSet>
+
+  <!-- 5. Индекс для связи vacancy -> employer -->
+  <changeSet id="add-index-vacancy-employer" author="jb2">
+    <createIndex indexName="idx_vacancy_employer_id"
+                 tableName="jb2_vacancy">
+      <column name="employer_id"/>
+    </createIndex>
+  </changeSet>
+
+  <!-- 6. Частичный индекс для популярных рейтингов (опционально) -->
+  <changeSet id="add-partial-index-good-ratings" author="jb2">
+    <sql>
+      CREATE INDEX idx_vacancy_score_good_ratings
+        ON jb2_vacancy_score(vacancy_id)
+        WHERE rating IN ('EXCELLENT', 'GOOD', 'MODERATE');
+    </sql>
   </changeSet>
 
 </databaseChangeLog>

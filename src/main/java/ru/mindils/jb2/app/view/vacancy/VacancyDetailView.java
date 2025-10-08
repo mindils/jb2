@@ -3,11 +3,11 @@ package ru.mindils.jb2.app.view.vacancy;
 import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.Html;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.Route;
 import io.jmix.core.DataManager;
 import io.jmix.flowui.DialogWindows;
 import io.jmix.flowui.component.select.JmixSelect;
-import io.jmix.flowui.component.textfield.TypedTextField;
 import io.jmix.flowui.kit.component.button.JmixButton;
 import io.jmix.flowui.view.DialogWindow;
 import io.jmix.flowui.view.EditedEntityContainer;
@@ -86,5 +86,13 @@ public class VacancyDetailView extends StandardDetailView<Vacancy> {
 
     vacancyInfo.setStatus(event.getValue() == null ? null : event.getValue());
     dataManager.save(vacancyInfo);
+  }
+
+  @Subscribe(id = "goToHhBtn", subject = "clickListener")
+  public void onGoToHhBtnClick(final ClickEvent<JmixButton> event) {
+    String alternateUrl = getEditedEntity().getAlternateUrl();
+    if (alternateUrl != null && !alternateUrl.isEmpty()) {
+      UI.getCurrent().getPage().open(alternateUrl, "_blank");
+    }
   }
 }

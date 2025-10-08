@@ -28,7 +28,7 @@
       <textField property="id" colspan="1"/>
       <textField property="name" colspan="4"/>
       <button id="employerUrl" text="msg://employerUrl.text"/>
-
+      <button id="goToHhBtn" text="Открыть"/>
       <textField property="alternateUrl" colspan="1"/>
       <checkbox property="archived" colspan="1"/>
 
@@ -38,10 +38,6 @@
       <textField property="city" colspan="1"/>
       <textField property="metro" colspan="1"/>
 
-      <textField property="initialCreatedAt" colspan="2"/>
-      <textField property="publishedAt" colspan="2"/>
-      <textField property="createdAt" colspan="2"/>
-      <textField property="updatedAt" colspan="2"/>
 
       <vbox colspan="2" spacing="false">
         <textField property="vacancyScore.rating" width="100%"/>
@@ -56,6 +52,16 @@
         </tab>
         <tab id="descriptionBrandedDescription" label="msg://brandedDescriptionTab.label">
           <html colspan="8" id="brandedDescription" content="msg://description.emptyHtml"/>
+        </tab>
+        <tab id="moreInfo" label="Дополнительно">
+          <vbox spacing="false">
+            <formLayout dataContainer="vacancyDc">
+              <textField property="initialCreatedAt" colspan="2"/>
+              <textField property="publishedAt" colspan="2"/>
+              <textField property="createdAt" colspan="2"/>
+              <textField property="updatedAt" colspan="2"/>
+            </formLayout>
+          </vbox>
         </tab>
       </tabSheet>
     </formLayout>
