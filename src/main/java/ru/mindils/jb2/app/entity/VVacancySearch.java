@@ -5,14 +5,18 @@ import io.jmix.core.metamodel.annotation.JmixEntity;
 import io.jmix.data.DbView;
 import io.jmix.data.DdlGeneration;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 @DbView
 @DdlGeneration(unmappedColumns = {"salary", "professional_roles", "work_format"})
 @JmixEntity
 @Table(name = "v_vacancy_search")
 @Entity(name = "jb2_VVacancySearch")
+@Getter
+@Setter
 public class VVacancySearch {
-  @Column(name = "id")
+  @Column(name = "id", nullable = false)
   @Id
   private String id;
 
@@ -46,84 +50,30 @@ public class VVacancySearch {
   @Column(name = "score")
   private Integer score;
 
-  public Integer getScore() {
-    return score;
+  @Column(name = "MY_STATUS_EMPLOYER")
+  private String myStatusEmployer;
+
+  public EmployerStatus getMyStatusEmployer() {
+    return myStatusEmployer == null ? null : EmployerStatus.fromId(myStatusEmployer);
   }
 
-  public void setScore(Integer score) {
-    this.score = score;
+  public void setMyStatusEmployer(EmployerStatus myStatusEmployer) {
+    this.myStatusEmployer = myStatusEmployer == null ? null : myStatusEmployer.getId();
   }
 
-  public String getRating() {
-    return rating;
+  public VacancyScoreRating getRating() {
+    return rating == null ? null : VacancyScoreRating.fromId(rating);
   }
 
-  public void setRating(String rating) {
-    this.rating = rating;
+  public void setRating(VacancyScoreRating rating) {
+    this.rating = rating ==  null ? null : rating.getId();
   }
 
-  public String getPositiveDescription() {
-    return positiveDescription;
+  public VacancyStatus getMyStatus() {
+    return myStatus ==  null ? null : VacancyStatus.fromId(myStatus);
   }
 
-  public void setPositiveDescription(String positiveDescription) {
-    this.positiveDescription = positiveDescription;
+  public void setMyStatus(VacancyStatus myStatus) {
+    this.myStatus = myStatus == null ? null : myStatus.getId();
   }
-
-  public String getNegativeDescription() {
-    return negativeDescription;
-  }
-
-  public void setNegativeDescription(String negativeDescription) {
-    this.negativeDescription = negativeDescription;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public String getMyStatus() {
-    return myStatus;
-  }
-
-  public void setMyStatus(String myStatus) {
-    this.myStatus = myStatus;
-  }
-
-  public Boolean getIsJavaVacancy() {
-    return isJavaVacancy;
-  }
-
-  public void setIsJavaVacancy(Boolean isJavaVacancy) {
-    this.isJavaVacancy = isJavaVacancy;
-  }
-
-  public String getEmployerName() {
-    return employerName;
-  }
-
-  public void setEmployerName(String employerName) {
-    this.employerName = employerName;
-  }
-
-  public Boolean getArchived() {
-    return archived;
-  }
-
-  public void setArchived(Boolean archived) {
-    this.archived = archived;
-  }
-
-  public String getId() {
-    return id;
-  }
-
-  public void setId(String id) {
-    this.id = id;
-  }
-
 }

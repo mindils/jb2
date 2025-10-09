@@ -28,12 +28,12 @@
       <textField id="idField" property="id" colspan="2"/>
       <textField id="nameField" property="name" colspan="6"/>
       <div colspan="2">
-        <image property="logoUrl240" dataContainer="employerDc" classNames="2" />
+        <image property="logoUrl240" dataContainer="employerDc" classNames="2"/>
       </div>
-      <textField id="siteUrlField" property="siteUrl" colspan="2" />
+      <textField id="siteUrlField" property="siteUrl" colspan="2"/>
       <textField id="alternateField" property="alternateUrl" colspan="2"/>
-      <textField id="cityField" property="city" colspan="2" />
-      <textArea id="industriesField" property="industriesStr" colspan="8" />
+      <textField id="cityField" property="city" colspan="2"/>
+      <textArea id="industriesField" property="industriesStr" colspan="8"/>
 
       <tabSheet id="tabSheet" width="100%" colspan="8">
         <tab id="descriptionDescription" label="msg://descriptionTab.label">
@@ -47,6 +47,11 @@
     <hbox id="detailActions" width="100%" classNames="sticky-footer">
       <button id="saveAndCloseButton" action="saveAction"/>
       <button id="closeButton" action="closeAction"/>
+      <select
+          id="employerInfoSelect"
+          itemsEnum="ru.mindils.jb2.app.entity.EmployerStatus"
+          emptySelectionAllowed="true"
+          emptySelectionCaption="Empty"/>
     </hbox>
   </layout>
 </view>

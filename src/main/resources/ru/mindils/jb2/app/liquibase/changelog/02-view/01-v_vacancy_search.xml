@@ -13,13 +13,14 @@
              v.salary,
              v.professional_roles,
              v.work_format,
-             e.name         AS employer_name,
+             e.name                     AS employer_name,
              (vla.analyze_data ->>'java')::boolean AS is_java_vacancy, v.archived,
              vs.rating,
-             vs.total_score AS score,
+             vs.total_score             AS score,
              vs.positive_description,
              vs.negative_description,
-             COALESCE(vi.status, 'NEW') AS my_status
+             COALESCE(vi.status, 'NEW') AS my_status,
+             COALESCE(ei.status, 'NEW') AS my_status_employer
       FROM jb2_vacancy v
              LEFT JOIN jb2_employer e ON v.employer_id = e.id
              LEFT JOIN jb2_vacancy_llm_analysis vla
@@ -27,6 +28,7 @@
                          AND vla.analyze_type = 'JAVA_PRIMARY'
              LEFT JOIN jb2_vacancy_score vs ON v.id = vs.vacancy_id
              LEFT JOIN jb2_vacancy_info vi ON v.id = vi.id
+             LEFT JOIN jb2_employer_info ei on e.id = ei.id
     </createView>
   </changeSet>
 

@@ -1,7 +1,5 @@
 package ru.mindils.jb2.app.view.vvacancysearch;
 
-import com.vaadin.flow.component.HasValue;
-import com.vaadin.flow.component.HasValueAndElement;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.router.Route;
 import io.jmix.core.DataManager;
@@ -9,9 +7,6 @@ import io.jmix.core.LoadContext;
 import io.jmix.flowui.DialogWindows;
 import io.jmix.flowui.Dialogs;
 import io.jmix.flowui.Notifications;
-import io.jmix.flowui.component.multiselectcombobox.JmixMultiSelectComboBox;
-import io.jmix.flowui.component.propertyfilter.PropertyFilter;
-import io.jmix.flowui.entity.filter.PropertyFilterCondition;
 import io.jmix.flowui.kit.action.ActionPerformedEvent;
 import io.jmix.flowui.kit.component.dropdownbutton.DropdownButtonItem;
 import io.jmix.flowui.model.CollectionContainer;
@@ -24,7 +19,6 @@ import ru.mindils.jb2.app.service.VacancyLlmAnalysisWorkflowService;
 import ru.mindils.jb2.app.service.VacancyScorerService;
 import ru.mindils.jb2.app.service.VacancyUpdateWorkflowService;
 import ru.mindils.jb2.app.view.main.MainView;
-import ru.mindils.jb2.app.view.vacancy.VacancyDetailView;
 
 import java.util.*;
 
@@ -76,75 +70,6 @@ public class VVacancySearchListView extends StandardListView<VVacancySearch> {
     notifications.create("Первичный анализ запущен")
         .withType(Notifications.Type.SUCCESS)
         .show();
-  }
-
-  @ViewComponent
-  private PropertyFilter<List<VacancyScoreRating>> ratingFilter;
-
-  @ViewComponent
-  private PropertyFilter<List<VacancyStatus>> myStatusFilter;
-
-
-  @Subscribe
-  public void onBeforeShow(final BeforeShowEvent event) {
-    // Устанавливаем значения по умолчанию, если фильтр пустой
-//    if (ratingFilter.getValue() == null) {
-//  }
-    ratingFilter.setValue(List.of(
-            VacancyScoreRating.EXCELLENT,
-            VacancyScoreRating.GOOD,
-            VacancyScoreRating.MODERATE
-        )
-    );
-
-    myStatusFilter.setValue(List.of(
-            VacancyStatus.NEW
-        )
-    );
-  }
-
-  @Subscribe
-  public void onReady(final ReadyEvent event) {
-    // Синхронизируем UI после полной загрузки
-    syncAllFilters();
-  }
-
-  private void syncAllFilters() {
-    syncFilterWithComboBox(ratingFilter);
-    syncFilterWithComboBox(myStatusFilter);
-  }
-
-  @SuppressWarnings("unchecked")
-  private <T> void syncFilterWithComboBox(PropertyFilter<T> filter) {
-    if (filter == null) {
-      return;
-    }
-
-    // Получаем значение напрямую из PropertyFilter
-    Object filterValue = filter.getValue();
-
-    if (filterValue == null) {
-      return;
-    }
-
-    // Получаем вложенный компонент
-    HasValueAndElement<?, ?> valueComponent = filter.getValueComponent();
-
-    if (!(valueComponent instanceof JmixMultiSelectComboBox)) {
-      return;
-    }
-
-    JmixMultiSelectComboBox<T> comboBox = (JmixMultiSelectComboBox<T>) valueComponent;
-
-    // Устанавливаем значение в comboBox
-    if (filterValue instanceof Collection) {
-      // Для IN_LIST операции значение уже Collection
-      Collection<T> collection = (Collection<T>) filterValue;
-      comboBox.setValue(new LinkedHashSet<>(collection));
-    } else {
-      // Если вдруг одно значение (не должно быть для IN_LIST, но на всякий случай)
-      comboBox.setValue(Set.of((T) filterValue));
-    }
   }
 
   @Subscribe("vacancyDropdown.updateVacancyBtn")

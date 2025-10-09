@@ -7,9 +7,7 @@ import org.springframework.lang.Nullable;
 
 public enum EmployerStatus implements EnumClass<String> {
 
-    NEW("NEW"),
-    IN_PROGRESS("IN_PROGRESS"),
-    ARCHIVED("ARCHIVED"),
+  NEW("NEW"),
     DECLINED("DECLINED"),
     APPROVED("APPROVED");
 

@@ -76,13 +76,15 @@ public class VacancyDetailView extends StandardDetailView<Vacancy> {
   @Subscribe("vacancyInfoSelect")
   public void onVacancyInfoSelectComponentValueChange(
       final AbstractField.ComponentValueChangeEvent<JmixSelect<?>, VacancyStatus> event) {
-    VacancyInfo vacancyInfo = getEditedEntity()
-        .getVacancyInfo();
 
-    if (vacancyInfo == null) {
-      vacancyInfo = dataManager.create(VacancyInfo.class);
-      vacancyInfo.setId(getEditedEntity().getId());
-    }
+    VacancyInfo vacancyInfo = dataManager.load(VacancyInfo.class)
+        .id(getEditedEntity().getId())
+        .optional()
+        .orElseGet(() -> {
+          VacancyInfo info = dataManager.create(VacancyInfo.class);
+          info.setId(getEditedEntity().getId());
+          return info;
+        });
 
     vacancyInfo.setStatus(event.getValue() == null ? null : event.getValue());
     dataManager.save(vacancyInfo);

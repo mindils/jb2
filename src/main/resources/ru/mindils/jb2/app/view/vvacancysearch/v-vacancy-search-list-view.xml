@@ -74,6 +74,7 @@
               operation="IN_LIST"
               dataLoader="vVacancySearchesDl"
               label="Рейтинг"
+              defaultValue="EXCELLENT,GOOD,MODERATE"
               labelPosition="TOP"
               css="flex: 1 1 180px; min-width: 120px;">
             <multiSelectComboBox itemsEnum="ru.mindils.jb2.app.entity.VacancyScoreRating"/>
@@ -84,6 +85,7 @@
               operation="IN_LIST"
               dataLoader="vVacancySearchesDl"
               label="Мой статус"
+              defaultValue="NEW"
               labelPosition="TOP"
               css="flex: 1 1 180px; min-width: 120px;">
             <multiSelectComboBox itemsEnum="ru.mindils.jb2.app.entity.VacancyStatus"/>
@@ -97,6 +99,17 @@
               labelPosition="TOP"
               css="flex: 1 1 180px; min-width: 120px;"
           />
+          <propertyFilter
+              id="myEmployerStatusFilter"
+              property="myStatusEmployer"
+              operation="IN_LIST"
+              dataLoader="vVacancySearchesDl"
+              label="Мой статус Компании"
+              labelPosition="TOP"
+              defaultValue="NEW,APPROVED"
+              css="flex: 1 1 180px; min-width: 120px;">
+            <multiSelectComboBox itemsEnum="ru.mindils.jb2.app.entity.EmployerStatus"/>
+          </propertyFilter>
         </hbox>
       </details>
       <!-- Кнопка добавления в очередь -->
