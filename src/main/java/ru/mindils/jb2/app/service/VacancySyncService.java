@@ -13,6 +13,7 @@ import ru.mindils.jb2.app.dto.VacancySearchResponseDto;
 import ru.mindils.jb2.app.entity.Employer;
 import ru.mindils.jb2.app.entity.Vacancy;
 import ru.mindils.jb2.app.entity.VacancyFilterParams;
+import ru.mindils.jb2.app.integration.http.ExternalServiceException;
 import ru.mindils.jb2.app.mapper.EmployerMapper;
 import ru.mindils.jb2.app.mapper.VacancyMapper;
 import ru.mindils.jb2.app.rest.vacancy.EmployerApiClient;
@@ -20,6 +21,7 @@ import ru.mindils.jb2.app.rest.vacancy.VacancyApiClient;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 @Service
@@ -100,11 +102,14 @@ public class VacancySyncService {
 
   /**
    * Сохранение детальной информации о вакансии с работодателем
+   * Обрабатывает случай когда вакансия удалена (404) - помечает её как архивную
+   *
    * @param vacancyId ID вакансии
    */
   @Transactional
   public void saveVacancyWithDetails(String vacancyId) {
     log.info("Saving vacancy with details: {}", vacancyId);
+
     try {
       // Получаем детальную информацию о вакансии
       VacancyDto vacancyDto = vacancyApiClient.getById(vacancyId);
@@ -127,9 +132,45 @@ public class VacancySyncService {
       vacancy.setEmployer(mergedEmployer);
       entityManager.merge(vacancy);
       log.info("Successfully saved vacancy: {} with employer: {}", vacancyId, employerId);
+
+    } catch (ExternalServiceException e) {
+      // Проверяем, это ли 404 ошибка
+      if (e.getMessage() != null && e.getMessage().contains("404")) {
+        log.warn("Vacancy {} not found on hh.ru (404), marking as archived", vacancyId);
+        markVacancyAsArchived(vacancyId);
+      } else {
+        log.error("External service error while saving vacancy {}: {}", vacancyId, e.getMessage());
+        throw new RuntimeException("Failed to save vacancy " + vacancyId + ": " + e.getMessage(), e);
+      }
     } catch (Exception e) {
       log.error("Error saving vacancy {}: {}", vacancyId, e.getMessage(), e);
       throw new RuntimeException("Failed to save vacancy " + vacancyId, e);
+    }
+  }
+
+  /**
+   * Помечает вакансию как архивную если она существует в БД
+   *
+   * @param vacancyId ID вакансии для архивации
+   */
+  @Transactional
+  public void markVacancyAsArchived(String vacancyId) {
+    try {
+      Optional<Vacancy> vacancyOpt = dataManager.load(Vacancy.class)
+          .id(vacancyId)
+          .optional();
+
+      if (vacancyOpt.isPresent()) {
+        Vacancy vacancy = vacancyOpt.get();
+        vacancy.setArchived(true);
+        dataManager.save(vacancy);
+        log.info("Marked vacancy {} as archived", vacancyId);
+      } else {
+        log.warn("Vacancy {} not found in database, cannot mark as archived", vacancyId);
+      }
+    } catch (Exception e) {
+      log.error("Error marking vacancy {} as archived: {}", vacancyId, e.getMessage(), e);
+      // Не пробрасываем ошибку дальше - это не критично
     }
   }
 
