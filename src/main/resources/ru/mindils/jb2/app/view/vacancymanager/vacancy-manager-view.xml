@@ -50,8 +50,18 @@
         <button id="syncAllBtn" text="Полная синхронизация вакансий" themeNames="primary small"/>
         <button id="stopSyncBtn" text="Остановить" themeNames="primary small"/>
 
-        <textField id="daysField" label="Дней (1..30, пусто = авто(последнее обновление))" clearButtonVisible="true" width="14rem"/>
+        <textField id="daysField" label="Дней (1..30, пусто = авто(последнее обновление))"
+                   clearButtonVisible="true" width="14rem"/>
         <button id="syncRecentBtn" text="Синхронизация за период" themeName="small"/>
+      </vbox>
+    </hbox>
+    <h3 text="Полное обновление"/>
+    <hbox width="100%" classNames="gap-m" wrap="true">
+      <vbox classNames="stat-card" themeNames="spacing" width="16rem">
+        <h4 text="Запустить полное обновление"/>
+        <hbox>
+          <button id="runMasterProcessingBtn" icon="vaadin:play"/>
+        </hbox>
       </vbox>
     </hbox>
     <button id="refreshStatsBtn" text="Обновить" icon="vaadin:rotate-right"/>

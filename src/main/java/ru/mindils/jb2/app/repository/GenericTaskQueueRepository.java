@@ -5,6 +5,7 @@ import io.jmix.core.entity.KeyValueEntity;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import ru.mindils.jb2.app.dto.TaskQueueStats;
 import ru.mindils.jb2.app.entity.GenericTaskQueueStatus;
 import ru.mindils.jb2.app.entity.GenericTaskQueueType;
@@ -12,7 +13,7 @@ import ru.mindils.jb2.app.entity.VacancyLlmAnalysisType;
 
 import java.time.OffsetDateTime;
 import java.util.Arrays;
-import java.util.List;
+ import java.util.*;
 import java.util.stream.Collectors;
 
 @Repository
@@ -239,6 +240,46 @@ public class GenericTaskQueueRepository {
         .setParameter(4, GenericTaskQueueStatus.NEW.getId())
         .setParameter(5, GenericTaskQueueStatus.PROCESSING.getId())
         .setParameter(6, GenericTaskQueueStatus.COMPLETED.getId())
+        .executeUpdate();
+  }
+
+  /**
+   * Добавляет в очередь все Java вакансии из v_vacancy_search для обновления
+   */
+  @Transactional
+  public int enqueueJavaVacanciesForUpdate() {
+    var sql = """
+        INSERT INTO jb2_generic_task_queue
+            (entity_name, entity_id, task_type, status,
+             error_message, priority, created_date, last_modified_date)
+        SELECT
+            'jb2_vacancy'          AS entity_name,
+            v.id                   AS entity_id,
+            ?1::varchar            AS task_type,
+            ?2::varchar            AS status,
+            NULL                   AS error_message,
+            1                      AS priority,
+            NOW()                  AS created_date,
+            NOW()                  AS last_modified_date
+        FROM v_vacancy_search v
+        WHERE v.is_java_vacancy = true
+          AND (v.archived IS NULL OR v.archived = false)
+          AND NOT EXISTS (
+              SELECT 1
+              FROM jb2_generic_task_queue q
+              WHERE q.entity_id   = v.id
+                AND q.entity_name = 'jb2_vacancy'
+                AND q.task_type   = ?1::varchar
+                AND q.status IN (?3::varchar, ?4::varchar, ?5::varchar)
+          )
+        """;
+
+    return em.createNativeQuery(sql)
+        .setParameter(1, GenericTaskQueueType.VACANCY_UPDATE.getId())
+        .setParameter(2, GenericTaskQueueStatus.NEW.getId())
+        .setParameter(3, GenericTaskQueueStatus.NEW.getId())
+        .setParameter(4, GenericTaskQueueStatus.PROCESSING.getId())
+        .setParameter(5, GenericTaskQueueStatus.COMPLETED.getId())
         .executeUpdate();
   }
 }

@@ -16,6 +16,7 @@ import io.jmix.flowui.view.ViewDescriptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.mindils.jb2.app.entity.GenericTaskQueueType;
 import ru.mindils.jb2.app.service.GenericTaskQueueService;
+import ru.mindils.jb2.app.service.MasterVacancyProcessingWorkflowService;
 import ru.mindils.jb2.app.service.VacancyQueueProcessorWorkflowService;
 import ru.mindils.jb2.app.service.VacancyWorkflowService;
 import ru.mindils.jb2.app.view.main.MainView;
@@ -43,6 +44,9 @@ public class VacancyManagerView extends StandardView {
 
   @Autowired
   private VacancyWorkflowService vacancyWorkflowService;
+
+  @Autowired
+  private MasterVacancyProcessingWorkflowService masterProcessingService;
 
   @Autowired
   private VacancyQueueProcessorWorkflowService vacancyQueueProcessorWorkflowService;
@@ -191,6 +195,35 @@ public class VacancyManagerView extends StandardView {
   @Subscribe(id = "refreshStatsBtn", subject = "clickListener")
   public void onRefreshStatsBtnClick(final ClickEvent<JmixButton> event) {
     refreshStats();
+  }
+
+  @Subscribe(id = "runMasterProcessingBtn", subject = "clickListener")
+  public void onRunMasterProcessingBtnClick(final ClickEvent<JmixButton> event) {
+    try {
+      if (masterProcessingService.isProcessing()) {
+        notifications.create("Master processing уже запущен")
+            .withType(Notifications.Type.WARNING)
+            .show();
+        return;
+      }
+
+      // Запускаем с синхронизацией за последний день
+      masterProcessingService.startMasterProcessing(1);
+
+      notifications.create(
+          "Master processing запущен:\n" +
+              "1. Добавление Java вакансий в очередь\n" +
+              "2. Обновление вакансий\n" +
+              "3. Синхронизация за последний день\n" +
+              "4. Полный LLM анализ\n" +
+              "5. Расчет оценок"
+      ).withType(Notifications.Type.SUCCESS).show();
+
+    } catch (Exception e) {
+      notifications.create("Ошибка запуска: " + e.getMessage())
+          .withType(Notifications.Type.ERROR)
+          .show();
+    }
   }
 
 }
